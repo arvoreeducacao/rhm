@@ -24,7 +24,8 @@ program
   .description(
     "Give your AI coding assistant the full picture. Multi-repo context, agent orchestration, and end-to-end workflows."
   )
-  .version("0.1.0");
+  .version("0.1.2")
+  .enablePositionalOptions();
 
 program.addCommand(initCommand);
 program.addCommand(addRepoCommand);
