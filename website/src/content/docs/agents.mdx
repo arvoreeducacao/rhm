@@ -143,6 +143,27 @@ hub agents add debugger --global
 | `-g, --global` | Install to global `~/.cursor/agents/` |
 | `-r, --repo <repo>` | Override registry repository |
 
+### `hub agents sync`
+
+Install all agents referenced in your `hub.yaml` workflow pipeline from the registry in a single command:
+
+```bash
+hub agents sync
+```
+
+It reads the pipeline steps, collects every agent name, and downloads the ones that aren't already installed locally. Existing agents are skipped unless you pass `--force`:
+
+```bash
+hub agents sync --force
+hub agents sync --global
+```
+
+| Flag | Description |
+|------|-------------|
+| `-g, --global` | Install to global `~/.cursor/agents/` |
+| `-r, --repo <repo>` | Override registry repository |
+| `-f, --force` | Re-install even if the agent already exists locally |
+
 ### `hub agents remove <name>`
 
 Remove an agent:

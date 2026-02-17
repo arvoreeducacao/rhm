@@ -191,6 +191,8 @@ hub agents add debugger            # Install from registry (by name)
 hub agents add arvoreeducacao/rhm  # Install from GitHub repo
 hub agents add debugger --global   # Install globally
 hub agents remove debugger         # Remove an agent
+hub agents sync                    # Install all agents from hub.yaml pipeline
+hub agents sync --force            # Re-install all, even if they exist
 ```
 
 | Flag | Description |
@@ -198,6 +200,7 @@ hub agents remove debugger         # Remove an agent
 | `-a, --agent <name>` | Install a specific agent only |
 | `-g, --global` | Install to/remove from global `~/.cursor/agents/` |
 | `-r, --repo <repo>` | Override registry repository |
+| `-f, --force` | Re-install even if already installed (sync only) |
 
 See [Agents](/docs/agents) for more details.
 

@@ -4,6 +4,7 @@ import { mkdir, readdir, readFile, rm, copyFile, writeFile } from "node:fs/promi
 import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
 import chalk from "chalk";
+import { loadHubConfig } from "../core/hub-config.js";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 const DEFAULT_BRANCH = "main";
@@ -249,5 +250,71 @@ export const agentsCommand = new Command("agents")
 
         await rm(target);
         console.log(chalk.green(`\nRemoved agent: ${name}\n`));
+      })
+  )
+  .addCommand(
+    new Command("sync")
+      .description("Install all agents referenced in hub.yaml from the registry")
+      .option("-g, --global", "Install to global ~/.cursor/agents/")
+      .option("-r, --repo <repo>", "Registry repository (owner/repo)")
+      .option("-f, --force", "Re-install even if the agent already exists locally")
+      .action(async (opts: { global?: boolean; repo?: string; force?: boolean }) => {
+        const hubDir = process.cwd();
+
+        let config;
+        try {
+          config = await loadHubConfig(hubDir);
+        } catch {
+          console.log(chalk.red("\n  Could not load hub.yaml in the current directory.\n"));
+          return;
+        }
+
+        const steps = config.workflow?.pipeline || [];
+        const agentNames = new Set<string>();
+
+        for (const step of steps) {
+          if (step.agent) agentNames.add(step.agent);
+          if (Array.isArray(step.agents)) {
+            for (const a of step.agents) {
+              agentNames.add(typeof a === "string" ? a : a.agent);
+            }
+          }
+        }
+
+        if (agentNames.size === 0) {
+          console.log(chalk.yellow("\n  No agents found in hub.yaml workflow pipeline.\n"));
+          return;
+        }
+
+        console.log(chalk.blue(`\n━━━ Syncing ${agentNames.size} agent(s) from hub.yaml ━━━\n`));
+
+        const targetBase = opts.global
+          ? join(process.env.HOME || "~", ".cursor", "agents")
+          : join(hubDir, "agents");
+
+        let installed = 0;
+        let skipped = 0;
+
+        for (const name of agentNames) {
+          const fileName = name.endsWith(".md") ? name : `${name}.md`;
+          const targetPath = join(targetBase, fileName);
+
+          if (!opts.force && existsSync(targetPath)) {
+            console.log(chalk.dim(`  ✓ ${name} (already installed)`));
+            skipped++;
+            continue;
+          }
+
+          await addFromRegistry(name, hubDir, { global: opts.global, repo: opts.repo });
+          installed++;
+        }
+
+        console.log();
+        if (installed > 0) console.log(chalk.green(`  ${installed} agent(s) installed`));
+        if (skipped > 0) console.log(chalk.dim(`  ${skipped} agent(s) already up to date`));
+        if (installed === 0 && skipped > 0) {
+          console.log(chalk.green("  All agents are already installed. Use --force to re-install."));
+        }
+        console.log();
       })
   );
