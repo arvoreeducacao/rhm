@@ -90,6 +90,23 @@ hub skills find react
 
 This points you to [skills.sh](https://skills.sh), the open directory and leaderboard for agent skills.
 
+## Discovering Skills from the Registry
+
+Before installing, you can browse all available skills in the [Registry](/docs/registry):
+
+```bash
+hub registry list --type skill
+```
+
+Or search for a specific skill:
+
+```bash
+hub registry search "nestjs" --type skill
+hub registry search "frontend" --type skill
+```
+
+This queries the registry repository and shows each skill's name and description, so you can decide which ones to install.
+
 ## Installing from the Registry
 
 Repo Hub maintains its own registry of skills. Install by name:
@@ -103,13 +120,6 @@ The registry is the Repo Hub repository itself. You can override it with the `HU
 
 ```bash
 hub skills add backend-nestjs --repo myorg/my-skills-repo
-```
-
-Browse the registry:
-
-```bash
-hub registry list
-hub registry search nestjs
 ```
 
 ## CLI Commands

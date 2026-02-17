@@ -1,0 +1,132 @@
+---
+title: Registry
+description: Browse, search, and install skills, agents, hooks, and commands from the shared registry.
+order: 14
+---
+
+The Registry is a centralized catalog of reusable components — skills, agents, hooks, and commands — that you can browse, search, and install with a single command.
+
+By default, the registry points to the Repo Hub repository itself (`arvoreeducacao/rhm`). You can override it with the `HUB_REGISTRY` environment variable or the `--repo` flag on any registry command.
+
+## Browsing the Registry
+
+### List Everything
+
+```bash
+hub registry list
+```
+
+This fetches all available skills, agents, hooks, and commands and displays them grouped by type.
+
+### Filter by Type
+
+```bash
+hub registry list --type skill
+hub registry list --type agent
+hub registry list --type hook
+hub registry list --type command
+```
+
+### Search by Keyword
+
+```bash
+hub registry search "nestjs"
+hub registry search "debug"
+```
+
+You can combine search with a type filter:
+
+```bash
+hub registry search "frontend" --type skill
+hub registry search "review" --type agent
+```
+
+## Installing from the Registry
+
+Each component type has its own `add` command that accepts a registry name:
+
+```bash
+hub skills add backend-nestjs
+hub agents add debugger
+hub hooks add format-on-save
+hub commands add review
+```
+
+These commands download the component directly from the registry repository via GitHub API — no cloning required.
+
+### Install Globally
+
+Add `--global` to install to your home directory so the component is shared across all projects:
+
+```bash
+hub skills add backend-nestjs --global
+hub agents add debugger --global
+```
+
+### Override the Registry
+
+Point to a different repository:
+
+```bash
+hub registry list --repo myorg/my-registry
+hub skills add my-skill --repo myorg/my-registry
+```
+
+Or set it permanently:
+
+```bash
+export HUB_REGISTRY=myorg/my-registry
+```
+
+## Registry Structure
+
+The registry repository follows this directory layout:
+
+```
+registry-repo/
+├── skills/
+│   ├── backend-nestjs/
+│   │   └── SKILL.md
+│   ├── frontend-nextjs/
+│   │   └── SKILL.md
+│   └── ...
+├── agents/
+│   ├── debugger.md
+│   ├── code-reviewer.md
+│   └── ...
+├── hooks/
+│   ├── format-on-save/
+│   │   └── README.md
+│   └── ...
+└── commands/
+    ├── review.md
+    ├── deploy.md
+    └── ...
+```
+
+| Directory | Format | Description |
+|-----------|--------|-------------|
+| `skills/` | Directory with `SKILL.md` | Domain knowledge packages following the Agent Skills standard |
+| `agents/` | Markdown files | Agent definitions with structured instructions |
+| `hooks/` | Directory with `README.md` | Editor lifecycle automation hooks |
+| `commands/` | Markdown files | Reusable slash-command prompts |
+
+## CLI Reference
+
+| Command | Description |
+|---------|-------------|
+| `hub registry list` | List all registry components |
+| `hub registry list -t <type>` | List by type (`skill`, `agent`, `hook`, `command`) |
+| `hub registry search [query]` | Search by keyword |
+| `hub registry search -t <type> [query]` | Search filtered by type |
+
+| Flag | Description |
+|------|-------------|
+| `-t, --type <type>` | Filter by type: `skill`, `agent`, `hook`, `command` |
+| `-r, --repo <repo>` | Override registry repository (default: `arvoreeducacao/rhm`) |
+
+## Publishing to the Registry
+
+To add your own skills, agents, hooks, or commands to the registry, open a pull request to the registry repository with your component in the correct directory.
+
+See [Skills](/docs/skills#creating-custom-skills) for the skill format, or check existing entries in the registry repo for examples of each type.

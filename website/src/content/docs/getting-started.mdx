@@ -14,10 +14,16 @@ Repo Hub gives your AI coding agent everything it needs to ship real features â€
 
 ## Quick Start
 
+Every command can be run with `npx @arvoretech/hub <command>`. To use the shorter `hub` alias throughout this guide (and all other docs), install it globally first:
+
+```bash
+npm i -g @arvoretech/hub
+```
+
 ### 1. Initialize a new hub
 
 ```bash
-npx @arvoretech/hub init my-hub
+hub init my-hub
 cd my-hub
 ```
 
@@ -26,8 +32,8 @@ This creates a new directory with a `hub.yaml` configuration file. The file incl
 ### 2. Add your repositories
 
 ```bash
-npx @arvoretech/hub add-repo git@github.com:company/api.git --tech nestjs
-npx @arvoretech/hub add-repo git@github.com:company/frontend.git --tech nextjs
+hub add-repo git@github.com:company/api.git --tech nestjs
+hub add-repo git@github.com:company/frontend.git --tech nextjs
 ```
 
 Each repository is declared in `hub.yaml` with its tech stack, commands, and environment configuration.
@@ -35,7 +41,7 @@ Each repository is declared in `hub.yaml` with its tech stack, commands, and env
 ### 3. Set up the workspace
 
 ```bash
-npx @arvoretech/hub setup
+hub setup
 ```
 
 This clones all repos, starts infrastructure services (databases, caches), and installs dependencies.
@@ -43,9 +49,9 @@ This clones all repos, starts infrastructure services (databases, caches), and i
 ### 4. Generate editor configuration
 
 ```bash
-npx @arvoretech/hub generate --editor cursor      # or
-npx @arvoretech/hub generate --editor kiro         # or
-npx @arvoretech/hub generate --editor claude-code
+hub generate --editor cursor      # or
+hub generate --editor kiro         # or
+hub generate --editor claude-code
 ```
 
 This reads `hub.yaml` and produces editor-specific files:

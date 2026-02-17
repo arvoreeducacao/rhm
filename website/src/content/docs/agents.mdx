@@ -95,6 +95,23 @@ Agents are defined as Markdown files with structured instructions. You can custo
 2. Adding custom agents in your `hub.yaml` workflow
 3. Creating new agent templates in the `agents/` directory
 
+## Discovering Agents from the Registry
+
+Before installing, you can browse all available agents in the [Registry](/docs/registry):
+
+```bash
+hub registry list --type agent
+```
+
+Or search for a specific agent:
+
+```bash
+hub registry search "debug" --type agent
+hub registry search "review" --type agent
+```
+
+This queries the registry repository and shows each agent's name and description, so you can decide which ones to install.
+
 ## Managing Agents with the CLI
 
 ### `hub agents list`
