@@ -65,6 +65,7 @@ export interface WorkflowStep {
   tools?: string[];
   when?: string;
   actions?: string[];
+  mode?: "plan" | "agent";
 }
 
 export interface SecretRef {

@@ -460,6 +460,11 @@ Follow each step sequentially, applying the role-specific instructions from the 
     const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
     parts.push(`### ${stepTitle}`);
 
+    if (step.mode === "plan") {
+      parts.push(`**This step is a planning phase.** Do NOT make any code changes. Focus on reading, analyzing, and collaborating with the user to define requirements before proceeding.`);
+      parts.push(``);
+    }
+
     if (step.agent) {
       parts.push(`Follow the instructions from the \`agent-${step.agent}.md\` steering file.${step.output ? ` Write output to \`${step.output}\`.` : ""}`);
 
@@ -688,6 +693,11 @@ function buildPipelineSection(steps: WorkflowStep[]): string {
     const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
     parts.push(`### ${stepTitle}`);
 
+    if (step.mode === "plan") {
+      parts.push(`**Before starting this step, switch to Plan Mode** by calling \`SwitchMode\` with \`target_mode_id: "plan"\`. This ensures collaborative planning with the user in a read-only context before any implementation begins.`);
+      parts.push(``);
+    }
+
     if (step.agent) {
       parts.push(`Call the \`${step.agent}\` agent.${step.output ? ` It writes to \`${step.output}\`.` : ""}`);
 
@@ -728,6 +738,11 @@ If any coding agent has doubts, they will write questions in their document. App
         parts.push(`
 If any validation agent leaves comments requiring fixes, call the relevant coding agents again to address them.`);
       }
+    }
+
+    if (step.mode === "plan") {
+      parts.push(`
+**After this step is complete and approved**, switch back to Agent Mode to proceed with the next step.`);
     }
 
     parts.push("");

@@ -270,6 +270,11 @@
         "output": { "type": "string", "description": "Output filename" },
         "tools": { "type": "array", "items": { "type": "string" }, "description": "Tools for this step" },
         "when": { "type": "string", "description": "Condition" },
+        "mode": {
+          "type": "string",
+          "enum": ["plan", "agent"],
+          "description": "Cursor interaction mode for this step. 'plan' switches to read-only collaborative planning mode before executing the step. 'agent' (default) uses the standard agent mode."
+        },
         "actions": {
           "type": "array",
           "items": {
