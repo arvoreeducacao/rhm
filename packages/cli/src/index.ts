@@ -16,6 +16,7 @@ import { pullCommand, statusCommand, execCommand } from "./commands/repos.js";
 import { worktreeCommand } from "./commands/worktree.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { toolsCommand } from "./commands/tools.js";
+import { updateCommand } from "./commands/update.js";
 
 const program = new Command();
 
@@ -24,7 +25,7 @@ program
   .description(
     "Give your AI coding assistant the full picture. Multi-repo context, agent orchestration, and end-to-end workflows."
   )
-  .version("0.1.2")
+  .version("0.2.0")
   .enablePositionalOptions();
 
 program.addCommand(initCommand);
@@ -44,5 +45,6 @@ program.addCommand(execCommand);
 program.addCommand(worktreeCommand);
 program.addCommand(doctorCommand);
 program.addCommand(toolsCommand);
+program.addCommand(updateCommand);
 
 program.parse();

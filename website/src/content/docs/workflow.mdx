@@ -126,6 +126,29 @@ The `actions` field triggers built-in delivery behaviors:
 
 **The editor is the runtime.** No daemon, no server, no separate process.
 
+## Enforcing the Pipeline
+
+By default, the orchestrator follows the pipeline but may occasionally take shortcuts for simple tasks. Set `enforce_workflow: true` to add strict enforcement rules to the generated prompt:
+
+```yaml
+workflow:
+  enforce_workflow: true
+  pipeline:
+    - step: refinement
+      agent: refinement
+    # ...
+```
+
+When enabled, the orchestrator will:
+
+- **Never skip a step**, even for small or "obvious" changes
+- **Always execute steps in order** — no reordering, merging, or ad-hoc parallelization
+- **Always delegate to the designated agent** instead of attempting the work itself
+- **Always validate outputs** before moving to the next step
+- **Ask for confirmation** if the user explicitly requests skipping a step
+
+This is recommended for teams that want a consistent, auditable development process on every task.
+
 ## Prompt Customization
 
 You can inject custom content into the generated orchestrator prompt using the `prompt` field. This lets you add company-specific instructions, guidelines, or context without editing generated files.

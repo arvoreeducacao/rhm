@@ -133,6 +133,7 @@ export interface HubConfig {
     task_folder?: string;
     pipeline?: WorkflowStep[];
     prompt?: PromptCustomization;
+    enforce_workflow?: boolean;
   };
 }
 

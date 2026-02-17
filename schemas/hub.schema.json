@@ -245,6 +245,11 @@
             "sections": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Custom sections" }
           },
           "additionalProperties": false
+        },
+        "enforce_workflow": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, adds strict enforcement rules to the orchestrator prompt — the AI must follow every pipeline step in order, never skip steps, and always validate outputs before proceeding."
         }
       }
     },

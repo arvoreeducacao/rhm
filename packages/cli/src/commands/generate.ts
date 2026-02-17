@@ -316,6 +316,7 @@ function buildKiroOrchestratorRule(config: HubConfig): string {
   const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
   const steps = config.workflow?.pipeline || [];
   const prompt = config.workflow?.prompt;
+  const enforce = config.workflow?.enforce_workflow ?? false;
 
   const sections: string[] = [];
 
@@ -326,6 +327,23 @@ function buildKiroOrchestratorRule(config: HubConfig): string {
 You are the development orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end by following a structured pipeline. You work as a single agent but follow specialized instructions from steering files for each phase of development.
 
 > **Note:** This workspace uses steering files in \`.kiro/steering/\` to provide role-specific instructions for each pipeline step. When a step says "follow the instructions from steering file X", read that file and apply its guidelines to the current task.`);
+
+  if (enforce) {
+    sections.push(`
+## STRICT WORKFLOW ENFORCEMENT
+
+**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
+
+- NEVER skip a pipeline step, even if the task seems simple or obvious.
+- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
+- ALWAYS follow the designated steering file for each step. Do not improvise if a steering file is assigned.
+- ALWAYS wait for a step to complete and validate its output before moving to the next step.
+- If a step produces a document, READ the document and confirm it is complete before proceeding.
+- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
+- NEVER jump directly to coding without completing refinement first.
+- NEVER skip review or QA steps, even for small changes.
+- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
+  }
 
   if (prompt?.prepend) {
     sections.push(`\n${prompt.prepend.trim()}`);
@@ -490,6 +508,7 @@ function buildOrchestratorRule(config: HubConfig): string {
   const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
   const steps = config.workflow?.pipeline || [];
   const prompt = config.workflow?.prompt;
+  const enforce = config.workflow?.enforce_workflow ?? false;
 
   const sections: string[] = [];
 
@@ -503,6 +522,23 @@ alwaysApply: true
 ## Your Main Responsibility
 
 You are an agent orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end using specialized sub-agents.`);
+
+  if (enforce) {
+    sections.push(`
+## STRICT WORKFLOW ENFORCEMENT
+
+**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
+
+- NEVER skip a pipeline step, even if the task seems simple or obvious.
+- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
+- ALWAYS call the designated sub-agent for each step. Do not attempt to perform a step yourself if an agent is assigned to it.
+- ALWAYS wait for a step to complete and validate its output before moving to the next step.
+- If a step produces a document, READ the document and confirm it is complete before proceeding.
+- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
+- NEVER jump directly to coding without completing refinement first.
+- NEVER skip review or QA steps, even for small changes.
+- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
+  }
 
   if (prompt?.prepend) {
     sections.push(`\n${prompt.prepend.trim()}`);
