@@ -1,0 +1,342 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/arvoreeducacao/rhm/main/schemas/hub.schema.json",
+  "title": "Repo Hub Manifest",
+  "description": "Configuration file for AI-aware multi-repository workspaces",
+  "type": "object",
+  "required": ["name", "repos"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Workspace name used in generated config files"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the workspace"
+    },
+    "version": {
+      "type": "string",
+      "description": "Manifest version (semver)"
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Tool version overrides (e.g. node: '20', pnpm: '9')"
+    },
+    "mise_settings": {
+      "type": "object",
+      "description": "Mise (formerly rtx) configuration overrides",
+      "properties": {
+        "experimental": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "repos": {
+      "type": "array",
+      "minItems": 1,
+      "description": "List of repositories managed by this workspace",
+      "items": { "$ref": "#/definitions/repo" }
+    },
+    "services": {
+      "type": "array",
+      "description": "Docker services for local development (like docker-compose)",
+      "items": { "$ref": "#/definitions/service" }
+    },
+    "env": {
+      "type": "object",
+      "description": "Environment profiles and overrides",
+      "additionalProperties": false,
+      "properties": {
+        "profiles": {
+          "type": "object",
+          "description": "Named environment profiles (local, staging, prod)",
+          "additionalProperties": { "$ref": "#/definitions/envProfile" }
+        },
+        "overrides": {
+          "type": "object",
+          "description": "Per-repo per-profile env var overrides",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "mcps": {
+      "type": "array",
+      "description": "MCP (Model Context Protocol) tool connections for AI",
+      "items": { "$ref": "#/definitions/mcp" }
+    },
+    "integrations": {
+      "type": "object",
+      "description": "External integrations",
+      "additionalProperties": false,
+      "properties": {
+        "linear": {
+          "type": "object",
+          "description": "Linear issue tracker integration",
+          "properties": {
+            "team": { "type": "string", "description": "Linear team name" },
+            "labels": { "type": "array", "items": { "type": "string" }, "description": "Default labels" },
+            "link_pattern": { "type": "string", "description": "Link pattern for issues" }
+          },
+          "additionalProperties": false
+        },
+        "github": {
+          "type": "object",
+          "description": "GitHub integration",
+          "properties": {
+            "org": { "type": "string", "description": "GitHub organization name" },
+            "pr_branch_pattern": { "type": "string", "description": "Branch pattern (e.g. {linear_id}-{slug})" }
+          },
+          "additionalProperties": false
+        },
+        "slack": {
+          "type": "object",
+          "description": "Slack integration",
+          "properties": {
+            "channels": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Channel mappings (e.g. prs: '#eng-prs')"
+            },
+            "templates": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Message templates"
+            }
+          },
+          "additionalProperties": false
+        },
+        "playwright": {
+          "type": "object",
+          "description": "Playwright browser testing integration",
+          "properties": {
+            "base_url": { "type": "string", "description": "Base URL for browser tests" }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Lifecycle hooks",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "$ref": "#/definitions/hookEntry" }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Custom workspace-level commands"
+    },
+    "commands_dir": {
+      "type": "string",
+      "description": "Directory containing custom command scripts"
+    },
+    "workflow": { "$ref": "#/definitions/workflow" }
+  },
+  "definitions": {
+    "repo": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "description": "A repository in the workspace",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "Repository identifier" },
+        "path": { "type": "string", "description": "Local path relative to workspace root" },
+        "url": { "type": "string", "description": "Git remote URL" },
+        "tech": {
+          "type": "string",
+          "description": "Primary technology stack",
+          "enum": [
+            "nestjs", "nextjs", "react", "elixir", "phoenix",
+            "django", "fastapi", "rails", "spring", "go",
+            "vue", "svelte", "angular", "express", "koa"
+          ]
+        },
+        "description": { "type": "string", "description": "What this repository does" },
+        "env_file": { "type": "string", "description": "Path to environment file" },
+        "commands": {
+          "type": "object",
+          "description": "Repository-specific commands",
+          "properties": {
+            "install": { "type": "string", "description": "Install dependencies" },
+            "dev": { "type": "string", "description": "Start dev server" },
+            "build": { "type": "string", "description": "Build project" },
+            "lint": { "type": "string", "description": "Run linter" },
+            "test": { "type": "string", "description": "Run tests" }
+          },
+          "additionalProperties": { "type": "string" }
+        },
+        "skills": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Skill names to attach to this repo's agents"
+        },
+        "tools": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Repo-specific tool overrides"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": ["name", "image"],
+      "additionalProperties": false,
+      "description": "A Docker service",
+      "properties": {
+        "name": { "type": "string", "description": "Service name" },
+        "image": { "type": "string", "description": "Docker image (e.g. postgres:16)" },
+        "port": { "type": "integer", "description": "Single port to expose" },
+        "ports": { "type": "array", "items": { "type": "integer" }, "description": "Multiple ports" },
+        "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Container env vars" }
+      }
+    },
+    "mcp": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "description": "An MCP server connection",
+      "properties": {
+        "name": { "type": "string", "description": "MCP server name" },
+        "package": {
+          "type": "string",
+          "description": "npm package name",
+          "enum": [
+            "@arvoretech/postgresql-mcp",
+            "@arvoretech/mysql-mcp",
+            "@arvoretech/aws-secrets-manager-mcp",
+            "@arvoretech/datadog-mcp",
+            "@arvoretech/npm-registry-mcp",
+            "@arvoretech/tempmail-mcp",
+            "@playwright/mcp"
+          ]
+        },
+        "url": { "type": "string", "description": "MCP server URL (remote)" },
+        "image": { "type": "string", "description": "Docker image (containerized)" },
+        "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Env vars" }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "AI development workflow",
+      "properties": {
+        "task_folder": { "type": "string", "description": "Task documents directory (default: ./tasks)" },
+        "pipeline": {
+          "type": "array",
+          "description": "Ordered pipeline steps",
+          "items": { "$ref": "#/definitions/pipelineStep" }
+        },
+        "prompt": {
+          "type": "object",
+          "description": "Prompt customization",
+          "properties": {
+            "prepend": { "type": "string", "description": "Text to prepend" },
+            "append": { "type": "string", "description": "Text to append" },
+            "sections": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Custom sections" }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "pipelineStep": {
+      "type": "object",
+      "required": ["step"],
+      "additionalProperties": false,
+      "description": "A pipeline step",
+      "properties": {
+        "step": {
+          "type": "string",
+          "description": "Step name",
+          "enum": ["refinement", "coding", "review", "qa", "deliver"]
+        },
+        "agent": { "type": "string", "description": "Single agent for this step" },
+        "agents": { "type": "array", "description": "Multiple agents" },
+        "parallel": { "type": "boolean", "description": "Run agents in parallel" },
+        "output": { "type": "string", "description": "Output filename" },
+        "tools": { "type": "array", "items": { "type": "string" }, "description": "Tools for this step" },
+        "when": { "type": "string", "description": "Condition" },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["create-pr", "notify-slack", "update-linear", "run-tests"]
+          },
+          "description": "Actions to execute"
+        }
+      }
+    },
+    "hookEntry": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "description": "A hook entry",
+      "properties": {
+        "type": { "type": "string", "enum": ["command", "prompt"], "description": "Hook type" },
+        "command": { "type": "string", "description": "Shell command to run" },
+        "prompt": { "type": "string", "description": "Prompt to inject" },
+        "matcher": { "type": "string", "description": "Pattern matcher" },
+        "timeout_ms": { "type": "integer", "description": "Timeout in milliseconds" }
+      }
+    },
+    "envProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "An environment profile",
+      "properties": {
+        "description": { "type": "string", "description": "Profile description" },
+        "services": { "type": "array", "items": { "type": "string" }, "description": "Services to start" },
+        "aws_profile": { "type": "string", "description": "AWS CLI profile name" },
+        "secrets": {
+          "type": "object",
+          "description": "AWS Secrets Manager references",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              {
+                "type": "object",
+                "required": ["secret"],
+                "properties": {
+                  "secret": { "type": "string" },
+                  "profile": { "type": "string" }
+                }
+              }
+            ]
+          }
+        },
+        "build_database_url": {
+          "type": "object",
+          "description": "Database URL construction",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["from_secret"],
+            "properties": {
+              "from_secret": { "type": "string" },
+              "profile": { "type": "string" },
+              "vars": {
+                "type": "object",
+                "properties": {
+                  "user": { "type": "string" },
+                  "password": { "type": "string" },
+                  "host": { "type": "string" },
+                  "port": { "type": "string" },
+                  "database": { "type": "string" }
+                }
+              },
+              "template": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,139 @@
+---
+title: Integrations
+description: Connect to Linear, GitHub, Slack, and Playwright.
+order: 9
+---
+
+The `integrations` section configures external services used by the orchestrator agent during the development pipeline — task management, pull requests, notifications, and browser testing.
+
+## Schema
+
+```yaml
+integrations:
+  linear:
+    team: Engineering
+    labels: [feature, ai-generated]
+    link_pattern: "https://linear.app/my-company/issue/{id}/{slug}"
+
+  github:
+    org: my-company
+    pr_branch_pattern: "{linear_id}-{slug}"
+
+  slack:
+    channels:
+      prs: "#eng-prs"
+      releases: "#releases"
+    templates:
+      pr_created: "New PR: {pr_url} for {task_id}"
+
+  playwright:
+    base_url: "http://localhost:3000"
+```
+
+## Linear
+
+Task management integration. The orchestrator creates and updates tasks in Linear.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `team` | string | Linear team name for task creation |
+| `labels` | string[] | Default labels applied to new tasks |
+| `link_pattern` | string | URL pattern for task links (`{id}` and `{slug}` are replaced) |
+
+When a user requests a feature without a task, the orchestrator automatically creates one in Linear and provides the link.
+
+## GitHub
+
+Pull request and repository integration.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `org` | string | GitHub organization name |
+| `pr_branch_pattern` | string | Branch naming pattern for PRs |
+
+Available variables in `pr_branch_pattern`:
+- `{linear_id}` — Linear task ID (e.g., `ENG-123`)
+- `{slug}` — URL-friendly task title
+- `{task_id}` — Generic task ID
+
+## Slack
+
+Team notifications via Slack.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `channels` | object | Map of purpose to channel name |
+| `templates` | object | Message templates with `{variable}` placeholders |
+
+### Channels
+
+Define channels by purpose:
+
+```yaml
+channels:
+  prs: "#eng-prs"          # PR notifications
+  releases: "#releases"     # Release notifications
+  alerts: "#eng-alerts"     # Error alerts
+```
+
+### Templates
+
+Define message templates with placeholders:
+
+```yaml
+templates:
+  pr_created: "PR created: {pr_url} for {task_id}"
+  deploy_done: "Deployed {version} to {environment}"
+```
+
+Available variables: `{pr_url}`, `{task_id}`, `{repo_name}`, `{branch}`, `{version}`, `{environment}`.
+
+## Playwright
+
+Browser automation configuration for QA agents.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `base_url` | string | Base URL for the web application under test |
+
+```yaml
+playwright:
+  base_url: "http://localhost:3000"
+```
+
+The QA agent uses this to navigate the application during end-to-end testing.
+
+## How Integrations Work
+
+Integrations are **purely declarative** — there is no CLI code that calls Linear, Slack, or GitHub APIs. Instead, `hub generate` reads the `integrations` section and **injects instructions into the orchestrator rule** (`.cursor/rules/orchestrator.mdc` or `AGENTS.md`).
+
+The generated orchestrator rule will contain sections like:
+
+```markdown
+## Task Management
+If the user doesn't have a task, create one using the Linear MCP.
+Add it to the **Engineering** team.
+
+## Delivery Details
+### Pull Requests
+For each repository with changes, push the branch and create a PR.
+Branch naming pattern: `{linear_id}-{slug}`
+
+### Slack Notifications
+- **prs**: Post to `#eng-prs`
+```
+
+At runtime, the **AI agent reads these instructions** and uses the corresponding MCPs to execute them:
+
+1. **Linear MCP** — Creates tasks, updates status
+2. **GitHub MCP** (or `gh` CLI) — Creates branches and PRs
+3. **Slack MCP** — Posts notifications to channels
+4. **Playwright MCP** — Runs browser tests
+
+So the flow is:
+
+```
+hub.yaml (integrations) → hub generate → orchestrator rule (text) → AI agent → MCPs (execution)
+```
+
+This means you need the corresponding MCPs configured in the `mcps` section for integrations to actually work at runtime.

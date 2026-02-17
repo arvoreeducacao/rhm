@@ -1,0 +1,103 @@
+---
+title: Why We Built This
+description: The problem we faced at Arvore and how Repo Hub solved it.
+order: 11
+---
+
+## The problem
+
+AI coding assistants are blind. They see one repository at a time.
+
+At Arvore, we have 9 repositories — backend APIs in NestJS and Elixir, frontends in Next.js and React, shared libraries, infrastructure configs. They all depend on each other.
+
+When we asked an AI assistant to implement a feature, it didn't know:
+
+- That the API contract changed in the backend yesterday
+- What the database schema looks like
+- How the frontend consumes the endpoint it's building
+- What our deploy patterns and testing conventions are
+
+We spent more time **explaining context** than the AI spent writing code. Copy-pasting schemas, describing file structures, re-explaining the same conventions over and over.
+
+## Then the team got smaller
+
+External circumstances forced us to reduce our engineering team from 30 to 10. Not by choice — it was a reality we had to face.
+
+With a third of the team and the same product ambitions, we couldn't afford to keep working the old way. Features that took 3 to 6 months were no longer viable on that timeline. We needed a fundamentally different approach.
+
+That's when we went all-in on AI-powered development. Not as a nice-to-have, but as a survival strategy.
+
+## What we tried first
+
+We tried all the standard approaches:
+
+- **Long system prompts** — Hit context limits, became stale, hard to maintain
+- **README-driven context** — Too generic, agents ignored most of it
+- **Manual file references** — Tedious, easy to forget critical files
+- **Separate AI tools per repo** — No cross-repo awareness, fragmented workflows
+
+None of them solved the fundamental problem: the AI couldn't see the full picture.
+
+## The insight
+
+The breakthrough was simple. Two lines of config:
+
+```bash
+# .gitignore — repos excluded from hub's git
+api
+frontend
+
+# .cursorignore — but included for AI context
+!api/
+!frontend/
+```
+
+Git sees separate repositories. The AI sees one workspace. Each repo keeps its own history. Zero migration.
+
+But context alone wasn't enough. We needed the AI to **follow a process**, not just answer questions. So we built the agent orchestration layer:
+
+1. **One YAML file** declares everything — repos, services, MCPs, workflow pipeline
+2. **A CLI** generates editor configs from that YAML
+3. **The editor becomes the runtime** — the orchestrator agent follows the pipeline, calling sub-agents in order
+
+No daemon. No server. No platform. The AI editor runs the entire workflow.
+
+## What happened
+
+With 10 engineers and Repo Hub, we didn't just maintain our pace — we accelerated.
+
+**Before:**
+- 30 engineers
+- 3-6 months per feature
+- Manual context management
+- Ad-hoc AI usage with inconsistent results
+- Most time spent on coordination, not building
+
+**After:**
+- 10 product engineers
+- Weeks per feature
+- Automatic cross-repo context
+- Structured agent pipelines with consistent output
+- Most time spent on review, security, and product decisions
+
+The role naturally evolved. Our engineers stopped spending time writing boilerplate and started focusing on what requires human judgment: security, architecture, code review, and product decisions. We started calling them product engineers — because that's what they are.
+
+## We're growing again
+
+The lesson wasn't "you need fewer people." The lesson was: **with the right tools and the right process, every engineer on your team becomes dramatically more effective.**
+
+We're actively hiring. We want more product engineers who can work this way — people who understand product deeply, know technology well, and can direct AI to build at a pace that wasn't possible before.
+
+Role details: [Product Engineer (Hiring) →](/docs/product-engineer)
+
+The tools will keep changing. Editors, models, providers — none of it is permanent. What matters is the discipline: structured workflows, encoded knowledge, connected infrastructure, and human review at every step.
+
+## Why we open-sourced it
+
+We built Repo Hub to solve our own problem. But the problem isn't unique to Arvore.
+
+Every team using AI coding assistants hits the same wall: context fragmentation, workflow inconsistency, manual overhead. The solution shouldn't be proprietary.
+
+Repo Hub is MIT licensed and designed for adoption. If your team manages multiple repositories and uses AI for development, this framework is for you.
+
+[Read our Philosophy →](/docs/philosophy) · [Get Started →](/docs/getting-started)

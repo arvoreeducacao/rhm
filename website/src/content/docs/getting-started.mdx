@@ -1,0 +1,94 @@
+---
+title: Getting Started
+description: Get up and running with Repo Hub in minutes.
+order: 1
+---
+
+Repo Hub gives your AI coding agent everything it needs to ship real features — context across your codebase, structured agent workflows, and infrastructure access. Follow these steps to set up your first workspace.
+
+## Prerequisites
+
+- **Node.js** 18+ installed
+- **Git** configured with SSH access to your repositories
+- **Cursor**, **Kiro**, or any AI-powered editor installed
+
+## Quick Start
+
+### 1. Initialize a new hub
+
+```bash
+npx @arvoretech/hub init my-hub
+cd my-hub
+```
+
+This creates a new directory with a `hub.yaml` configuration file. The file includes a schema reference that enables autocomplete, validation, and hover docs in your editor automatically (see [Configuration](/docs/configuration#editor-support-autocomplete--validation) for details).
+
+### 2. Add your repositories
+
+```bash
+npx @arvoretech/hub add-repo git@github.com:company/api.git --tech nestjs
+npx @arvoretech/hub add-repo git@github.com:company/frontend.git --tech nextjs
+```
+
+Each repository is declared in `hub.yaml` with its tech stack, commands, and environment configuration.
+
+### 3. Set up the workspace
+
+```bash
+npx @arvoretech/hub setup
+```
+
+This clones all repos, starts infrastructure services (databases, caches), and installs dependencies.
+
+### 4. Generate editor configuration
+
+```bash
+npx @arvoretech/hub generate --editor cursor      # or
+npx @arvoretech/hub generate --editor kiro         # or
+npx @arvoretech/hub generate --editor claude-code
+```
+
+This reads `hub.yaml` and produces editor-specific files:
+
+- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/agents/*.md`, `.cursor/mcp.json`, `.gitignore` + `.cursorignore`
+- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/agent-*.md`, `.kiro/settings/mcp.json`, `AGENTS.md`, `.gitignore`
+- **Claude Code**: `CLAUDE.md`, `.claude/agents/`, `.mcp.json`, `.gitignore`
+
+### 5. Open and start building
+
+Open the project in your editor. Your AI now sees all repos and follows the generated workflow.
+
+## How the Context Pattern Works
+
+The magic is in two lines of config:
+
+```bash
+# .gitignore — repos are excluded from the hub's git
+api
+frontend
+
+# .cursorignore — but included for AI context
+!api/
+!frontend/
+```
+
+Your AI sees all repos as one workspace. Each repo keeps its own git history. Zero migration, zero overhead.
+
+## What Happens When You Generate
+
+When you run `hub generate --editor cursor`, the CLI:
+
+1. Reads your `hub.yaml` declaring the full pipeline
+2. Generates an orchestrator rule with workflow instructions
+3. Creates agent definitions for each pipeline step
+4. Configures MCP connections for infrastructure access
+5. Sets up `.gitignore` and `.cursorignore` for the context pattern
+
+**The editor is the runtime.** There is no daemon, no server, no separate process. Your AI editor executes the workflow by following the generated rules.
+
+## Next Steps
+
+- [Configuration](/docs/configuration) — Learn the full `hub.yaml` schema
+- [Agent Orchestration](/docs/agents) — Understand how agents collaborate
+- [Skills](/docs/skills) — Package domain knowledge for agents
+- [MCPs](/docs/mcps) — Connect AI to your infrastructure

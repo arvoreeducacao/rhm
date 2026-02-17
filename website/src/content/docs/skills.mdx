@@ -1,0 +1,223 @@
+---
+title: Skills
+description: Package domain knowledge as reusable skills for AI agents.
+order: 8
+---
+
+Skills are packaged domain knowledge that agents consult when working on specific repositories or tasks. They encode project conventions, patterns, and best practices in a format AI agents can follow.
+
+Skills follow the [Agent Skills](https://agentskills.io/) open standard, which works across multiple AI tools including Cursor, Claude Code, Kiro, Windsurf, and many others.
+
+## What is a Skill?
+
+A skill is a directory with a `SKILL.md` file that contains structured instructions about a specific technology, framework, or domain:
+
+```
+skills/backend-nestjs/
+├── SKILL.md            # Main instructions (required)
+├── references/         # Supporting docs (optional)
+└── scripts/            # Helper scripts (optional)
+```
+
+## Using Skills
+
+Reference skills per-repo in your `hub.yaml`:
+
+```yaml
+repos:
+  - name: api
+    path: ./api
+    tech: nestjs
+    skills: [backend-nestjs]
+
+  - name: frontend
+    path: ./frontend
+    tech: nextjs
+    skills: [frontend-nextjs]
+```
+
+When an agent works on a repo, it reads the associated skills first. This ensures consistent code quality and adherence to project conventions without manual instruction.
+
+## Built-in Skills
+
+Repo Hub ships with several built-in skills:
+
+| Skill | Description |
+|-------|-------------|
+| `backend-nestjs` | NestJS development patterns, testing, and conventions |
+| `backend-elixir` | Elixir/Phoenix patterns with Ecto and GraphQL |
+| `frontend-nextjs` | Next.js App Router patterns with React and Tailwind |
+| `frontend-react` | Legacy React patterns with styled-components |
+| `database-mysql` | MySQL schema exploration and query patterns |
+| `aws` | AWS infrastructure patterns |
+| `kubernetes` | Kubernetes/EKS operations |
+| `qa-test-planner` | Test planning and QA patterns |
+
+## Installing from the Community (skills.sh)
+
+Repo Hub is fully compatible with the [skills.sh](https://skills.sh) ecosystem. You can install any skill from any GitHub repository that follows the Agent Skills standard.
+
+### Install a specific skill from a repo
+
+Use the `owner/repo/skill-name` format to download a single skill via GitHub API — no cloning required:
+
+```bash
+hub skills add vercel-labs/agent-skills/react-best-practices
+hub skills add vercel-labs/agent-skills/web-design-guidelines
+hub skills add anthropics/skills/frontend-design
+hub skills add supabase/agent-skills/supabase-postgres-best-practices
+hub skills add obra/superpowers/systematic-debugging
+```
+
+### Install all skills from a repo
+
+```bash
+hub skills add vercel-labs/agent-skills
+```
+
+### List available skills from a remote repo
+
+```bash
+hub skills add vercel-labs/agent-skills --list
+```
+
+### Browse the community directory
+
+```bash
+hub skills find
+hub skills find react
+```
+
+This points you to [skills.sh](https://skills.sh), the open directory and leaderboard for agent skills.
+
+## Installing from the Registry
+
+Repo Hub maintains its own registry of skills. Install by name:
+
+```bash
+hub skills add backend-nestjs
+hub skills add frontend-nextjs
+```
+
+The registry is the Repo Hub repository itself. You can override it with the `HUB_REGISTRY` environment variable or the `--repo` flag:
+
+```bash
+hub skills add backend-nestjs --repo myorg/my-skills-repo
+```
+
+Browse the registry:
+
+```bash
+hub registry list
+hub registry search nestjs
+```
+
+## CLI Commands
+
+### `hub skills list`
+
+List installed skills (project and global):
+
+```bash
+hub skills list
+```
+
+### `hub skills add <source>`
+
+Install skills from the registry, GitHub, a git URL, or a local path:
+
+```bash
+# From the registry (by name)
+hub skills add backend-nestjs
+
+# Specific skill from a GitHub repo (downloads only that skill)
+hub skills add vercel-labs/agent-skills/react-best-practices
+
+# All skills from a GitHub repo
+hub skills add vercel-labs/agent-skills
+
+# From git URL
+hub skills add git@github.com:company/ai-skills.git
+
+# From a local path
+hub skills add ./my-local-skills
+
+# Install globally (shared across all projects)
+hub skills add backend-nestjs --global
+
+# List remote skills without installing
+hub skills add vercel-labs/agent-skills --list
+```
+
+| Flag | Description |
+|------|-------------|
+| `-s, --skill <name>` | Install a specific skill only (for repo sources) |
+| `-g, --global` | Install to global `~/.cursor/skills/` |
+| `-r, --repo <repo>` | Override registry repository |
+| `-l, --list` | List available skills without installing |
+
+### `hub skills find [query]`
+
+Browse community skills on skills.sh:
+
+```bash
+hub skills find
+hub skills find react
+```
+
+### `hub skills remove <name>`
+
+Remove a skill:
+
+```bash
+hub skills remove backend-nestjs
+hub skills remove backend-nestjs --global
+```
+
+## Creating Custom Skills
+
+A skill follows the Agent Skills standard:
+
+```markdown
+---
+name: my-skill
+description: What this skill does and when to use it
+---
+
+# My Skill
+
+## When to Use
+Describe the scenarios where this skill should be activated.
+
+## Instructions
+
+### Section 1
+Detailed instructions...
+
+### Section 2
+More instructions...
+
+## Examples
+Code examples showing correct patterns.
+```
+
+### Best Practices
+
+1. **Be specific** — Include exact patterns, not vague guidelines
+2. **Show examples** — Real code is better than descriptions
+3. **Keep it focused** — One skill per technology/domain
+4. **Include anti-patterns** — Show what to avoid
+5. **Stay under 500 lines** — Agents work better with concise instructions
+
+## Storage
+
+Skills are stored in two locations:
+
+- **Project skills**: `skills/` directory in your hub root
+- **Global skills**: `~/.cursor/skills/` (shared across all projects)
+
+When `hub generate` runs:
+- **Cursor**: Skills are copied to `.cursor/skills/` as directories
+- **Claude Code**: Skills are copied to `.claude/skills/` as directories (native skills support)
+
+Both editors discover skills automatically from their respective directories.

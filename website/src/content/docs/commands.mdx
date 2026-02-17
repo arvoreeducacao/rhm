@@ -1,0 +1,142 @@
+---
+title: Commands
+description: Create reusable slash commands for your AI editor.
+order: 13
+---
+
+Commands are reusable prompts that you trigger with a `/` prefix in your AI editor's chat. They let you standardize common workflows — like code reviews, deployments, or test planning — so every team member runs the same instructions.
+
+## Editor Support
+
+| Editor | Support |
+|--------|---------|
+| **Cursor** | `.cursor/commands/*.md` — triggered via `/command-name` |
+| **Claude Code** | Commands are merged into skills. Use [Skills](/docs/skills) instead. |
+| **Kiro** | Not supported. Use [Steering](/docs/steering) files or [Skills](/docs/skills) instead. |
+
+Since Claude Code treats commands as skills and Kiro doesn't have slash commands, `hub generate` only copies commands to `.cursor/commands/` for Cursor.
+
+## hub.yaml Schema
+
+There are two ways to define commands:
+
+### Explicit Map
+
+Map command names to their markdown files:
+
+```yaml
+commands:
+  review: ./commands/review.md
+  deploy: ./commands/deploy.md
+  test-plan: ./commands/test-plan.md
+```
+
+### Directory Auto-Discovery
+
+Point to a directory and all `.md` files become commands:
+
+```yaml
+commands_dir: ./commands
+```
+
+With this structure:
+
+```
+commands/
+├── review.md
+├── deploy.md
+└── test-plan.md
+```
+
+You can use both — explicit `commands` entries are merged with files found in `commands_dir`.
+
+## How `hub generate` Works
+
+When you run `hub generate --editor cursor`, command files are copied to `.cursor/commands/`:
+
+```
+.cursor/
+└── commands/
+    ├── review.md
+    ├── deploy.md
+    └── test-plan.md
+```
+
+Each file becomes available as a slash command in Cursor's chat (e.g., `/review`, `/deploy`).
+
+## Writing Commands
+
+A command file is a markdown file with instructions for the AI. Keep them focused and actionable.
+
+### Example: Code Review
+
+`commands/review.md`:
+```markdown
+Review the current changes thoroughly.
+
+1. Check for bugs, edge cases, and error handling
+2. Verify naming conventions and code style
+3. Look for performance issues
+4. Ensure tests cover the changes
+5. Suggest improvements
+
+Be concise. Group feedback by severity (critical, suggestion, nitpick).
+```
+
+### Example: Deploy Checklist
+
+`commands/deploy.md`:
+```markdown
+Run through the deployment checklist:
+
+1. Verify all tests pass
+2. Check for uncommitted changes
+3. Ensure the branch is up to date with main
+4. Review environment variables
+5. List any database migrations needed
+6. Summarize what will be deployed
+```
+
+## CLI Commands
+
+### `hub commands list`
+
+List commands installed in the local `commands/` directory.
+
+```bash
+hub commands list
+```
+
+### `hub commands add <source>`
+
+Install commands from the registry, a git repository, or a local path.
+
+```bash
+hub commands add review                    # From registry
+hub commands add company/shared-commands   # From GitHub repo
+hub commands add ./my-commands             # From local path
+hub commands add review --repo myorg/my-registry  # Custom registry
+```
+
+| Flag | Description |
+|------|-------------|
+| `-c, --command <name>` | Install a specific command only (for repo sources) |
+| `-r, --repo <repo>` | Override registry repository |
+
+### `hub commands remove <name>`
+
+Remove a command from the local `commands/` directory.
+
+```bash
+hub commands remove review
+```
+
+## Registry
+
+Commands are available in the Hub registry under the `commands/` directory. Browse and install them:
+
+```bash
+hub registry list --type command
+hub registry search "review" --type command
+hub commands add review
+```

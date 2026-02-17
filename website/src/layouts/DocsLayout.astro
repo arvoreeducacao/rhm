@@ -1,0 +1,51 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Sidebar from '../components/Sidebar.astro';
+import CopyPage from '../components/CopyPage.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const currentPath = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="mx-auto max-w-6xl px-6 pt-24 pb-16">
+    <div class="flex flex-col gap-8 lg:flex-row lg:gap-12">
+      <Sidebar currentPath={currentPath} />
+      <article
+        class="min-w-0 flex-1 prose prose-gray max-w-none
+        prose-headings:font-semibold prose-headings:tracking-tight
+        prose-h1:text-2xl prose-h1:text-gray-900
+        prose-h2:text-lg prose-h2:text-gray-900 prose-h2:border-b prose-h2:border-gray-100 prose-h2:pb-3
+        prose-h3:text-base prose-h3:text-gray-800
+        prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline
+        prose-code:text-brand-700 prose-code:bg-brand-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-normal prose-code:before:content-none prose-code:after:content-none
+        prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-200 prose-pre:rounded-xl
+        prose-pre:prose-code:text-inherit prose-pre:prose-code:bg-transparent prose-pre:prose-code:p-0
+        prose-strong:text-gray-900
+        prose-table:border-collapse
+        prose-th:border prose-th:border-gray-200 prose-th:bg-gray-50 prose-th:px-4 prose-th:py-2 prose-th:text-gray-700 prose-th:text-sm prose-th:font-medium
+        prose-td:border prose-td:border-gray-200 prose-td:px-4 prose-td:py-2 prose-td:text-sm
+        prose-li:marker:text-gray-300
+        dark:prose-invert
+        dark:prose-h1:text-gray-100
+        dark:prose-h2:text-gray-100 dark:prose-h2:border-gray-800
+        dark:prose-h3:text-gray-200
+        dark:prose-a:text-brand-400
+        dark:prose-code:text-brand-300 dark:prose-code:bg-brand-950/50
+        dark:prose-pre:bg-gray-900 dark:prose-pre:border-gray-800
+        dark:prose-strong:text-gray-100
+        dark:prose-th:border-gray-700 dark:prose-th:bg-gray-900 dark:prose-th:text-gray-300
+        dark:prose-td:border-gray-700
+        dark:prose-li:marker:text-gray-600"
+      >
+        <CopyPage title={title} />
+        <slot />
+      </article>
+    </div>
+  </div>
+</BaseLayout>

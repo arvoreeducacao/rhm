@@ -1,0 +1,118 @@
+---
+title: Best Practices
+description: Lessons learned from running AI-powered development in production.
+order: 12
+---
+
+These are the practices we've refined at Arvore through months of real production usage. They're opinionated — they reflect what works for us with Repo Hub, Claude Opus 4.6, and Cursor.
+
+## Choose the right model
+
+Not all models are equal for development work. Our stack:
+
+- **Claude Opus 4.6** for complex tasks — multi-file refactors, architecture decisions, agent orchestration, code review. It's the most capable model for sustained, multi-step reasoning across large codebases.
+- **Faster models** for quick, scoped tasks — simple bug fixes, test generation, single-file changes. Cheaper and lower latency when the task doesn't need deep reasoning.
+
+The orchestrator chooses the model per step. Refinement and review need the best model. A quick lint fix doesn't.
+
+**Key insight:** the model matters less than the context you give it. Opus 4.6 with poor context produces worse results than a smaller model with excellent context. Repo Hub exists to solve the context problem.
+
+## Structure your workflow
+
+Ad-hoc prompting produces ad-hoc results. The biggest productivity gain isn't a better model — it's a **structured pipeline**:
+
+```yaml
+workflow:
+  pipeline:
+    - step: refinement
+      agent: refinement
+    - step: coding
+      agents: [coding-backend, coding-frontend]
+      parallel: true
+    - step: review
+      agent: code-reviewer
+    - step: qa
+      agent: qa-frontend
+      tools: [playwright]
+    - step: deliver
+      actions: [create-pr, notify-slack]
+```
+
+Every feature goes through the same steps. The refinement agent collects requirements before any code is written. The review agent checks against those requirements. The QA agent tests with real browser automation.
+
+This consistency is what makes "weeks instead of months" possible. Not magic — process.
+
+## Encode knowledge in skills
+
+The single biggest source of errors in AI-generated code is **not knowing the conventions**.
+
+An AI that generates a NestJS service without knowing your error handling pattern, your testing conventions, or your database access layer will produce code that works but doesn't fit.
+
+Skills solve this:
+
+```
+skills/backend-nestjs/SKILL.md
+├── Project structure
+├── Testing patterns (Vitest, not Jest)
+├── Database access (TypeORM conventions)
+├── Error handling (custom exception filters)
+└── API response format
+```
+
+When a coding agent starts working on a repo with `skills: [backend-nestjs]`, it reads the skill first. The result is code that matches your existing codebase from the first attempt.
+
+**Write skills for every framework and convention in your stack.** This is the highest-ROI activity for any team using AI development.
+
+## Connect to real infrastructure
+
+An AI that can't see your database schema is guessing at column names. An AI that can't see your logs is guessing at error causes.
+
+MCPs remove the guessing:
+
+| MCP | What it gives AI |
+|-----|-----------------|
+| Database MCP | Read-only queries to understand schema and data |
+| Datadog MCP | Metrics, logs, and traces for debugging |
+| Playwright MCP | Browser automation for E2E testing |
+| npm Registry MCP | Package security and adoption signals |
+
+The debugger agent with access to Datadog logs can identify a root cause in minutes instead of hours. The QA agent with Playwright can verify UI changes without manual testing.
+
+**Every piece of infrastructure your team uses should be accessible to AI through MCPs.**
+
+## Review everything
+
+AI writes the code. Humans review it. This is non-negotiable.
+
+Our product engineers spend most of their time on:
+
+1. **Product judgment** — Does this solve the actual user problem? Are there edge cases the AI missed? Should we do this now, and for which user segment?
+2. **Architecture decisions** — Should we add this dependency? Is this the right abstraction? Will this scale?
+3. **Code review** — Does this implementation match the requirements? Are there security implications? Is the error handling correct?
+
+The code review agent catches the obvious issues. The human catches the subtle ones. Both are essential.
+
+## Train your team
+
+The framework is only as good as the people using it. Product engineers need to know:
+
+- **How to write effective refinement docs** — Clear requirements produce better code
+- **When to intervene vs. let the pipeline run** — Not every step needs human input
+- **How to write and maintain skills** — The team's knowledge should be encoded, not tribal
+- **How to debug agent behavior** — When an agent produces poor output, the fix is usually better context, not a better prompt
+
+We invest in training because the compound returns are enormous. One engineer who masters the workflow produces more output than five who don't.
+
+## Start small, expand gradually
+
+Don't try to automate everything on day one.
+
+1. Start with **cross-repo context** — the `.gitignore` / `.cursorignore` pattern
+2. Add **one or two MCPs** — database and browser automation
+3. Define **a simple 3-step pipeline** — refinement, coding, review
+4. Write **skills for your primary framework**
+5. Expand from there based on what bottlenecks you hit
+
+The full setup (11 agents, 19 MCPs, 9 repos) took us months to refine. But the first version — 2 repos, 3 agents, 2 MCPs — was running in a day.
+
+[Get Started →](/docs/getting-started)

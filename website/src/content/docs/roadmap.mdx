@@ -1,0 +1,50 @@
+---
+title: Roadmap
+description: What works today and what's next.
+order: 20
+---
+
+## What Works Today
+
+- **Core concept** — The gitignore/cursorignore pattern for cross-repo AI context
+- **hub.yaml schema** — Repos, commands, tools, services, env profiles, MCPs, integrations, workflow pipeline
+- **CLI commands** — `init`, `add-repo`, `setup`, `generate`, `env`, `services`, `tools`, `skills`, `registry`, `pull`, `status`, `exec`, `worktree`, `doctor`
+- **Generator targets** — Cursor (`.cursor/rules/`, `.cursor/agents/`, `.cursor/mcp.json`), Claude Code (`CLAUDE.md`), Kiro (`.kiro/steering/`, `.kiro/settings/mcp.json`), AGENTS.md
+- **Agent templates** — 8 agents (orchestrator, refinement, coding-backend, coding-frontend, code-reviewer, qa-backend, qa-frontend, debugger)
+- **Skills system** — Install from git repos, project and global scopes, per-repo assignment
+- **Tool management** — Declare versions in hub.yaml, generate `.mise.toml`, install via mise
+- **Environment management** — Profiles, AWS Secrets Manager, per-repo overrides, per-repo profile override, DATABASE_URL building
+- **Docker services** — Generate `docker-compose.yml`, manage lifecycle (up/down/logs/clean)
+- **Worktrees** — Create parallel workspaces with env file copying
+- **MCP servers** — 7 open-source MCPs (MySQL, PostgreSQL, AWS Secrets, Datadog, npm registry, tempmail, Playwright)
+
+## Short Term
+
+- **Workflow conditions** — Runtime evaluation of `when` expressions
+- **Hub registry** — Community hub for browsing and installing skills, agents, and workflow templates
+- **Windsurf adapter** — `generate --editor windsurf`
+- **Copilot Workspace adapter** — `generate --editor copilot`
+
+## Medium Term
+
+- **Workflow execution tracking** — Track pipeline progress per task
+- **Agent performance metrics** — Which agents succeed, fail, or need human intervention
+- **Multi-hub** — Compose multiple hubs (platform team + feature team)
+- **Plugin system** — Third-party generators, MCP wrappers, custom pipeline steps
+
+## Long Term
+
+- **Visual pipeline builder** — Web UI for designing and monitoring workflows
+- **Self-improving skills** — Agents propose skill updates based on recurring patterns
+- **Cross-team orchestration** — Hub-to-hub communication for platform/product split
+
+## How to Contribute
+
+Pick any area and open a PR. For larger items, open an issue first to discuss approach.
+
+**Easiest high-impact contributions:**
+
+1. **Editor adapters** — Windsurf, Copilot Workspace, or any AI editor
+2. **Skills** — Write a SKILL.md for your framework/language (Go, Python/Django, Java/Spring, Vue, Svelte)
+3. **Agent improvements** — Better prompts, new roles, workflow patterns
+4. **Documentation** — Guides, tutorials, videos

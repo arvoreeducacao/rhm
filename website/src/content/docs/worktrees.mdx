@@ -1,0 +1,88 @@
+---
+title: Worktrees
+description: Manage git worktrees for parallel development sessions.
+order: 12
+---
+
+Worktrees let you work on multiple features simultaneously in separate Cursor windows — each with its own branch, but sharing the same hub configuration and environment files.
+
+## Why Worktrees?
+
+In a multi-repo hub, switching branches is disruptive. You'd need to switch branches in every repo, potentially lose running processes, and reset your dev environment.
+
+With worktrees, you create a full copy of the hub that uses a separate branch. Environment files are copied automatically.
+
+## CLI Commands
+
+### `hub worktree add <name>`
+
+Create a new worktree and copy environment files:
+
+```bash
+hub worktree add feature-login
+```
+
+This:
+1. Creates a git worktree at `~/.cursor/worktrees/repo-hub/<name>`
+2. Copies all environment files from the current hub to the worktree
+3. Prints the path to open in Cursor
+
+```
+Worktree created at: ~/.cursor/worktrees/repo-hub/feature-login
+Open in Cursor: cursor ~/.cursor/worktrees/repo-hub/feature-login
+```
+
+### `hub worktree list`
+
+List all active worktrees:
+
+```bash
+hub worktree list
+```
+
+### `hub worktree remove <name>`
+
+Remove a worktree:
+
+```bash
+hub worktree remove feature-login
+```
+
+### `hub worktree copy-envs [name]`
+
+Copy environment files from the main hub to a worktree. Useful after running `hub env staging` in the main hub:
+
+```bash
+# Copy to a specific worktree
+hub worktree copy-envs feature-login
+
+# Copy to the current directory (if inside a worktree)
+hub worktree copy-envs
+```
+
+## Workflow
+
+```bash
+# 1. Create a worktree for your feature
+hub worktree add feature-user-profiles
+
+# 2. Open it in a new Cursor window
+cursor ~/.cursor/worktrees/repo-hub/feature-user-profiles
+
+# 3. Work on your feature independently
+#    (main hub stays on its current branch)
+
+# 4. When env files change in main, sync them
+hub worktree copy-envs feature-user-profiles
+
+# 5. When done, remove the worktree
+hub worktree remove feature-user-profiles
+```
+
+## How It Works
+
+Git worktrees share the same `.git` directory, so:
+- All branches and history are shared
+- Commits in a worktree are visible from the main hub
+- Each worktree can be on a different branch independently
+- Environment files are NOT shared (they're copied at creation time)

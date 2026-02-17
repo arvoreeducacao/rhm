@@ -1,0 +1,121 @@
+---
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const sections = [
+  {
+    title: 'Getting Started',
+    items: [
+      { label: 'Introduction', href: '/docs/getting-started' },
+      { label: 'Configuration', href: '/docs/configuration' },
+      { label: 'CLI Reference', href: '/docs/cli' },
+    ],
+  },
+  {
+    title: 'Configuration',
+    items: [
+      { label: 'Repositories', href: '/docs/repos' },
+      { label: 'Tools', href: '/docs/tools' },
+      { label: 'Environment', href: '/docs/environment' },
+      { label: 'Services', href: '/docs/services' },
+      { label: 'Integrations', href: '/docs/integrations' },
+      { label: 'Workflow', href: '/docs/workflow' },
+    ],
+  },
+  {
+    title: 'Core Concepts',
+    items: [
+      { label: 'Agent Orchestration', href: '/docs/agents' },
+      { label: 'Skills', href: '/docs/skills' },
+      { label: 'MCPs', href: '/docs/mcps' },
+      { label: 'Hooks', href: '/docs/hooks' },
+      { label: 'Commands', href: '/docs/commands' },
+      { label: 'Worktrees', href: '/docs/worktrees' },
+    ],
+  },
+  {
+    title: 'About',
+    items: [
+      { label: 'Philosophy', href: '/docs/philosophy' },
+      { label: 'Why We Built This', href: '/docs/our-story' },
+      { label: 'Best Practices', href: '/docs/best-practices' },
+      { label: 'Product Engineer (Hiring)', href: '/docs/product-engineer' },
+    ],
+  },
+  {
+    title: 'Project',
+    items: [
+      { label: 'Roadmap', href: '/docs/roadmap' },
+    ],
+  },
+];
+---
+
+<aside class="w-full shrink-0 lg:w-56">
+  <nav class="space-y-6 lg:sticky lg:top-24">
+    <div class="rounded-xl border border-gray-200 bg-white p-3 lg:hidden dark:border-gray-800 dark:bg-gray-900">
+      <p class="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        Browse docs
+      </p>
+      <div class="space-y-1">
+        {sections.map(section => {
+          const hasActiveItem = section.items.some(item => item.href === currentPath);
+          return (
+            <details open={hasActiveItem} class="group rounded-lg px-1">
+              <summary class="cursor-pointer list-none rounded-md px-2 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800">
+                {section.title}
+              </summary>
+              <ul class="mt-1 space-y-0.5 pb-1">
+                {section.items.map(item => (
+                  <li>
+                    <a
+                      href={item.href}
+                      class:list={[
+                        'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                        currentPath === item.href
+                          ? 'bg-brand-50 text-brand-700 font-medium dark:bg-brand-950/50 dark:text-brand-400'
+                          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100',
+                      ]}
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          );
+        })}
+      </div>
+    </div>
+
+    <div class="hidden space-y-6 lg:block">
+      {sections.map(section => (
+        <div>
+          <h4 class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            {section.title}
+          </h4>
+          <ul class="mt-2 space-y-0.5">
+            {section.items.map(item => (
+              <li>
+                <a
+                  href={item.href}
+                  class:list={[
+                    'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                    currentPath === item.href
+                      ? 'bg-brand-50 text-brand-700 font-medium dark:bg-brand-950/50 dark:text-brand-400'
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100',
+                  ]}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </nav>
+</aside>

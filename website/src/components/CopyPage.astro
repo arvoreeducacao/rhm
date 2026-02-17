@@ -1,0 +1,119 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="not-prose mb-6 flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
+  <div class="flex items-center gap-2">
+    <button
+      id="copy-page-btn"
+      class="group flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-500 transition-all hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+      title="Copy this page as text for AI"
+      data-page-title={title}
+    >
+      <svg id="copy-icon" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+      </svg>
+      <svg id="check-icon" xmlns="http://www.w3.org/2000/svg" class="hidden h-3.5 w-3.5 text-brand-600 dark:text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+      <span id="copy-label">Copy page</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  function getArticleAsMarkdown(): string {
+    const article = document.querySelector('article');
+    if (!article) return '';
+
+    const title = document.getElementById('copy-page-btn')?.getAttribute('data-page-title') || '';
+    const clone = article.cloneNode(true) as HTMLElement;
+
+    clone.querySelector('#copy-page-btn')?.closest('.not-prose')?.remove();
+
+    clone.querySelectorAll('pre code').forEach(code => {
+      const lang = code.className?.match(/language-(\w+)/)?.[1] || '';
+      const text = code.textContent || '';
+      const pre = code.closest('pre')!;
+      pre.textContent = '```' + lang + '\n' + text + '\n```';
+    });
+
+    clone.querySelectorAll('code').forEach(code => {
+      if (!code.closest('pre')) {
+        code.textContent = '`' + (code.textContent || '') + '`';
+      }
+    });
+
+    clone.querySelectorAll('a').forEach(a => {
+      const href = a.getAttribute('href') || '';
+      const text = a.textContent || '';
+      if (href && text) {
+        a.textContent = `[${text}](${href})`;
+      }
+    });
+
+    clone.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
+      const level = parseInt(h.tagName[1]);
+      const prefix = '#'.repeat(level);
+      h.textContent = prefix + ' ' + (h.textContent || '');
+    });
+
+    clone.querySelectorAll('strong').forEach(el => {
+      el.textContent = '**' + (el.textContent || '') + '**';
+    });
+    clone.querySelectorAll('em').forEach(el => {
+      el.textContent = '*' + (el.textContent || '') + '*';
+    });
+
+    clone.querySelectorAll('li').forEach(li => {
+      const ol = li.closest('ol');
+      if (ol) {
+        const index = Array.from(ol.children).indexOf(li) + 1;
+        li.textContent = index + '. ' + (li.textContent || '').trim();
+      } else {
+        li.textContent = '- ' + (li.textContent || '').trim();
+      }
+    });
+
+    let text = clone.textContent || '';
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+    return `# ${title}\n\n${text}`;
+  }
+
+  document.getElementById('copy-page-btn')?.addEventListener('click', async () => {
+    const content = getArticleAsMarkdown();
+    try {
+      await navigator.clipboard.writeText(content);
+      const copyIcon = document.getElementById('copy-icon')!;
+      const checkIcon = document.getElementById('check-icon')!;
+      const label = document.getElementById('copy-label')!;
+
+      copyIcon.classList.add('hidden');
+      checkIcon.classList.remove('hidden');
+      label.textContent = 'Copied!';
+      label.classList.add('text-brand-600');
+
+      setTimeout(() => {
+        copyIcon.classList.remove('hidden');
+        checkIcon.classList.add('hidden');
+        label.textContent = 'Copy page';
+        label.classList.remove('text-brand-600');
+      }, 2000);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = content;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  });
+</script>

@@ -1,0 +1,187 @@
+---
+title: Configuration
+description: Overview of the hub.yaml schema.
+order: 2
+---
+
+The `hub.yaml` file is the single source of truth for your multi-repo workspace. It declares everything — repositories, tools, services, environments, MCPs, integrations, and the development workflow.
+
+## Editor Support (Autocomplete & Validation)
+
+Repo Hub provides a [JSON Schema](https://json-schema.org/) for `hub.yaml` that enables autocomplete, inline validation, hover documentation, and error highlighting in any editor with YAML language server support.
+
+### How it works
+
+When you run `hub init`, the generated `hub.yaml` includes a schema comment at the top:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/arvoreeducacao/rhm/main/schemas/hub.schema.json
+name: my-company
+# ...
+```
+
+This single line gives you:
+
+- **Autocomplete** for all keys and enum values (tech stacks, MCP packages, pipeline steps, actions)
+- **Validation** with real-time errors in the Problems panel
+- **Hover documentation** describing every field
+- **Required field checking** (`name` and `repos` are required)
+
+### Prerequisites
+
+| Editor | What you need |
+|--------|--------------|
+| **Cursor** | Works out of the box (YAML support is built-in) |
+| **VS Code** | Install the [YAML extension by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) |
+| **Kiro** | Works out of the box |
+| **Neovim** | Configure [yaml-language-server](https://github.com/redhat-developer/yaml-language-server) via LSP |
+
+### Adding to an existing hub.yaml
+
+If you created your `hub.yaml` before this feature, just add the comment to the first line:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/arvoreeducacao/rhm/main/schemas/hub.schema.json
+```
+
+That's it. No extension to install, no config to change.
+
+---
+
+## Full Example
+
+```yaml
+name: my-company
+
+tools:
+  node: "22.18.0"
+  pnpm: "10.26.0"
+
+repos:
+  - name: api
+    path: ./api
+    url: git@github.com:company/api.git
+    tech: nestjs
+    env_file: .env
+    commands:
+      install: pnpm install
+      dev: pnpm dev
+      build: pnpm build
+    skills: [backend-nestjs]
+
+  - name: backend
+    path: ./backend
+    url: git@github.com:company/backend.git
+    tech: elixir
+    tools:
+      erlang: "27.3.3"
+      elixir: "1.18.3-otp-27"
+
+  - name: frontend
+    path: ./frontend
+    url: git@github.com:company/frontend.git
+    tech: nextjs
+    env_file: .env.local
+    skills: [frontend-nextjs]
+
+services:
+  - name: postgres
+    image: postgres:16
+    port: 5432
+  - name: redis
+    image: redis:7-alpine
+    port: 6379
+
+env:
+  profiles:
+    local:
+      description: "Local environment - Docker services"
+    staging:
+      aws_profile: my-company-stg
+      secrets:
+        api: api-staging-secret
+    prod:
+      aws_profile: my-company-prd
+      secrets:
+        api: api-prod-secret
+  overrides:
+    local:
+      api:
+        DATABASE_URL: "postgres://localhost:5432/mydb"
+
+mcps:
+  - name: postgresql
+    package: "@arvoretech/postgresql-mcp"
+  - name: playwright
+    package: "@playwright/mcp"
+
+integrations:
+  github:
+    pr_branch_pattern: "{linear_id}-{slug}"
+  slack:
+    channels:
+      prs: "#eng-prs"
+
+hooks:
+  pre_tool_use:
+    - type: command
+      command: "./hooks/block-dangerous.sh"
+      matcher: "rm -rf|drop table"
+  after_file_edit:
+    - type: command
+      command: "./hooks/format.sh"
+  session_start:
+    - type: command
+      command: "./hooks/init.sh"
+
+commands:
+  review: ./commands/review.md
+  deploy: ./commands/deploy.md
+
+workflow:
+  prompt:
+    prepend: |
+      Always respond in Portuguese.
+    sections:
+      after_repositories: |
+        The API uses a custom auth middleware. See api/docs/auth.md.
+  pipeline:
+    - step: refinement
+      agent: refinement
+    - step: coding
+      agents: [coding-backend, coding-frontend]
+      parallel: true
+    - step: review
+      agent: code-reviewer
+    - step: deliver
+      actions: [create-pr, notify-slack]
+```
+
+## Schema Sections
+
+Each section of `hub.yaml` has its own documentation page with full schema reference, examples, and CLI commands:
+
+| Section | Description |
+|---------|-------------|
+| [`repos`](/docs/repos) | Repositories, commands, skills, and tech stack |
+| [`tools`](/docs/tools) | Tool version management via mise |
+| [`env`](/docs/environment) | Environment profiles, AWS secrets, and overrides |
+| [`services`](/docs/services) | Docker Compose services for local development |
+| [`mcps`](/docs/mcps) | Model Context Protocol server connections |
+| [`integrations`](/docs/integrations) | Linear, GitHub, Slack, and Playwright |
+| [`workflow`](/docs/workflow) | Agent pipeline, orchestration, and prompt customization |
+| [`hooks`](/docs/hooks) | Editor hooks for automation (Cursor + Claude Code + Kiro) |
+| [`commands`](/docs/commands) | Custom slash commands (Cursor only) |
+
+## Top-Level Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Hub workspace name |
+| `description` | string | No | Human-readable description |
+| `version` | string | No | Configuration version |
+| `hooks` | object | No | Editor hook definitions keyed by event name |
+| `commands` | object | No | Named command files (Cursor only) |
+| `commands_dir` | string | No | Directory of command `.md` files to auto-discover |
+
+For the full CLI command reference, see [CLI Reference](/docs/cli).

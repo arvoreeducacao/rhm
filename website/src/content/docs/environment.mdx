@@ -1,0 +1,189 @@
+---
+title: Environment
+description: Manage environment variables, AWS secrets, and profiles.
+order: 5
+---
+
+The `env` section manages environment variables across all repositories. It supports multiple profiles (local, staging, prod), AWS Secrets Manager integration, and per-repo overrides.
+
+## Schema
+
+```yaml
+env:
+  profiles:
+    local:
+      description: "Local environment - uses Docker services"
+      services: [mysql, redis, elasticsearch]
+    staging:
+      description: "Staging environment"
+      aws_profile: my-company-stg
+      secrets:
+        api: api-staging-secret
+        backend: backend-staging-secret
+    prod:
+      description: "Production - READ ONLY"
+      aws_profile: my-company-prd
+      secrets:
+        api: api-prod-secret
+        backend: backend-prod-secret
+
+  overrides:
+    local:
+      api:
+        NODE_ENV: development
+        PORT: "3001"
+        DATABASE_URL: "mysql://root:root@localhost:3306/mydb"
+        REDIS_URL: "redis://localhost:6379"
+      frontend:
+        NODE_ENV: development
+        NEXT_PUBLIC_API_URL: "http://localhost:3001"
+    staging:
+      api:
+        NODE_ENV: development
+        PORT: "3001"
+        REDIS_URL: "redis://localhost:6379"
+    prod:
+      api:
+        NODE_ENV: development
+        PORT: "3001"
+```
+
+## Profiles
+
+Each profile represents a target environment. Profiles are defined under `env.profiles`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `description` | string | No | Human-readable description |
+| `services` | string[] | No | Docker services required for this profile |
+| `aws_profile` | string | No | AWS CLI profile name for authentication |
+| `secrets` | object | No | Map of repo name to AWS Secrets Manager secret name |
+| `build_database_url` | object | No | Build DATABASE_URL from secret fields |
+
+## How It Works
+
+When you run `hub env <profile>`, the CLI:
+
+1. **Authenticates** with AWS using the profile's `aws_profile`
+2. **Fetches secrets** from AWS Secrets Manager for each repo
+3. **Writes** all secret key-value pairs to the repo's `env_file`
+4. **Applies overrides** on top (overrides always win)
+5. **Merges** with existing env file content (existing vars preserved unless overwritten)
+
+For the `local` profile, AWS secrets are skipped — only overrides are applied.
+
+## CLI Commands
+
+```bash
+# Generate env files for local development (no AWS needed)
+hub env local
+
+# Generate env files with staging secrets from AWS
+hub env staging
+
+# Generate env files with production secrets (careful!)
+hub env prod
+```
+
+## Overrides
+
+Static environment variable overrides per profile per repo. Structure: `overrides[profile][repoName][VAR_NAME] = value`.
+
+Overrides are applied **after** AWS secrets, so they always take precedence. Common uses:
+
+- Setting local connection strings (`localhost` instead of remote hosts)
+- Development-specific flags (`NODE_ENV=development`)
+- Disabling production-only features locally (empty SQS queue URLs, etc.)
+
+```yaml
+overrides:
+  staging:
+    api:
+      NODE_ENV: development
+      PORT: "3001"
+      REDIS_URL: "redis://localhost:6379"
+      AUTOMATIC_ASSESSMENT_SQS_QUEUE_URL: ""
+```
+
+## Secret with Profile Override
+
+By default, secrets are fetched using the profile's `aws_profile`. But sometimes a repo needs secrets from a **different** AWS account (e.g., staging uses prod API keys). Use the object form:
+
+```yaml
+env:
+  profiles:
+    staging:
+      aws_profile: my-company-stg
+      secrets:
+        # Simple form — uses my-company-stg
+        backend: backend-staging-secret
+
+        # Object form — uses a different profile
+        api:
+          secret: api-prod-secret
+          profile: my-company-prd
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `secret` | string | Yes | AWS Secrets Manager secret name |
+| `profile` | string | No | AWS profile override (defaults to the profile's `aws_profile`) |
+
+## Building DATABASE_URL
+
+Constructs a `DATABASE_URL` from fields in an AWS secret. Useful when the database credentials are stored as individual fields rather than a connection string.
+
+```yaml
+env:
+  profiles:
+    staging:
+      aws_profile: my-company-stg
+      build_database_url:
+        api:
+          from_secret: backend-staging-secret
+          profile: my-company-stg
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `from_secret` | string | Yes | Secret name containing DB credentials |
+| `profile` | string | No | AWS profile override |
+| `vars` | object | No | Custom field name mapping |
+| `template` | string | No | Custom URL template |
+
+### Default Field Names
+
+The CLI looks for: `DB_USERNAME`, `DB_PASSWORD`, `DB_HOSTNAME`, `DB_PORT`, `DB_NAME`.
+
+### Custom Field Mapping
+
+If your secret uses different field names:
+
+```yaml
+build_database_url:
+  api:
+    from_secret: rds-credentials
+    vars:
+      user: username
+      password: password
+      host: endpoint
+      port: port
+      database: dbname
+```
+
+### Custom URL Template
+
+Default template: `mysql://{user}:{password}@{host}:{port}/{database}`
+
+```yaml
+build_database_url:
+  api:
+    from_secret: rds-credentials
+    template: "postgresql://{user}:{password}@{host}:{port}/{database}?sslmode=require"
+```
+
+The resulting `DATABASE_URL` and `IDENTITY_DATABASE_URL` are both written to the env file.
+
+## Integration with Setup
+
+`hub setup` generates local env files automatically during setup (using the `local` overrides).

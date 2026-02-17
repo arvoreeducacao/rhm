@@ -1,0 +1,442 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Describe a feature. Your AI codes it, reviews it, tests it, and opens a pull request. Repo Hub is the config file that makes this possible." />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="alternate" type="text/plain" title="LLM-friendly documentation" href="/llms.txt" />
+    <link rel="canonical" href={`${(Astro.site?.toString() || Astro.url.origin).replace(/\/$/, '')}/`} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Repo Hub — Your AI builds the feature. You review the PR." />
+    <meta property="og:description" content="Describe a feature. Your AI codes it, reviews it, tests it, and opens a pull request. Repo Hub is the config file that makes this possible." />
+    <meta property="og:image" content={`${(Astro.site?.toString() || Astro.url.origin).replace(/\/$/, '')}/og/home.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content={`${(Astro.site?.toString() || Astro.url.origin).replace(/\/$/, '')}/`} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Repo Hub — Your AI builds the feature. You review the PR." />
+    <meta name="twitter:description" content="Describe a feature. Your AI codes it, reviews it, tests it, and opens a pull request." />
+    <meta name="twitter:image" content={`${(Astro.site?.toString() || Astro.url.origin).replace(/\/$/, '')}/og/home.png`} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <title>Repo Hub — Your AI builds the feature. You review the PR.</title>
+    <script is:inline>
+      (function() {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-white text-gray-600 antialiased transition-colors duration-300 dark:bg-gray-950 dark:text-gray-400">
+    <Header />
+
+    <section class="relative pt-36 pb-24 overflow-hidden">
+      <canvas id="mesh" class="absolute inset-0 -z-10 h-full w-full"></canvas>
+
+      <div class="absolute inset-0 -z-10 pointer-events-none" style="background: radial-gradient(ellipse 60% 50% at 50% 45%, rgba(69,208,193,0.03) 0%, transparent 70%);"></div>
+
+      <div class="relative mx-auto max-w-2xl px-6 text-center">
+        <div class="inline-flex items-center gap-2 rounded-full border border-gray-200/80 bg-white/60 px-4 py-1.5 text-xs text-gray-400 mb-10 backdrop-blur-sm font-mono tracking-wide dark:border-gray-700/80 dark:bg-gray-900/60 dark:text-gray-500">
+          <span class="h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse"></span>
+          OPEN SOURCE
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-gray-900 leading-[1.1] dark:text-gray-50">
+          You describe the feature.<br/>
+          <span class="text-[#45D0C1]">AI delivers the PR.</span>
+        </h1>
+
+        <p class="mt-6 text-base sm:text-lg text-gray-400 max-w-lg mx-auto leading-relaxed font-light dark:text-gray-500">
+          Repo Hub is a <span class="text-gray-600 font-medium dark:text-gray-300">configuration file</span> that teaches your AI coding assistant how your company builds software — which repos to touch, how to test, where to deploy, and who to notify.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <a href="/docs/getting-started" class="w-full sm:w-auto rounded-full bg-gray-900 px-7 py-3 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/10 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white dark:hover:shadow-gray-100/10">
+            Get Started
+          </a>
+          <a href="/docs/philosophy" class="w-full sm:w-auto rounded-full border border-gray-200 bg-white px-7 py-3 text-sm font-medium text-gray-600 transition-all hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-100">
+            Read our Philosophy
+          </a>
+        </div>
+
+        <p class="mt-14 text-[11px] text-gray-300 font-mono tracking-wider uppercase dark:text-gray-600">
+          Built by <a href="https://arvore.com.br" target="_blank" class="text-gray-400 hover:text-brand-600 transition-colors dark:text-gray-500 dark:hover:text-brand-400">Arvore</a>
+          &nbsp;&middot;&nbsp; 10 engineers &nbsp;&middot;&nbsp; Months &rarr; Weeks
+        </p>
+      </div>
+    </section>
+
+    <section class="border-t border-gray-100 py-24 dark:border-gray-800">
+      <div class="mx-auto max-w-3xl px-6">
+        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 text-center mb-6 dark:text-gray-600">Imagine this</p>
+
+        <div class="max-w-xl mx-auto">
+          <div class="rounded-xl border border-gray-100 bg-gray-50/50 p-6 sm:p-8 dark:border-gray-800 dark:bg-gray-900/50">
+            <p class="text-sm text-gray-500 leading-relaxed dark:text-gray-400">
+              You type: <span class="text-gray-900 font-medium dark:text-gray-100">"Add profile editing to the user settings page"</span>
+            </p>
+            <div class="mt-5 space-y-3">
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">1</span>
+                <p class="text-sm text-gray-400 dark:text-gray-500">The AI asks clarifying questions about the requirements</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">2</span>
+                <p class="text-sm text-gray-400 dark:text-gray-500">It writes the backend API <span class="text-gray-500 font-medium dark:text-gray-400">and</span> the frontend UI — in separate repos, in parallel</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">3</span>
+                <p class="text-sm text-gray-400 dark:text-gray-500">Another AI agent reviews the code against the original requirements</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">4</span>
+                <p class="text-sm text-gray-400 dark:text-gray-500">Another runs automated tests in a real browser</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">5</span>
+                <p class="text-sm text-gray-400 dark:text-gray-500">PRs are created, your team gets notified on Slack</p>
+              </div>
+            </div>
+            <p class="mt-6 text-sm text-gray-900 font-medium dark:text-gray-100">You review the PR. That's it.</p>
+          </div>
+
+          <p class="mt-6 text-center text-sm text-gray-400 dark:text-gray-500">
+            This is not a demo. It's how we build software every day at <a href="https://arvore.com.br" target="_blank" class="text-gray-500 hover:text-brand-600 transition-colors font-medium dark:text-gray-400 dark:hover:text-brand-400">Arvore</a>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-gray-100 py-24 dark:border-gray-800">
+      <div class="mx-auto max-w-3xl px-6">
+        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 text-center mb-6 dark:text-gray-600">What is Repo Hub, really?</p>
+
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 text-center leading-tight dark:text-gray-50">
+          A config file that teaches AI<br/>how your team ships code.
+        </h2>
+
+        <p class="mt-6 text-sm text-gray-400 text-center max-w-lg mx-auto leading-relaxed dark:text-gray-500">
+          Think of it like a <span class="text-gray-600 font-medium dark:text-gray-300">docker-compose for AI development</span>. Instead of defining containers, you define your repositories, your tools, and your development workflow. The AI follows it automatically.
+        </p>
+
+        <div class="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 overflow-hidden dark:border-gray-800 dark:bg-gray-900/50">
+          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
+            <span class="ml-2 text-[11px] text-gray-300 font-mono dark:text-gray-600">hub.yaml</span>
+          </div>
+          <pre class="p-4 sm:p-6 text-[12px] sm:text-[13px] leading-relaxed font-mono text-gray-400 overflow-x-auto dark:text-gray-500"><code><span class="text-gray-300 dark:text-gray-600"># Which repositories your AI can work on</span>
+<span class="text-brand-600 dark:text-brand-400">repos</span>:
+  - <span class="text-gray-600 dark:text-gray-300">name: api</span>
+    <span class="text-gray-600 dark:text-gray-300">url: git@github.com:company/api.git</span>
+    <span class="text-gray-600 dark:text-gray-300">tech: nestjs</span>
+  - <span class="text-gray-600 dark:text-gray-300">name: frontend</span>
+    <span class="text-gray-600 dark:text-gray-300">url: git@github.com:company/frontend.git</span>
+    <span class="text-gray-600 dark:text-gray-300">tech: nextjs</span>
+
+<span class="text-gray-300 dark:text-gray-600"># Tools the AI can use (databases, monitoring, browser testing...)</span>
+<span class="text-brand-600 dark:text-brand-400">mcps</span>:
+  - <span class="text-gray-600 dark:text-gray-300">name: postgresql</span>
+  - <span class="text-gray-600 dark:text-gray-300">name: playwright</span>
+  - <span class="text-gray-600 dark:text-gray-300">name: datadog</span>
+
+<span class="text-gray-300 dark:text-gray-600"># The step-by-step workflow the AI follows</span>
+<span class="text-brand-600 dark:text-brand-400">workflow</span>:
+  <span class="text-brand-600 dark:text-brand-400">pipeline</span>:
+    - <span class="text-gray-600 dark:text-gray-300">step: refinement</span>    <span class="text-gray-300 dark:text-gray-600"># Understand requirements</span>
+    - <span class="text-gray-600 dark:text-gray-300">step: coding</span>        <span class="text-gray-300 dark:text-gray-600"># Write the code</span>
+    - <span class="text-gray-600 dark:text-gray-300">step: review</span>        <span class="text-gray-300 dark:text-gray-600"># Review against requirements</span>
+    - <span class="text-gray-600 dark:text-gray-300">step: qa</span>            <span class="text-gray-300 dark:text-gray-600"># Run tests</span>
+    - <span class="text-gray-600 dark:text-gray-300">step: deliver</span>       <span class="text-gray-300 dark:text-gray-600"># Create PRs, notify Slack</span></code></pre>
+        </div>
+
+        <p class="mt-6 text-center text-xs text-gray-300 font-mono tracking-wide dark:text-gray-600">
+          One file. One CLI command. Your AI knows the rest.
+        </p>
+      </div>
+    </section>
+
+    <section class="border-t border-gray-100 py-24 dark:border-gray-800">
+      <div class="mx-auto max-w-3xl px-6">
+        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 text-center mb-16 dark:text-gray-600">Why AI assistants fail without this</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-12">
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">They only see one repo</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Your AI edits the frontend but doesn't know the API contract changed yesterday. It writes code against an outdated assumption. You fix it manually.</p>
+            <p class="mt-3 text-xs text-brand-600 font-medium dark:text-brand-400">Repo Hub shows all repos at once.</p>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">No process, just prompts</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">You prompt &rarr; it codes &rarr; you check &rarr; you prompt again &rarr; it codes more. You're the project manager, reviewer, and QA — all in one.</p>
+            <p class="mt-3 text-xs text-brand-600 font-medium dark:text-brand-400">Repo Hub defines a pipeline it follows.</p>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Can't use your tools</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">It can't check if the production database schema matches what it's coding against. Can't look at Datadog when debugging. You copy-paste everything.</p>
+            <p class="mt-3 text-xs text-brand-600 font-medium dark:text-brand-400">Repo Hub connects AI to your infra.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-gray-100 py-24 dark:border-gray-800">
+      <div class="mx-auto max-w-3xl px-6">
+        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 text-center mb-16 dark:text-gray-600">How it actually works</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
+            <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">1</div>
+            <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">You write hub.yaml</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Declare your repos, tools, and workflow. Takes 5 minutes.</p>
+          </div>
+          <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
+            <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">2</div>
+            <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">Run the CLI</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500"><code class="text-[11px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 dark:bg-gray-800 dark:border-gray-700">hub generate</code> reads the YAML and creates instructions your editor understands.</p>
+          </div>
+          <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
+            <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">3</div>
+            <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">Ask for a feature</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Open your editor and describe what you need. The AI follows the pipeline you defined.</p>
+          </div>
+        </div>
+
+        <div class="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 p-6 text-center dark:border-gray-800 dark:bg-gray-900/50">
+          <p class="text-sm text-gray-400 dark:text-gray-500">
+            <span class="text-gray-900 font-medium dark:text-gray-100">Your code editor is the runtime.</span>
+            There's no server to deploy, no daemon to run. The AI agent in your editor reads the generated config and follows the pipeline automatically.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-gray-100 py-24 dark:border-gray-800">
+      <div class="mx-auto max-w-lg px-6">
+        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 text-center mb-14 dark:text-gray-600">The pipeline</p>
+
+        <div class="relative flex justify-between items-start">
+          <div class="absolute top-[11px] left-[8%] right-[8%] h-px bg-gray-100 dark:bg-gray-800">
+            <div class="pipeline-line h-full bg-brand-500/50 origin-left"></div>
+          </div>
+
+          <div class="flex-1 flex flex-col items-center" style="--i:0">
+            <div class="pipeline-dot"></div>
+            <span class="pipeline-label">Task</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center" style="--i:1">
+            <div class="pipeline-dot"></div>
+            <span class="pipeline-label">Refine</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center" style="--i:2">
+            <div class="pipeline-dot"></div>
+            <span class="pipeline-label">Code</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center" style="--i:3">
+            <div class="pipeline-dot"></div>
+            <span class="pipeline-label">Review</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center" style="--i:4">
+            <div class="pipeline-dot"></div>
+            <span class="pipeline-label">Test</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center" style="--i:5">
+            <div class="pipeline-dot"></div>
+            <span class="pipeline-label">PR</span>
+          </div>
+        </div>
+
+        <p class="mt-14 text-sm text-gray-400 text-center max-w-sm mx-auto leading-relaxed dark:text-gray-500">
+          Each step is handled by a specialized AI role. Like a team where one person gathers requirements, another codes, another reviews, and another tests.
+        </p>
+      </div>
+    </section>
+
+    <section class="border-t border-gray-100 py-24 dark:border-gray-800">
+      <div class="mx-auto max-w-3xl px-6">
+        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 text-center mb-16 dark:text-gray-600">Key concepts (the jargon, explained)</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
+            <p class="text-xs font-mono text-brand-600 tracking-wide uppercase dark:text-brand-400">Agents</p>
+            <p class="mt-3 text-sm text-gray-400 leading-relaxed dark:text-gray-500">
+              <span class="text-gray-900 font-medium dark:text-gray-100">Specialized AI roles.</span>
+              Like team members — one knows how to refine requirements, one writes backend code, one reviews, one tests. Each has its own instructions and focus area.
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
+            <p class="text-xs font-mono text-brand-600 tracking-wide uppercase dark:text-brand-400">MCPs</p>
+            <p class="mt-3 text-sm text-gray-400 leading-relaxed dark:text-gray-500">
+              <span class="text-gray-900 font-medium dark:text-gray-100">Plugins that connect AI to your tools.</span>
+              A database MCP lets AI query your schema. A Datadog MCP lets it read logs. A Playwright MCP lets it click through your app and test it.
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
+            <p class="text-xs font-mono text-brand-600 tracking-wide uppercase dark:text-brand-400">Skills</p>
+            <p class="mt-3 text-sm text-gray-400 leading-relaxed dark:text-gray-500">
+              <span class="text-gray-900 font-medium dark:text-gray-100">Cheat sheets for your AI.</span>
+              Written documentation that teaches the AI your team's coding patterns, naming conventions, and architecture decisions. Like onboarding a new developer.
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
+            <p class="text-xs font-mono text-brand-600 tracking-wide uppercase dark:text-brand-400">Hub Workspace</p>
+            <p class="mt-3 text-sm text-gray-400 leading-relaxed dark:text-gray-500">
+              <span class="text-gray-900 font-medium dark:text-gray-100">A folder that contains all your repos.</span>
+              Not a monorepo — each repo keeps its own git history, branches, and PRs. The workspace just lets AI see everything at once.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-gray-100 py-24 dark:border-gray-800">
+      <div class="mx-auto max-w-3xl px-6 text-center">
+        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 mb-16 dark:text-gray-600">In production at Arvore</p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-8">
+          <div>
+            <p class="text-3xl font-black text-gray-900 dark:text-gray-50">9</p>
+            <p class="mt-1 text-xs text-gray-400 font-mono tracking-wide dark:text-gray-500">REPOS</p>
+          </div>
+          <div>
+            <p class="text-3xl font-black text-gray-900 dark:text-gray-50">11</p>
+            <p class="mt-1 text-xs text-gray-400 font-mono tracking-wide dark:text-gray-500">AI ROLES</p>
+          </div>
+          <div>
+            <p class="text-3xl font-black text-gray-900 dark:text-gray-50">19</p>
+            <p class="mt-1 text-xs text-gray-400 font-mono tracking-wide dark:text-gray-500">TOOL CONNECTIONS</p>
+          </div>
+          <div>
+            <p class="text-3xl font-black text-gray-900 dark:text-gray-50">10x</p>
+            <p class="mt-1 text-xs text-gray-400 font-mono tracking-wide dark:text-gray-500">OUTPUT</p>
+          </div>
+        </div>
+
+        <p class="mt-12 text-[11px] font-mono tracking-wider uppercase text-gray-300 dark:text-gray-600">
+          Real company &nbsp;&middot;&nbsp; Real software &nbsp;&middot;&nbsp; Shipping every week
+        </p>
+      </div>
+    </section>
+
+    <section class="border-t border-gray-100 py-24 dark:border-gray-800">
+      <div class="mx-auto max-w-2xl px-6 text-center">
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-gray-50">Start building.</h2>
+        <p class="mt-4 text-sm text-gray-400 max-w-md mx-auto dark:text-gray-500">One config file. One CLI command. Your AI ships the rest.</p>
+
+        <div class="mt-8 rounded-xl border border-gray-100 bg-gray-50/50 p-4 max-w-md mx-auto overflow-hidden dark:border-gray-800 dark:bg-gray-900/50">
+          <pre class="text-left text-[12px] sm:text-[13px] font-mono text-gray-500 leading-relaxed overflow-x-auto dark:text-gray-400"><code><span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub init my-project
+<span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub add-repo git@github.com:co/api.git
+<span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub setup
+<span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub generate --editor cursor
+<span class="text-brand-600 dark:text-brand-400">Done! Open in Cursor and start building.</span></code></pre>
+        </div>
+
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <a href="/docs/getting-started" class="w-full sm:w-auto rounded-full bg-gray-900 px-7 py-3 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/10 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white dark:hover:shadow-gray-100/10">
+            Get Started
+          </a>
+          <a href="https://github.com/arvoreeducacao/rhm" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto rounded-full border border-gray-200 bg-white px-7 py-3 text-sm font-medium text-gray-600 transition-all hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-100">
+            View on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const canvas = document.getElementById('mesh') as HTMLCanvasElement;
+      const ctx = canvas.getContext('2d')!;
+      let width = 0;
+      let height = 0;
+      let particles: { x: number; y: number; vx: number; vy: number; size: number }[] = [];
+      const CONNECTION_DIST = 140;
+      const PARTICLE_COUNT = 55;
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        ctx.scale(dpr, dpr);
+      }
+
+      function init() {
+        resize();
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: (Math.random() - 0.5) * 0.4,
+            size: Math.random() * 1.5 + 0.5,
+          });
+        }
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+
+        const isDark = document.documentElement.classList.contains('dark');
+        const lineColor = '69, 208, 193';
+        const lineAlphaMultiplier = isDark ? 0.12 : 0.08;
+        const dotAlpha = isDark ? 0.35 : 0.25;
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0 || p.x > width) p.vx *= -1;
+          if (p.y < 0 || p.y > height) p.vy *= -1;
+        });
+
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < CONNECTION_DIST) {
+              const alpha = lineAlphaMultiplier * (1 - dist / CONNECTION_DIST);
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(${lineColor}, ${alpha})`;
+              ctx.lineWidth = 0.6;
+              ctx.stroke();
+            }
+          }
+        }
+
+        particles.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(69, 208, 193, ${dotAlpha})`;
+          ctx.fill();
+        });
+
+        requestAnimationFrame(animate);
+      }
+
+      init();
+      animate();
+      window.addEventListener('resize', () => { resize(); });
+    </script>
+
+    <Footer />
+  </body>
+</html>

@@ -1,0 +1,279 @@
+---
+title: CLI Reference
+description: Complete reference for all hub CLI commands.
+order: 11
+---
+
+All commands are run with `npx @arvoretech/hub <command>` or `hub <command>` if installed globally.
+
+## Setup & Init
+
+### `hub init [name]`
+
+Create a new hub workspace:
+
+```bash
+hub init my-hub
+```
+
+Creates a directory with `hub.yaml`, `.gitignore`, `.cursorignore`, and `README.md`.
+
+### `hub setup`
+
+Full workspace setup — clone repos, start services, install tools, generate env files, install dependencies:
+
+```bash
+hub setup
+hub setup --skip-services
+hub setup --skip-install
+hub setup --skip-tools
+```
+
+| Flag | Description |
+|------|-------------|
+| `--skip-services` | Skip Docker service startup |
+| `--skip-install` | Skip dependency installation |
+| `--skip-tools` | Skip tool installation via mise |
+
+### `hub doctor`
+
+Check required dependencies and tool versions:
+
+```bash
+hub doctor
+```
+
+Checks: git, docker, node (required), pnpm, mise, gh, aws (recommended), plus any tools declared in `hub.yaml`.
+
+### `hub generate`
+
+Generate editor configuration files from `hub.yaml`:
+
+```bash
+hub generate --editor cursor       # Cursor IDE (default)
+hub generate --editor claude-code  # Claude Code (CLAUDE.md)
+hub generate --editor kiro         # Kiro IDE
+```
+
+Produces:
+- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/agents/`, `.cursor/skills/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `.gitignore`, `.cursorignore`
+- **Claude Code**: `CLAUDE.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` (with hooks), `.mcp.json`, `.gitignore`
+- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/agent-*.md`, `.kiro/skills/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `.gitignore`
+
+## Repositories
+
+### `hub add-repo <url>`
+
+Add a repository to the hub:
+
+```bash
+hub add-repo git@github.com:company/api.git
+hub add-repo git@github.com:company/api.git --name api --tech nestjs
+```
+
+| Flag | Description |
+|------|-------------|
+| `-n, --name <name>` | Repository name (defaults to repo name from URL) |
+| `-t, --tech <tech>` | Technology stack (nestjs, nextjs, elixir, react, etc.) |
+
+### `hub pull`
+
+Pull latest changes in all repositories:
+
+```bash
+hub pull
+```
+
+### `hub status`
+
+Show git status for all repositories:
+
+```bash
+hub status
+```
+
+Shows: current branch, number of changed files, commits ahead/behind upstream.
+
+### `hub exec <command>`
+
+Execute a command in all repositories:
+
+```bash
+hub exec "git checkout main"
+hub exec "git stash"
+hub exec "pnpm outdated"
+```
+
+## Environment
+
+### `hub env [profile]`
+
+Generate environment files from hub.yaml profiles:
+
+```bash
+hub env local     # Local Docker services (no AWS)
+hub env staging   # Staging secrets from AWS
+hub env prod      # Production secrets (careful!)
+```
+
+Default profile: `local`. See [Environment](/docs/environment) for full documentation.
+
+## Services
+
+### `hub services [action]`
+
+Manage Docker development services:
+
+```bash
+hub services up        # Start services
+hub services down      # Stop services
+hub services restart   # Restart services
+hub services ps        # Show status
+hub services logs      # Follow all logs
+hub services logs mysql  # Follow specific service logs
+hub services clean     # Stop and remove volumes
+```
+
+See [Services](/docs/services) for configuration details.
+
+## Tools
+
+### `hub tools [subcommand]`
+
+Manage development tool versions via mise:
+
+```bash
+hub tools generate             # Generate .mise.toml files
+hub tools install              # Install tools
+hub tools install --generate   # Generate + install
+hub tools check                # Verify versions match
+```
+
+See [Tools](/docs/tools) for configuration details.
+
+## Skills
+
+### `hub skills [subcommand]`
+
+Manage agent skills. Compatible with the [skills.sh](https://skills.sh) ecosystem.
+
+```bash
+hub skills list                                            # List installed skills
+hub skills find react                                      # Browse community skills on skills.sh
+hub skills add backend-nestjs                              # Install from registry (by name)
+hub skills add vercel-labs/agent-skills/react-best-practices  # Specific skill from GitHub
+hub skills add vercel-labs/agent-skills                    # All skills from a GitHub repo
+hub skills add vercel-labs/agent-skills --list             # List remote skills
+hub skills add git@github.com:company/skills.git           # Install from git URL
+hub skills add ./my-local-skills                           # Install from local path
+hub skills add backend-nestjs --global                     # Install globally
+hub skills remove backend-nestjs                           # Remove a skill
+```
+
+| Flag | Description |
+|------|-------------|
+| `-s, --skill <name>` | Install a specific skill only (for repo sources) |
+| `-g, --global` | Install to/remove from global `~/.cursor/skills/` |
+| `-r, --repo <repo>` | Override registry repository |
+| `-l, --list` | List available skills without installing |
+
+See [Skills](/docs/skills) for more details.
+
+## Agents
+
+### `hub agents [subcommand]`
+
+Manage agent definitions:
+
+```bash
+hub agents list                    # List installed agents
+hub agents add debugger            # Install from registry (by name)
+hub agents add arvoreeducacao/rhm  # Install from GitHub repo
+hub agents add debugger --global   # Install globally
+hub agents remove debugger         # Remove an agent
+```
+
+| Flag | Description |
+|------|-------------|
+| `-a, --agent <name>` | Install a specific agent only |
+| `-g, --global` | Install to/remove from global `~/.cursor/agents/` |
+| `-r, --repo <repo>` | Override registry repository |
+
+See [Agents](/docs/agents) for more details.
+
+## Hooks
+
+### `hub hooks [subcommand]`
+
+Manage editor hooks:
+
+```bash
+hub hooks list                          # List installed hooks
+hub hooks add format-on-save            # Install from registry
+hub hooks add company/shared-hooks      # Install from GitHub repo
+hub hooks add ./my-hooks                # Install from local path
+hub hooks remove format-on-save         # Remove a hook
+```
+
+| Flag | Description |
+|------|-------------|
+| `--hook <name>` | Install a specific hook only (for repo sources) |
+| `-r, --repo <repo>` | Override registry repository |
+
+See [Hooks](/docs/hooks) for more details.
+
+## Commands
+
+### `hub commands [subcommand]`
+
+Manage slash commands (Cursor only):
+
+```bash
+hub commands list                       # List installed commands
+hub commands add review                 # Install from registry
+hub commands add company/shared-cmds    # Install from GitHub repo
+hub commands add ./my-commands          # Install from local path
+hub commands remove review              # Remove a command
+```
+
+| Flag | Description |
+|------|-------------|
+| `-c, --command <name>` | Install a specific command only (for repo sources) |
+| `-r, --repo <repo>` | Override registry repository |
+
+See [Commands](/docs/commands) for more details.
+
+## Registry
+
+### `hub registry [subcommand]`
+
+Browse skills, agents, hooks, and commands available in the registry:
+
+```bash
+hub registry list                    # List everything
+hub registry list --type hook        # List hooks only
+hub registry search "nestjs"         # Search by keyword
+hub registry search --type skill     # Filter by type
+hub registry search --type command   # Filter by type
+```
+
+| Flag | Description |
+|------|-------------|
+| `-t, --type <type>` | Filter by type: `skill`, `agent`, `hook`, `command` |
+| `-r, --repo <repo>` | Override registry repository |
+
+## Worktrees
+
+### `hub worktree [subcommand]`
+
+Manage git worktrees for parallel work:
+
+```bash
+hub worktree add feature-login    # Create worktree + copy envs
+hub worktree list                 # List all worktrees
+hub worktree remove feature-login # Remove a worktree
+hub worktree copy-envs            # Copy env files to current dir
+hub worktree copy-envs feature-login  # Copy to specific worktree
+```
+
+See [Worktrees](/docs/worktrees) for more details.

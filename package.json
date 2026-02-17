@@ -1,0 +1,41 @@
+{
+  "name": "@arvoretech/repo-hub-manifest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Give your AI coding assistant the full picture. Multi-repo context, agent orchestration, and end-to-end development workflows.",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "test": "pnpm -r test",
+    "test:cov": "pnpm -r test:cov",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "clean": "pnpm -r exec rm -rf dist coverage node_modules",
+    "version:patch": "pnpm -r exec npm version patch --no-git-tag-version",
+    "version:minor": "pnpm -r exec npm version minor --no-git-tag-version",
+    "version:major": "pnpm -r exec npm version major --no-git-tag-version",
+    "publish:all": "pnpm -r publish --access public"
+  },
+  "keywords": [
+    "ai",
+    "coding-assistant",
+    "multi-repo",
+    "agent-orchestration",
+    "mcp",
+    "cursor",
+    "claude",
+    "development-workflow"
+  ],
+  "author": "Arvore",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arvoreeducacao/rhm.git"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@10.28.1"
+}

@@ -1,0 +1,144 @@
+---
+title: Services
+description: Manage Docker development services.
+order: 6
+---
+
+The `services` section declares infrastructure services (databases, caches, search engines) that run locally via Docker Compose.
+
+## Schema
+
+```yaml
+services:
+  - name: mysql
+    image: mysql:8.0
+    port: 3306
+    env:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: myapp
+
+  - name: postgres
+    image: postgres:16
+    port: 5432
+    env:
+      POSTGRES_PASSWORD: postgres
+
+  - name: redis
+    image: redis:7-alpine
+    port: 6379
+
+  - name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    port: 9200
+    env:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+
+  - name: qdrant
+    image: qdrant/qdrant:latest
+    port: 6333
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Service name |
+| `image` | string | Yes | Docker image |
+| `port` | number | No | Single exposed port |
+| `ports` | number[] | No | Multiple exposed ports |
+| `env` | object | No | Environment variables passed to the container |
+
+## CLI Commands
+
+### `hub services up`
+
+Start all services in the background:
+
+```bash
+hub services up
+```
+
+This generates a `docker-compose.yml` from `hub.yaml` (if it doesn't exist) and runs `docker compose up -d`.
+
+### `hub services down`
+
+Stop all services:
+
+```bash
+hub services down
+```
+
+### `hub services ps`
+
+Show status of running services:
+
+```bash
+hub services ps
+```
+
+### `hub services logs`
+
+Follow logs from all services, or a specific one:
+
+```bash
+# All services
+hub services logs
+
+# Specific service
+hub services logs mysql
+```
+
+### `hub services restart`
+
+Restart all services:
+
+```bash
+hub services restart
+```
+
+### `hub services clean`
+
+Stop services **and remove volumes** (resets all data):
+
+```bash
+hub services clean
+```
+
+## Generated docker-compose.yml
+
+The CLI generates a `docker-compose.yml` from the `services` section. Example output:
+
+```yaml
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: myapp
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/var/lib/redis
+
+volumes:
+  mysql_data:
+  redis_data:
+```
+
+Volumes and `restart: unless-stopped` are automatically added by the CLI. The volume mount path is inferred from the image name (e.g. `mysql` -> `/var/lib/mysql`, `redis` -> `/var/lib/redis`, `postgres` -> `/var/lib/postgresql/data`).
+
+## Integration with Setup
+
+`hub setup` starts services automatically. Skip with `--skip-services`:
+
+```bash
+hub setup --skip-services
+```

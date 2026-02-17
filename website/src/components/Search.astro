@@ -1,0 +1,263 @@
+---
+---
+
+<button
+  id="search-trigger"
+  class="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-1.5 text-sm text-gray-400 transition-all hover:border-gray-300 hover:bg-gray-50 hover:text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-500 dark:hover:border-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-400"
+  aria-label="Search documentation"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+  <span class="hidden sm:inline">Search</span>
+  <kbd class="hidden rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 sm:inline dark:bg-gray-700 dark:text-gray-500">⌘K</kbd>
+</button>
+
+<div id="search-overlay" class="fixed inset-0 z-[100] hidden">
+  <div id="search-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60"></div>
+  <div class="relative mx-auto mt-[15vh] w-full max-w-xl px-4">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+      <div class="flex items-center gap-3 border-b border-gray-100 px-4 dark:border-gray-800">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Search documentation..."
+          class="w-full border-0 bg-transparent py-3 text-sm text-gray-900 placeholder-gray-400 outline-none dark:text-gray-100 dark:placeholder-gray-500"
+          autocomplete="off"
+        />
+        <kbd class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:bg-gray-800 dark:text-gray-500">ESC</kbd>
+      </div>
+      <div id="search-results" class="max-h-[50vh] overflow-y-auto p-2">
+        <div id="search-empty" class="px-3 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+          Type to search the documentation...
+        </div>
+        <div id="search-results-list" class="hidden space-y-0.5"></div>
+        <div id="search-no-results" class="hidden px-3 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+          No results found.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const overlay = document.getElementById('search-overlay');
+  if (overlay && overlay.parentElement !== document.body) {
+    document.body.appendChild(overlay);
+  }
+
+  const pages: Array<{ title: string; description: string; href: string; section: string; content: string }> = [];
+
+  async function buildIndex() {
+    if (pages.length > 0) return;
+    const sections: Record<string, Array<{ label: string; href: string }>> = {
+      'Getting Started': [
+        { label: 'Introduction', href: '/docs/getting-started' },
+        { label: 'Configuration', href: '/docs/configuration' },
+        { label: 'CLI Reference', href: '/docs/cli' },
+      ],
+      'Configuration': [
+        { label: 'Repositories', href: '/docs/repos' },
+        { label: 'Tools', href: '/docs/tools' },
+        { label: 'Environment', href: '/docs/environment' },
+        { label: 'Services', href: '/docs/services' },
+        { label: 'Integrations', href: '/docs/integrations' },
+        { label: 'Workflow', href: '/docs/workflow' },
+      ],
+      'Core Concepts': [
+        { label: 'Agent Orchestration', href: '/docs/agents' },
+        { label: 'Skills', href: '/docs/skills' },
+        { label: 'MCPs', href: '/docs/mcps' },
+        { label: 'Worktrees', href: '/docs/worktrees' },
+      ],
+      'About': [
+        { label: 'Philosophy', href: '/docs/philosophy' },
+        { label: 'Why We Built This', href: '/docs/our-story' },
+        { label: 'Best Practices', href: '/docs/best-practices' },
+        { label: 'Product Engineer (Hiring)', href: '/docs/product-engineer' },
+      ],
+      'Project': [
+        { label: 'Roadmap', href: '/docs/roadmap' },
+      ],
+    };
+
+    const fetches: Promise<void>[] = [];
+    for (const [section, items] of Object.entries(sections)) {
+      for (const item of items) {
+        fetches.push(
+          fetch(item.href)
+            .then(r => r.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(html, 'text/html');
+              const article = doc.querySelector('article');
+              const textContent = article?.textContent?.replace(/\s+/g, ' ').trim() || '';
+              const description = doc.querySelector('meta[name="description"]')?.getAttribute('content') || '';
+              pages.push({
+                title: item.label,
+                description,
+                href: item.href,
+                section,
+                content: textContent.toLowerCase(),
+              });
+            })
+            .catch(() => {
+              pages.push({
+                title: item.label,
+                description: '',
+                href: item.href,
+                section,
+                content: item.label.toLowerCase(),
+              });
+            })
+        );
+      }
+    }
+    await Promise.all(fetches);
+  }
+
+  function search(query: string): typeof pages {
+    if (!query.trim()) return [];
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const scored = pages
+      .map(page => {
+        let score = 0;
+        for (const term of terms) {
+          if (page.title.toLowerCase().includes(term)) score += 10;
+          if (page.description.toLowerCase().includes(term)) score += 5;
+          if (page.content.includes(term)) score += 1;
+        }
+        return { ...page, score };
+      })
+      .filter(p => p.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored;
+  }
+
+  const isDark = () => document.documentElement.classList.contains('dark');
+
+  function renderResults(results: typeof pages) {
+    const list = document.getElementById('search-results-list')!;
+    const empty = document.getElementById('search-empty')!;
+    const noResults = document.getElementById('search-no-results')!;
+    const input = document.getElementById('search-input') as HTMLInputElement;
+
+    if (!input.value.trim()) {
+      list.classList.add('hidden');
+      noResults.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    empty.classList.add('hidden');
+
+    if (results.length === 0) {
+      list.classList.add('hidden');
+      noResults.classList.remove('hidden');
+      return;
+    }
+
+    noResults.classList.add('hidden');
+    list.classList.remove('hidden');
+
+    const hoverBg = isDark() ? 'hover:bg-gray-800' : 'hover:bg-gray-50';
+    const activeBg = isDark() ? 'bg-gray-800' : 'bg-gray-50';
+    const sectionColor = isDark() ? 'text-gray-500' : 'text-gray-400';
+    const titleColor = isDark() ? 'text-gray-100' : 'text-gray-900';
+    const descColor = isDark() ? 'text-gray-500' : 'text-gray-500';
+
+    list.innerHTML = results
+      .map(
+        (r, i) => `
+      <a href="${r.href}" class="search-result flex flex-col rounded-lg px-3 py-2.5 transition-colors ${hoverBg} ${i === 0 ? activeBg : ''}" data-index="${i}">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-medium uppercase tracking-wider ${sectionColor}">${r.section}</span>
+        </div>
+        <span class="text-sm font-medium ${titleColor}">${r.title}</span>
+        ${r.description ? `<span class="text-xs ${descColor} line-clamp-1">${r.description}</span>` : ''}
+      </a>
+    `
+      )
+      .join('');
+  }
+
+  let selectedIndex = 0;
+
+  function updateSelection(index: number) {
+    const items = document.querySelectorAll('.search-result');
+    const activeBg = isDark() ? 'bg-gray-800' : 'bg-gray-50';
+    items.forEach((el, i) => {
+      el.classList.toggle(activeBg, i === index);
+    });
+    selectedIndex = index;
+    items[index]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function openSearch() {
+    buildIndex();
+    const overlay = document.getElementById('search-overlay')!;
+    const input = document.getElementById('search-input') as HTMLInputElement;
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    input.value = '';
+    input.focus();
+    renderResults([]);
+    selectedIndex = 0;
+  }
+
+  function closeSearch() {
+    const overlay = document.getElementById('search-overlay')!;
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('search-trigger')?.addEventListener('click', openSearch);
+  document.getElementById('search-backdrop')?.addEventListener('click', closeSearch);
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      const overlay = document.getElementById('search-overlay')!;
+      if (overlay.classList.contains('hidden')) {
+        openSearch();
+      } else {
+        closeSearch();
+      }
+    }
+
+    if (e.key === 'Escape') {
+      closeSearch();
+    }
+
+    if (!document.getElementById('search-overlay')?.classList.contains('hidden')) {
+      const items = document.querySelectorAll('.search-result');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        updateSelection(Math.min(selectedIndex + 1, items.length - 1));
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        updateSelection(Math.max(selectedIndex - 1, 0));
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const selected = items[selectedIndex] as HTMLAnchorElement;
+        if (selected) {
+          window.location.href = selected.getAttribute('href') || '';
+        }
+      }
+    }
+  });
+
+  document.getElementById('search-input')?.addEventListener('input', (e) => {
+    const query = (e.target as HTMLInputElement).value;
+    const results = search(query);
+    renderResults(results);
+    selectedIndex = 0;
+  });
+</script>

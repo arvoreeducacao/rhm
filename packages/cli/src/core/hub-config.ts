@@ -1,0 +1,147 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { parse } from "yaml";
+
+export interface Repo {
+  name: string;
+  path: string;
+  url: string;
+  tech?: string;
+  description?: string;
+  env_file?: string;
+  commands?: {
+    install?: string;
+    dev?: string;
+    build?: string;
+    lint?: string;
+    test?: string;
+    [key: string]: string | undefined;
+  };
+  skills?: string[];
+  tools?: Record<string, string>;
+}
+
+export interface Service {
+  name: string;
+  image: string;
+  port?: number;
+  ports?: number[];
+  env?: Record<string, string>;
+}
+
+export interface MCPConfig {
+  name: string;
+  package?: string;
+  url?: string;
+  image?: string;
+  env?: Record<string, string>;
+}
+
+export interface IntegrationConfig {
+  linear?: {
+    team?: string;
+    labels?: string[];
+    link_pattern?: string;
+  };
+  github?: {
+    org?: string;
+    pr_branch_pattern?: string;
+  };
+  slack?: {
+    channels?: Record<string, string>;
+    templates?: Record<string, string>;
+  };
+  playwright?: {
+    base_url?: string;
+  };
+}
+
+export interface WorkflowStep {
+  step: string;
+  agent?: string;
+  agents?: (string | { agent: string; when?: string; output?: string })[];
+  parallel?: boolean;
+  output?: string;
+  tools?: string[];
+  when?: string;
+  actions?: string[];
+}
+
+export interface SecretRef {
+  secret: string;
+  profile?: string;
+}
+
+export interface BuildDatabaseUrl {
+  from_secret: string;
+  profile?: string;
+  vars?: {
+    user?: string;
+    password?: string;
+    host?: string;
+    port?: string;
+    database?: string;
+  };
+  template?: string;
+}
+
+export interface EnvProfile {
+  description?: string;
+  services?: string[];
+  aws_profile?: string;
+  secrets?: Record<string, string | SecretRef>;
+  build_database_url?: Record<string, BuildDatabaseUrl>;
+}
+
+export interface MiseSettings {
+  experimental?: boolean;
+  [key: string]: unknown;
+}
+
+export interface PromptCustomization {
+  prepend?: string;
+  append?: string;
+  sections?: Record<string, string>;
+}
+
+export interface HookEntry {
+  type: "command" | "prompt";
+  command?: string;
+  prompt?: string;
+  matcher?: string;
+  timeout_ms?: number;
+}
+
+export interface HubConfig {
+  name: string;
+  description?: string;
+  version?: string;
+  tools?: Record<string, string>;
+  mise_settings?: MiseSettings;
+  repos: Repo[];
+  services?: Service[];
+  env?: {
+    profiles?: Record<string, EnvProfile>;
+    overrides?: Record<string, Record<string, Record<string, string>>>;
+  };
+  mcps?: MCPConfig[];
+  integrations?: IntegrationConfig;
+  hooks?: Record<string, HookEntry[]>;
+  commands?: Record<string, string>;
+  commands_dir?: string;
+  workflow?: {
+    task_folder?: string;
+    pipeline?: WorkflowStep[];
+    prompt?: PromptCustomization;
+  };
+}
+
+export async function loadHubConfig(dir: string): Promise<HubConfig> {
+  const configPath = join(dir, "hub.yaml");
+  const content = await readFile(configPath, "utf-8");
+  return parse(content) as HubConfig;
+}
+
+export function findHubRoot(startDir: string = process.cwd()): string {
+  return startDir;
+}

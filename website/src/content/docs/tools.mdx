@@ -1,0 +1,150 @@
+---
+title: Tools
+description: Manage development tool versions via mise.
+order: 4
+---
+
+The `tools` section declares development tool versions for your workspace. Repo Hub uses [mise](https://mise.jdx.dev) to install and manage tools like Node.js, pnpm, Erlang, Elixir, Ruby, and more.
+
+## Schema
+
+### Global Tools
+
+Declare tools at the hub level — these are shared by all repositories:
+
+```yaml
+tools:
+  node: "22.18.0"
+  pnpm: "10.26.0"
+  direnv: "2.33.0"
+```
+
+### Per-Repo Tools
+
+Override or add tools for specific repositories. Per-repo tools are **merged** with global tools (repo values win on conflicts):
+
+```yaml
+tools:
+  node: "22.18.0"
+  pnpm: "10.26.0"
+
+repos:
+  - name: api
+    path: ./api
+    # inherits node 22.18.0 and pnpm 10.26.0
+
+  - name: backend
+    path: ./backend
+    tools:
+      erlang: "27.3.3"
+      elixir: "1.18.3-otp-27"
+      # also inherits node 22.18.0 and pnpm 10.26.0
+```
+
+### Mise Settings
+
+Pass settings to mise (e.g., enable experimental features):
+
+```yaml
+mise_settings:
+  experimental: true
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `tools` (top-level) | object | No | Global tool versions shared by all repos |
+| `tools` (per-repo) | object | No | Repo-specific tools, merged with global |
+| `mise_settings` | object | No | Settings passed to `.mise.toml` `[settings]` section |
+
+## CLI Commands
+
+### `hub tools generate`
+
+Generates `.mise.toml` files from `hub.yaml`:
+
+```bash
+hub tools generate
+```
+
+This creates:
+- A root `.mise.toml` with global tools
+- A `.mise.toml` in each repo that has per-repo tools (with global tools merged in)
+
+### `hub tools install`
+
+Installs all tools defined in `hub.yaml` using mise:
+
+```bash
+# Install from existing .mise.toml files
+hub tools install
+
+# Generate .mise.toml files first, then install
+hub tools install --generate
+```
+
+### `hub tools check`
+
+Verifies that installed tool versions match what's declared in `hub.yaml`:
+
+```bash
+hub tools check
+```
+
+Output:
+```
+Hub tools:
+  ✓ node 22.18.0
+  ✓ pnpm 10.26.0
+  ⚠ direnv: 2.32.0 (expected 2.33.0)
+
+  ▸ backend
+    ✓ erlang 27.3.3
+    ✗ elixir: not found (expected 1.18.3-otp-27)
+
+Fix with: hub tools install --generate
+```
+
+### `hub doctor`
+
+The doctor command also checks tool versions from `hub.yaml` alongside required dependencies:
+
+```bash
+hub doctor
+```
+
+## Integration with Setup
+
+`hub setup` automatically installs tools if `tools` is defined in `hub.yaml`. Skip with `--skip-tools`:
+
+```bash
+# Full setup (includes tool installation)
+hub setup
+
+# Skip tools
+hub setup --skip-tools
+```
+
+## Generated Files
+
+The generated `.mise.toml` follows the standard mise format:
+
+```toml
+[tools]
+node = "22.18.0"
+pnpm = "10.26.0"
+erlang = "27.3.3"
+elixir = "1.18.3-otp-27"
+
+[settings]
+experimental = true
+```
+
+## Prerequisites
+
+- [mise](https://mise.jdx.dev) must be installed: `curl https://mise.run | sh` or `brew install mise`
+- mise must be activated in your shell:
+
+```bash
+eval "$(mise activate zsh)"   # zsh
+eval "$(mise activate bash)"  # bash
+```

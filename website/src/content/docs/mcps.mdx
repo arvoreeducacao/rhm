@@ -1,0 +1,183 @@
+---
+title: MCPs
+description: Connect AI to real infrastructure through Model Context Protocol servers.
+order: 5
+---
+
+AI can't debug production if it can't see production. MCP (Model Context Protocol) servers give your AI agent direct access to databases, monitoring, secrets, and testing tools.
+
+## What are MCPs?
+
+MCPs are lightweight servers that expose specific capabilities to AI agents through a standardized protocol. They act as bridges between your AI editor and your infrastructure.
+
+## Available MCP Servers
+
+Repo Hub's MCP servers are maintained at [arvore-mcp-servers](https://github.com/arvoreeducacao/arvore-mcp-servers).
+
+| MCP | What it gives AI |
+|-----|-----------------|
+| `@arvoretech/mysql-mcp` | Read-only database queries |
+| `@arvoretech/postgresql-mcp` | Read-only database queries |
+| `@arvoretech/aws-secrets-manager-mcp` | Secret management |
+| `@arvoretech/datadog-mcp` | Metrics, logs, traces |
+| `@arvoretech/npm-registry-mcp` | Package security checks |
+| `@arvoretech/tempmail-mcp` | Temporary email for E2E tests |
+| `@playwright/mcp` | Browser automation |
+
+## Common MCPs (Practical Examples)
+
+Repo Hub is OSS and doesn't assume you have any specific MCP configured. Pick the MCPs that match your stack and the kind of work you want agents to do.
+
+| MCP (example) | What it unlocks | Example use case |
+|---------------|------------------|------------------|
+| Linear MCP | Issue lifecycle automation | Create a ticket, link a PR, and move status during the pipeline |
+| Slack MCP | Team notifications | Post a PR link to `#eng-prs` and status updates to `#releases` |
+| Notion MCP | Documentation automation | Generate/update runbooks, incident notes, or product docs |
+| Datadog MCP | Production debugging | Correlate error logs with traces to find root cause |
+| AWS Secrets Manager MCP | Runtime secrets access | Resolve API keys and connection strings without committing them |
+| Kubernetes MCP | Cluster debugging | Inspect pods/events to diagnose deployment failures |
+| Database MCP (MySQL/Postgres) | Schema + data visibility (read-only) | Validate columns/relationships before writing code or migrations |
+| ClickHouse MCP | Analytics validation | Verify an event pipeline by querying the warehouse |
+| npm Registry MCP | Dependency safety | Check adoption and security signals before adding a package |
+| SonarQube MCP | Static analysis feedback | Surface issues directly in the workflow and link to PR findings |
+| Playwright MCP | Browser automation | Run smoke flows, take screenshots, and verify UI behavior |
+| TempMail MCP | Email-based flows | Test signup/magic-link flows end-to-end without real inboxes |
+| Context7 MCP | Up-to-date docs | Pull framework/library docs into the agent context before coding |
+| Figma MCP | Design-to-code context | Read component specs and spacing before implementing UI |
+| GitHub MCP | Repo and PR context | Read PR metadata, issues, and check results to automate reviews |
+| Jina (web content) MCP | Fast web content retrieval | Pull an article or docs page into structured text for analysis |
+
+If you need multiple database connections, you can declare the same MCP server multiple times with different `name` values and different env/config (e.g. `postgresql-identity`, `postgresql-billing`).
+
+## Configuration
+
+Declare MCPs in your `hub.yaml`:
+
+```yaml
+mcps:
+  # npm package — runs via npx
+  - name: postgresql
+    package: "@arvoretech/postgresql-mcp"
+    env:
+      PG_HOST: localhost
+      PG_PORT: "5432"
+      PG_DATABASE: myapp
+
+  # npm package — no extra config needed
+  - name: datadog
+    package: "@arvoretech/datadog-mcp"
+
+  # npm package
+  - name: playwright
+    package: "@playwright/mcp"
+
+  # SSE URL — connects to a running server
+  - name: linear
+    url: "https://mcp.linear.app/sse"
+
+  # Docker image — runs in a container
+  - name: custom-tool
+    image: "company/custom-mcp:latest"
+    env:
+      API_KEY: "${env:CUSTOM_TOOL_API_KEY}"
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | MCP identifier (used as key in generated mcp.json) |
+| `package` | string | No* | npm package name (runs via `npx -y <package>`) |
+| `url` | string | No* | SSE URL for remote MCP servers |
+| `image` | string | No* | Docker image (runs via `docker run -i --rm <image>`) |
+| `env` | object | No | Environment variables passed to the MCP process |
+
+*One of `package`, `url`, or `image` is required.
+
+When you run `hub generate`, these are written to `.cursor/mcp.json` (Cursor), `.mcp.json` (Claude Code), or `.kiro/settings/mcp.json` (Kiro), making them available to all agents.
+
+## How Agents Use MCPs
+
+Agents interact with MCPs through tool calls. For example:
+
+- **Database MCP**: Agent queries the schema to understand table relationships before writing migrations
+- **Datadog MCP**: Debugger agent searches logs and traces to identify the root cause of a production error
+- **Playwright MCP**: QA agent navigates the web app, fills forms, and takes screenshots to verify UI changes
+- **npm Registry MCP**: Coding agent checks package download counts and security signals before adding dependencies
+
+## Secret Environment Variables
+
+Many MCPs need API keys, tokens, or credentials. **Never hardcode secrets** in `hub.yaml` — use the `${env:VAR_NAME}` syntax to reference environment variables from your machine:
+
+```yaml
+mcps:
+  - name: datadog
+    package: "@arvoretech/datadog-mcp"
+    env:
+      DATADOG_API_KEY: "${env:DATADOG_API_KEY}"
+      DATADOG_APP_KEY: "${env:DATADOG_APP_KEY}"
+      DATADOG_SITE: "${env:DATADOG_SITE}"
+
+  - name: linear
+    url: "https://mcp.linear.app/sse"
+    env:
+      LINEAR_API_KEY: "${env:LINEAR_API_KEY}"
+
+  - name: postgresql
+    package: "@arvoretech/postgresql-mcp"
+    env:
+      PG_HOST: localhost
+      PG_PORT: "5432"
+      PG_DATABASE: myapp
+      PG_PASSWORD: "${env:PG_PASSWORD}"
+```
+
+When `hub generate` runs, `${env:VAR_NAME}` is written as-is to the generated MCP config file. The editor (Cursor, Claude Code, or Kiro) resolves the reference at runtime, reading the value from your local environment.
+
+This means:
+- `hub.yaml` can be safely committed to git — no secrets in the repo
+- Each developer sets their own keys in their shell profile (`.zshrc`, `.bashrc`, etc.) or a `.env` file
+- The same config works across the team without sharing credentials
+
+### Setting up your environment
+
+Add the variables to your shell profile:
+
+```bash
+export DATADOG_API_KEY="your-actual-key"
+export DATADOG_APP_KEY="your-actual-key"
+export LINEAR_API_KEY="lin_api_..."
+```
+
+Or use a tool like [direnv](https://direnv.net/) with a `.envrc` file (added to `.gitignore`).
+
+### When to use plain values vs `${env:}`
+
+| Value | Use |
+|-------|-----|
+| `localhost`, `5432`, `myapp` | Plain value — not a secret |
+| API keys, tokens, passwords | `${env:VAR_NAME}` — always |
+| Internal URLs | Plain value, unless they contain auth tokens |
+
+## Security
+
+- **Database MCPs are read-only** — Agents can query but cannot modify data
+- **Secrets are resolved at runtime** — No credentials stored in generated files (use `${env:VAR}`)
+- **MCPs run locally** — They connect to your infrastructure from your machine
+
+## Creating Custom MCPs
+
+You can create custom MCP servers following the [MCP specification](https://modelcontextprotocol.io). A basic MCP server exposes:
+
+1. **Tools** — Functions the AI can call
+2. **Resources** — Data the AI can read
+3. **Prompts** — Templates for common tasks
+
+Reference your custom MCP in `hub.yaml`:
+
+```yaml
+mcps:
+  - name: my-custom-mcp
+    package: "@company/my-mcp"
+    env:
+      API_URL: "https://api.internal.company.com"
+      API_KEY: "${env:MY_CUSTOM_MCP_API_KEY}"
+```

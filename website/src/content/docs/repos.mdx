@@ -1,0 +1,100 @@
+---
+title: Repositories
+description: Declare and manage repositories in hub.yaml.
+order: 3
+---
+
+The `repos` section declares all repositories in your workspace. Each repo keeps its own git history while being visible to AI agents as part of a unified workspace.
+
+## Schema
+
+```yaml
+repos:
+  - name: api
+    path: ./api
+    url: git@github.com:company/api.git
+    tech: nestjs
+    description: "REST API and GraphQL gateway"
+    env_file: .env
+    commands:
+      install: pnpm install
+      dev: pnpm dev
+      build: pnpm build
+      lint: pnpm lint
+      test: pnpm test
+    skills: [backend-nestjs]
+    tools:
+      node: "22.18.0"
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Unique identifier for the repo |
+| `path` | string | Yes | Local path relative to hub root |
+| `url` | string | Yes | Git clone URL |
+| `tech` | string | No | Technology stack (nestjs, nextjs, elixir, react, etc.) |
+| `description` | string | No | Human-readable description |
+| `env_file` | string | No | Path to environment file relative to repo root |
+| `commands` | object | No | Named commands |
+| `skills` | string[] | No | [Skills](/docs/skills) to attach to this repo |
+| `tools` | object | No | Per-repo [tool versions](/docs/tools) (merged with global) |
+
+## Commands
+
+The `commands` object maps command names to shell commands. These are used by `hub setup` (for `install`) and available to agents:
+
+```yaml
+commands:
+  install: pnpm install
+  dev: pnpm dev
+  build: pnpm build
+  lint: pnpm lint
+  test: pnpm vitest run
+  migrate: pnpm drizzle-kit push
+```
+
+Built-in command names: `install`, `dev`, `build`, `lint`, `test`. You can add custom names.
+
+## Adding Repositories
+
+```bash
+# Add from URL (name inferred from repo)
+hub add-repo git@github.com:company/api.git
+
+# With explicit name and tech
+hub add-repo git@github.com:company/api.git --name api --tech nestjs
+```
+
+This updates `hub.yaml`, `.gitignore`, and `.cursorignore` automatically.
+
+## Git Operations
+
+```bash
+# Pull latest in all repos
+hub pull
+
+# Show git status for all repos
+hub status
+
+# Run any command across all repos
+hub exec "git checkout main"
+hub exec "git stash"
+```
+
+## How the Context Pattern Works
+
+The magic is in two files:
+
+```bash
+# .gitignore — repos are excluded from the hub's git
+api
+frontend
+backend
+
+# .cursorignore — but included for AI context
+!api/
+!frontend/
+!backend/
+```
+
+Your AI sees all repos as one workspace. Each repo keeps its own git history. `hub generate` creates these files automatically.

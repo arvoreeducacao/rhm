@@ -1,0 +1,206 @@
+---
+title: Hooks
+description: Automate workflows with editor lifecycle hooks.
+order: 12
+---
+
+Hooks let you run shell commands or prompt the AI at specific points during an editor session. Cursor, Claude Code, and Kiro all support hooks, and `hub.yaml` provides a unified way to define them once and generate the correct format for each editor.
+
+## What Are Hooks?
+
+Hooks are automation triggers that fire at editor lifecycle events — like when a file is edited, before a shell command runs, or when the AI session starts. They're useful for:
+
+- Formatting code after edits
+- Blocking dangerous commands
+- Running initialization scripts
+- Auditing AI actions
+- Summarizing work at session end
+
+## hub.yaml Schema
+
+Hooks are defined at the top level of `hub.yaml`, keyed by event name (in `snake_case`):
+
+```yaml
+hooks:
+  pre_tool_use:
+    - type: command
+      command: "./hooks/block-dangerous.sh"
+      matcher: "rm -rf|drop table"
+  after_file_edit:
+    - type: command
+      command: "./hooks/format.sh"
+  session_start:
+    - type: command
+      command: "./hooks/init.sh"
+  stop:
+    - type: prompt
+      prompt: "Summarize what was done and what's left to do"
+```
+
+### Hook Entry Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | `command` (shell script) or `prompt` (AI-evaluated) |
+| `command` | string | When type=command | Shell command or script path |
+| `prompt` | string | When type=prompt | Prompt text for the AI to evaluate |
+| `matcher` | string | No | Regex pattern to filter when the hook fires |
+| `timeout_ms` | number | No | Timeout in milliseconds |
+
+## Event Reference
+
+Hub uses `snake_case` event names. `hub generate` maps them to each editor's naming convention. Events exclusive to one editor are silently skipped for the others.
+
+### Shared Events
+
+| hub.yaml | Cursor | Claude Code | Kiro |
+|----------|--------|-------------|------|
+| `session_start` | `sessionStart` | `SessionStart` | — |
+| `session_end` | `sessionEnd` | `SessionEnd` | — |
+| `pre_tool_use` | `preToolUse` | `PreToolUse` | `pre_tool_use` |
+| `post_tool_use` | `postToolUse` | `PostToolUse` | `post_tool_use` |
+| `stop` | `stop` | `Stop` | `agent_stop` |
+| `subagent_start` | `subagentStart` | `SubagentStart` | — |
+| `subagent_stop` | `subagentStop` | `SubagentStop` | — |
+| `pre_compact` | `preCompact` | `PreCompact` | — |
+| `before_submit_prompt` | `beforeSubmitPrompt` | `UserPromptSubmit` | `prompt_submit` |
+
+### Cursor-Only Events
+
+| hub.yaml | Cursor |
+|----------|--------|
+| `before_shell_execution` | `beforeShellExecution` |
+| `after_shell_execution` | `afterShellExecution` |
+| `before_mcp_execution` | `beforeMCPExecution` |
+| `after_mcp_execution` | `afterMCPExecution` |
+| `after_file_edit` | `afterFileEdit` |
+| `before_read_file` | `beforeReadFile` |
+| `before_tab_file_read` | `beforeTabFileRead` |
+| `after_tab_file_edit` | `afterTabFileEdit` |
+| `after_agent_response` | `afterAgentResponse` |
+| `after_agent_thought` | `afterAgentThought` |
+
+### Claude Code-Only Events
+
+| hub.yaml | Claude Code |
+|----------|-------------|
+| `notification` | `Notification` |
+| `permission_request` | `PermissionRequest` |
+| `task_completed` | `TaskCompleted` |
+| `teammate_idle` | `TeammateIdle` |
+| `post_tool_use_failure` | `PostToolUseFailure` |
+
+### Kiro-Mapped Events
+
+| hub.yaml | Kiro |
+|----------|------|
+| `pre_tool_use` | `pre_tool_use` |
+| `post_tool_use` | `post_tool_use` |
+| `stop` | `agent_stop` |
+| `before_submit_prompt` | `prompt_submit` |
+| `after_file_edit` | `file_save` |
+
+> **Note:** Kiro hooks are managed via the Kiro panel UI, not through configuration files. When generating for Kiro, `hub generate` will display the hooks that should be configured manually in the Kiro IDE.
+
+## How `hub generate` Works
+
+When you run `hub generate`, hooks are generated in each editor's native format:
+
+**Cursor** — `.cursor/hooks.json`:
+```json
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "type": "command",
+        "command": "./hooks/format.sh"
+      }
+    ]
+  }
+}
+```
+
+**Claude Code** — merged into `.claude/settings.json`:
+```json
+{
+  "permissions": { "..." : "..." },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "./hooks/block-dangerous.sh",
+        "matcher": "rm -rf|drop table"
+      }
+    ]
+  }
+}
+```
+
+**Kiro** — hooks are displayed as instructions for manual setup in the Kiro panel UI. Kiro supports the following hook triggers: Prompt Submit, Agent Stop, Pre Tool Use, Post Tool Use, File Create, File Save, File Delete, and Manual Trigger.
+
+## CLI Commands
+
+### `hub hooks list`
+
+List hooks installed in the local `hooks/` directory.
+
+```bash
+hub hooks list
+```
+
+### `hub hooks add <source>`
+
+Install hooks from the registry, a git repository, or a local path.
+
+```bash
+hub hooks add format-on-save            # From registry
+hub hooks add company/shared-hooks      # From GitHub repo
+hub hooks add ./my-hooks                # From local path
+hub hooks add format-on-save --repo myorg/my-registry  # Custom registry
+```
+
+| Flag | Description |
+|------|-------------|
+| `--hook <name>` | Install a specific hook only (for repo sources) |
+| `-r, --repo <repo>` | Override registry repository |
+
+After installing, add the hook to `hub.yaml` to bind it to an event.
+
+### `hub hooks remove <name>`
+
+Remove a hook from the local `hooks/` directory.
+
+```bash
+hub hooks remove format-on-save
+```
+
+## Examples
+
+### Format on Save
+
+```yaml
+hooks:
+  after_file_edit:
+    - type: command
+      command: "./hooks/format.sh"
+```
+
+### Block Dangerous Commands
+
+```yaml
+hooks:
+  pre_tool_use:
+    - type: command
+      command: "./hooks/block-dangerous.sh"
+      matcher: "rm -rf|drop table|force push"
+```
+
+### Session Summary
+
+```yaml
+hooks:
+  stop:
+    - type: prompt
+      prompt: "Summarize everything that was done in this session and list any remaining tasks."
+```

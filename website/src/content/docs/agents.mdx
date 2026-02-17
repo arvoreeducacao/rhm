@@ -1,0 +1,159 @@
+---
+title: Agent Orchestration
+description: How specialized AI agents collaborate in structured pipelines.
+order: 3
+---
+
+Repo Hub's agent system transforms your AI editor into a full development team. Specialized agents collaborate in a structured pipeline, each handling a specific part of the development lifecycle.
+
+## How It Works
+
+When you run `hub generate`, the CLI produces agent definitions from your `hub.yaml` workflow. The orchestrator agent reads the pipeline and delegates to sub-agents in order.
+
+```
+Developer: "Implement user profile editing"
+    |
+    v
+Orchestrator -----> Creates task in Linear
+    |
+    v
+Refinement Agent -> Collects requirements, defines contracts
+    |
+    v
+Coding Agents ----> Implement backend + frontend in parallel
+    |
+    v
+Review Agent -----> Reviews code against the requirements
+    |
+    v
+QA Agent ---------> Runs E2E tests with Playwright
+    |
+    v
+Orchestrator -----> Creates PR, posts in Slack, updates Linear
+    |
+    v
+Developer: "PR is ready, tested, and notified"
+```
+
+**The editor is the runtime.** There is no daemon or separate process. The orchestrator agent follows the pipeline by calling sub-agents through your AI editor's agent mode.
+
+> **Kiro note:** Kiro does not support sub-agents. When generating for Kiro, each agent definition becomes a steering file (`.kiro/steering/agent-*.md`) with `inclusion: auto`. The orchestrator instructs the AI to follow each steering file's guidelines sequentially instead of spawning sub-agents. The result is the same structured pipeline, executed by a single agent that switches roles at each step.
+
+## Built-in Agents
+
+### Orchestrator
+
+The main coordinator. It reads the pipeline, manages task state, and delegates to sub-agents in order.
+
+**Responsibilities:**
+- Create tasks in project management tools (Linear, Jira)
+- Call sub-agents following the pipeline order
+- Validate outputs between steps
+- Create PRs and send notifications when done
+
+### Refinement Agent
+
+Gathers requirements and defines technical contracts before any code is written.
+
+**Outputs:**
+- `tasks/<TASK_ID>/refinement.md` with requirements, scope, API contracts, and edge cases
+
+### Coding Agents
+
+Implement the actual code. You can have separate agents per tech stack:
+
+- `coding-backend` — Backend implementation
+- `coding-frontend` — Frontend implementation
+
+**Outputs:**
+- `tasks/<TASK_ID>/code-backend-*.md` with implementation details
+- `tasks/<TASK_ID>/code-frontend-*.md` with implementation details
+
+### Code Review Agent
+
+Reviews all implementations against the refinement requirements.
+
+**Outputs:**
+- `tasks/<TASK_ID>/code-review.md` with review comments and approval status
+
+### QA Agent
+
+Runs tests and validates the implementation.
+
+**Outputs:**
+- `tasks/<TASK_ID>/qa-backend.md` or `qa-frontend.md` with test results
+
+### Debugger Agent
+
+Investigates bugs and production issues. Can coordinate with infrastructure MCPs (AWS, Kubernetes) to gather context.
+
+## Customizing Agents
+
+Agents are defined as Markdown files with structured instructions. You can customize them by:
+
+1. Modifying the generated agent files in `.cursor/agents/`
+2. Adding custom agents in your `hub.yaml` workflow
+3. Creating new agent templates in the `agents/` directory
+
+## Managing Agents with the CLI
+
+### `hub agents list`
+
+List installed agents (project and global):
+
+```bash
+hub agents list
+```
+
+### `hub agents add <source>`
+
+Install agents from the registry, GitHub, a git URL, or a local path:
+
+```bash
+# From the registry (by name)
+hub agents add debugger
+
+# From a GitHub repo
+hub agents add arvoreeducacao/rhm
+
+# Install globally
+hub agents add debugger --global
+```
+
+| Flag | Description |
+|------|-------------|
+| `-a, --agent <name>` | Install a specific agent only |
+| `-g, --global` | Install to global `~/.cursor/agents/` |
+| `-r, --repo <repo>` | Override registry repository |
+
+### `hub agents remove <name>`
+
+Remove an agent:
+
+```bash
+hub agents remove debugger
+hub agents remove debugger --global
+```
+
+## Pipeline Configuration
+
+Pipelines are defined in `hub.yaml` under the `workflow` key:
+
+```yaml
+workflow:
+  pipeline:
+    - step: refinement
+      agent: refinement
+    - step: coding
+      agents: [coding-backend, coding-frontend]
+      parallel: true
+    - step: review
+      agent: code-reviewer
+    - step: qa
+      agent: qa-frontend
+      tools: [playwright]
+    - step: deliver
+      actions: [create-pr, notify-slack]
+```
+
+Steps run sequentially by default. Use `parallel: true` to run multiple agents simultaneously.
