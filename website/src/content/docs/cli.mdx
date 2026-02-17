@@ -155,11 +155,11 @@ See [Tools](/docs/tools) for configuration details.
 
 ### `hub skills [subcommand]`
 
-Manage agent skills. Compatible with the [skills.sh](https://skills.sh) ecosystem.
+Manage agent skills. Browse curated skills in the [Directory](/directory).
 
 ```bash
 hub skills list                                            # List installed skills
-hub skills find react                                      # Browse community skills on skills.sh
+hub skills find react                                      # Browse curated skills in the directory
 hub skills add backend-nestjs                              # Install from registry (by name)
 hub skills add vercel-labs/agent-skills/react-best-practices  # Specific skill from GitHub
 hub skills add vercel-labs/agent-skills                    # All skills from a GitHub repo
@@ -245,6 +245,37 @@ hub commands remove review              # Remove a command
 | `-r, --repo <repo>` | Override registry repository |
 
 See [Commands](/docs/commands) for more details.
+
+## Memory
+
+### `hub memory [subcommand]`
+
+Manage team memories — persistent knowledge base for AI context:
+
+```bash
+hub memory list                                        # List all memories
+hub memory list --category decisions                   # Filter by category
+hub memory list --status archived                      # Show archived
+hub memory add decisions "Use PostgreSQL"              # Create a memory
+hub memory add conventions "API naming" --tags "rest,api" --author joao
+hub memory add gotchas "Sentry v8 leak" --content "Sentry SDK v8 causes memory leak with NestJS interceptors"
+hub memory archive 2024-06-01-use-postgresql           # Soft-delete
+hub memory remove 2024-06-01-use-postgresql            # Permanent delete
+```
+
+| Flag | Description |
+|------|-------------|
+| `-c, --category <cat>` | Filter by category |
+| `-s, --status <status>` | Filter by status (active, archived, superseded) |
+| `-t, --tags <tags>` | Comma-separated tags |
+| `-a, --author <author>` | Author name |
+| `--content <content>` | Memory content (otherwise opens template) |
+
+Categories: `decisions`, `conventions`, `incidents`, `domain`, `gotchas`.
+
+The `@arvoretech/memory-mcp` provides semantic search via MCP so AI agents can query your team's knowledge base on-demand.
+
+See [Memory](/docs/memory) for full documentation.
 
 ## Registry
 

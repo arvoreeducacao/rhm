@@ -1,0 +1,291 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DirectoryCard from '../components/DirectoryCard.astro';
+import DirectoryFilter from '../components/DirectoryFilter.astro';
+import PreviewModal from '../components/PreviewModal.astro';
+import directoryData from '../data/directory.json';
+
+type ItemType = "skill" | "agent" | "hook" | "command";
+
+interface DirectoryItem {
+  name: string;
+  description: string;
+  type: ItemType;
+  source: string;
+  repo: string;
+  installCmd: string;
+  verified: boolean;
+  fromRegistry: boolean;
+  stars?: number;
+  sourceUrl?: string;
+  contentPreview?: string;
+}
+
+const items = (directoryData as DirectoryItem[]).sort((a, b) => {
+  if (a.verified !== b.verified) return a.verified ? -1 : 1;
+  if (a.fromRegistry !== b.fromRegistry) return a.fromRegistry ? -1 : 1;
+  return (b.stars ?? 0) - (a.stars ?? 0);
+});
+
+const counts: Record<string, number> = {};
+for (const item of items) {
+  counts[item.type] = (counts[item.type] || 0) + 1;
+}
+
+const uniqueRepos = new Set(items.map(i => i.repo)).size;
+---
+
+<BaseLayout title="Directory" description="Browse curated skills, agents, hooks and commands for your AI coding assistant.">
+  <div class="mx-auto max-w-6xl px-6 pt-28 pb-16">
+
+    <div class="mb-12 text-center">
+      <span class="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 dark:border-brand-800 dark:bg-brand-950/30 dark:text-brand-400">
+        Open Directory
+      </span>
+      <h1 class="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl">
+        Skills, Agents, Hooks & Commands
+      </h1>
+      <p class="mx-auto mt-3 max-w-xl text-base text-gray-500 dark:text-gray-400">
+        Curated from verified open-source repositories. Install anything with a single command.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">{items.length}</span>
+          <span class="text-gray-500 dark:text-gray-400">items</span>
+        </div>
+        <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">{uniqueRepos}</span>
+          <span class="text-gray-500 dark:text-gray-400">sources</span>
+        </div>
+        <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">{Object.keys(counts).length}</span>
+          <span class="text-gray-500 dark:text-gray-400">categories</span>
+        </div>
+      </div>
+    </div>
+
+    <DirectoryFilter counts={counts} />
+
+    <div id="directory-grid" class="mt-8 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {items.map(item => (
+        <div class="directory-item" data-type={item.type} data-name={item.name.toLowerCase()} data-description={item.description.toLowerCase()} data-repo={item.repo.toLowerCase()}>
+          <DirectoryCard {...item} />
+        </div>
+      ))}
+    </div>
+
+    <div id="no-results" class="hidden py-16 text-center">
+      <p class="text-gray-400 dark:text-gray-500">No results found.</p>
+    </div>
+
+    {items.length === 0 && (
+      <div class="py-16 text-center">
+        <p class="text-lg text-gray-400 dark:text-gray-500">No items indexed yet.</p>
+        <p class="mt-2 text-sm text-gray-400 dark:text-gray-500">
+          Run <code class="rounded bg-gray-100 px-2 py-0.5 font-mono text-sm dark:bg-gray-800">pnpm index-directory</code> to populate the directory.
+        </p>
+      </div>
+    )}
+
+    <div class="mt-16 rounded-xl border border-gray-200 bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900/50">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Want to add your project?</h2>
+      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+        Submit a PR to add your repository to the curated list. All entries are reviewed before being accepted.
+      </p>
+      <a
+        href="https://github.com/arvoreeducacao/rhm"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="mt-4 inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-2 text-sm font-medium text-white transition-all hover:bg-brand-700"
+      >
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        Submit on GitHub
+      </a>
+    </div>
+  </div>
+
+  <PreviewModal />
+</BaseLayout>
+
+<script>
+  const noResults = document.getElementById('no-results');
+  const searchInput = document.getElementById('directory-search') as HTMLInputElement;
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const items = document.querySelectorAll('.directory-item') as NodeListOf<HTMLElement>;
+
+  let activeFilter = 'all';
+
+  function applyFilters() {
+    const query = searchInput?.value.toLowerCase().trim() || '';
+    let visible = 0;
+
+    items.forEach(item => {
+      const type = item.dataset.type || '';
+      const name = item.dataset.name || '';
+      const desc = item.dataset.description || '';
+      const repo = item.dataset.repo || '';
+
+      const matchesFilter = activeFilter === 'all' || type === activeFilter;
+      const matchesSearch = !query ||
+        name.includes(query) ||
+        desc.includes(query) ||
+        repo.includes(query);
+
+      if (matchesFilter && matchesSearch) {
+        item.style.display = '';
+        visible++;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    if (noResults) {
+      noResults.classList.toggle('hidden', visible > 0 || items.length === 0);
+    }
+  }
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = (btn as HTMLElement).dataset.filter || 'all';
+      applyFilters();
+    });
+  });
+
+  searchInput?.addEventListener('input', applyFilters);
+
+  const url = new URL(window.location.href);
+  const typeParam = url.searchParams.get('type');
+  if (typeParam && ['skill', 'agent', 'hook', 'command'].includes(typeParam)) {
+    activeFilter = typeParam;
+    filterBtns.forEach(btn => {
+      btn.classList.toggle('active', (btn as HTMLElement).dataset.filter === typeParam);
+    });
+    applyFilters();
+  }
+
+  document.querySelectorAll('.copy-cmd').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const cmd = (btn as HTMLElement).dataset.cmd;
+      if (!cmd) return;
+      try {
+        await navigator.clipboard.writeText(cmd);
+        const span = btn.querySelector('span');
+        if (span) {
+          const original = span.textContent;
+          span.textContent = 'Copied!';
+          setTimeout(() => { span.textContent = original; }, 1500);
+        }
+      } catch {}
+    });
+  });
+
+  const modal = document.getElementById('preview-modal')!;
+  const modalName = document.getElementById('modal-name')!;
+  const modalDesc = document.getElementById('modal-description')!;
+  const modalTypeBadge = document.getElementById('modal-type-badge')!;
+  const modalVerified = document.getElementById('modal-verified-badge')!;
+  const modalPreview = document.querySelector('#modal-preview code')!;
+  const modalPreviewContainer = document.getElementById('modal-preview-container')!;
+  const modalNoPreview = document.getElementById('modal-no-preview')!;
+  const modalSourceLink = document.getElementById('modal-source-link') as HTMLAnchorElement;
+  const modalInstallBtn = document.getElementById('modal-install-btn')!;
+  const modalClose = document.getElementById('modal-close')!;
+
+  const typeStyles: Record<string, { color: string; label: string }> = {
+    skill: { color: 'bg-blue-500/10 text-blue-400 border-blue-500/20', label: 'Skill' },
+    agent: { color: 'bg-purple-500/10 text-purple-400 border-purple-500/20', label: 'Agent' },
+    hook: { color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', label: 'Hook' },
+    command: { color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', label: 'Command' },
+  };
+
+  function openModal(el: HTMLElement) {
+    const data = el.dataset;
+    const type = data.previewType || 'skill';
+    const style = typeStyles[type] || typeStyles.skill;
+
+    modalName.textContent = data.previewName || '';
+    modalDesc.textContent = data.previewDescription || '';
+
+    modalTypeBadge.className = `inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${style.color}`;
+    modalTypeBadge.textContent = style.label;
+
+    if (data.previewVerified === 'true') {
+      modalVerified.classList.remove('hidden');
+      modalVerified.classList.add('inline-flex');
+    } else {
+      modalVerified.classList.add('hidden');
+      modalVerified.classList.remove('inline-flex');
+    }
+
+    const content = data.previewContent || '';
+    if (content) {
+      modalPreview.textContent = content;
+      modalPreviewContainer.classList.remove('hidden');
+      modalNoPreview.classList.add('hidden');
+    } else {
+      modalPreviewContainer.classList.add('hidden');
+      modalNoPreview.classList.remove('hidden');
+    }
+
+    const sourceUrl = data.previewSourceUrl || '';
+    if (sourceUrl) {
+      modalSourceLink.href = sourceUrl;
+      modalSourceLink.classList.remove('hidden');
+    } else {
+      modalSourceLink.classList.add('hidden');
+    }
+
+    const cmd = data.previewCmd || '';
+    modalInstallBtn.dataset.cmd = cmd;
+    const cmdSpan = modalInstallBtn.querySelector('span');
+    if (cmdSpan) cmdSpan.textContent = cmd;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+  }
+
+  document.querySelectorAll('.preview-trigger').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) return;
+      openModal(card as HTMLElement);
+    });
+  });
+
+  modalClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+  });
+
+  modalInstallBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const cmd = modalInstallBtn.dataset.cmd;
+    if (!cmd) return;
+    try {
+      await navigator.clipboard.writeText(cmd);
+      const span = modalInstallBtn.querySelector('span');
+      if (span) {
+        const original = span.textContent;
+        span.textContent = 'Copied!';
+        setTimeout(() => { span.textContent = original; }, 1500);
+      }
+    } catch {}
+  });
+</script>

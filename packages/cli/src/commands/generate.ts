@@ -1044,6 +1044,15 @@ function buildGitignoreLines(config: HubConfig): string[] {
     "tasks/",
   );
 
+  if (config.memory) {
+    const memPath = config.memory.path || "memories";
+    lines.push(
+      "",
+      "# Memory vector store (generated from markdown files)",
+      `${memPath}/.lancedb/`,
+    );
+  }
+
   return lines;
 }
 

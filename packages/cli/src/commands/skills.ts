@@ -34,23 +34,47 @@ async function listLocalSkills(hubDir: string): Promise<{ name: string; descript
   return skills;
 }
 
+async function findSkillFolders(rootDir: string): Promise<{ dir: string; folders: string[] }> {
+  const skillsDir = join(rootDir, "skills");
+  if (existsSync(skillsDir)) {
+    const entries = await readdir(skillsDir);
+    const folders = entries.filter((f) =>
+      existsSync(join(skillsDir, f, "SKILL.md"))
+    );
+    if (folders.length > 0) return { dir: skillsDir, folders };
+  }
+
+  if (existsSync(rootDir)) {
+    const entries = await readdir(rootDir);
+    const folders = entries.filter(
+      (f) =>
+        !f.startsWith(".") &&
+        f !== "node_modules" &&
+        existsSync(join(rootDir, f, "SKILL.md"))
+    );
+    if (folders.length > 0) return { dir: rootDir, folders };
+  }
+
+  if (existsSync(join(rootDir, "SKILL.md"))) {
+    return { dir: join(rootDir, ".."), folders: [rootDir.split("/").pop()!] };
+  }
+
+  return { dir: skillsDir, folders: [] };
+}
+
 async function installSkillsFromDir(
   sourceSkillsDir: string,
   hubDir: string,
   opts: { skill?: string; global?: boolean }
 ) {
-  if (!existsSync(sourceSkillsDir)) {
-    console.log(chalk.red("  No skills/ directory found in source"));
-    return;
-  }
+  const rootDir = sourceSkillsDir.endsWith("/skills")
+    ? sourceSkillsDir.replace(/\/skills$/, "")
+    : sourceSkillsDir;
 
-  const available = await readdir(sourceSkillsDir);
-  const skillFolders = available.filter((f) =>
-    existsSync(join(sourceSkillsDir, f, "SKILL.md"))
-  );
+  const { dir, folders: skillFolders } = await findSkillFolders(rootDir);
 
   if (skillFolders.length === 0) {
-    console.log(chalk.red("  No skills found (looking for skills/*/SKILL.md)"));
+    console.log(chalk.red("  No skills found (looked in skills/, root dirs, and SKILL.md)"));
     return;
   }
 
@@ -70,7 +94,7 @@ async function installSkillsFromDir(
   await mkdir(targetBase, { recursive: true });
 
   for (const skill of toInstall) {
-    const src = join(sourceSkillsDir, skill);
+    const src = join(dir, skill);
     const dest = join(targetBase, skill);
 
     await cp(src, dest, { recursive: true });
@@ -124,48 +148,90 @@ async function addFromGitHubSkill(
   opts: { global?: boolean }
 ) {
   const fullRepo = `${owner}/${repo}`;
-  const remotePath = `skills/${skillName}`;
   const targetBase = opts.global
     ? join(process.env.HOME || "~", ".cursor", "skills")
     : join(hubDir, "skills");
   const dest = join(targetBase, skillName);
 
+  const pathsToTry = [
+    `skills/${skillName}`,
+    skillName,
+  ];
+
   console.log(chalk.cyan(`  Downloading ${skillName} from ${fullRepo} via GitHub API...`));
 
-  try {
-    await downloadDirFromGitHub(fullRepo, remotePath, dest);
+  for (const remotePath of pathsToTry) {
+    try {
+      await downloadDirFromGitHub(fullRepo, remotePath, dest);
 
-    if (!existsSync(join(dest, "SKILL.md"))) {
+      if (existsSync(join(dest, "SKILL.md"))) {
+        console.log(chalk.green(`  Installed: ${skillName} (from ${fullRepo})`));
+        console.log(chalk.green(`\n  1 skill(s) installed to ${opts.global ? "global" : "project"}\n`));
+        return;
+      }
+
       await rm(dest, { recursive: true }).catch(() => {});
-      console.log(chalk.red(`  Skill '${skillName}' not found in ${fullRepo}/skills/`));
-      console.log(chalk.dim(`  Check available skills: hub skills add ${fullRepo} --list`));
-      return;
+    } catch {
+      await rm(dest, { recursive: true }).catch(() => {});
     }
-
-    console.log(chalk.green(`  Installed: ${skillName} (from ${fullRepo})`));
-    console.log(chalk.green(`\n  1 skill(s) installed to ${opts.global ? "global" : "project"}\n`));
-  } catch (err) {
-    console.log(chalk.red(`  Failed to download: ${(err as Error).message}`));
   }
+
+  console.log(chalk.red(`  Skill '${skillName}' not found in ${fullRepo}`));
+  console.log(chalk.dim(`  Check available skills: hub skills add ${fullRepo} --list`));
 }
 
 async function listRemoteSkills(owner: string, repo: string): Promise<void> {
   const fullRepo = `${owner}/${repo}`;
   console.log(chalk.cyan(`  Fetching skills from ${fullRepo}...\n`));
 
-  try {
-    const apiUrl = `https://api.github.com/repos/${fullRepo}/contents/skills`;
-    const res = await fetch(apiUrl, {
-      headers: { Accept: "application/vnd.github.v3+json" },
-    });
+  const headers = { Accept: "application/vnd.github.v3+json" };
 
-    if (!res.ok) {
-      console.log(chalk.red(`  Could not list skills from ${fullRepo}`));
-      return;
+  try {
+    let dirs: { name: string }[] = [];
+
+    const skillsRes = await fetch(
+      `https://api.github.com/repos/${fullRepo}/contents/skills`,
+      { headers }
+    );
+
+    if (skillsRes.ok) {
+      const items = (await skillsRes.json()) as { name: string; type: string }[];
+      dirs = items.filter((i) => i.type === "dir");
     }
 
-    const items = (await res.json()) as { name: string; type: string }[];
-    const dirs = items.filter((i) => i.type === "dir");
+    if (dirs.length === 0) {
+      const rootRes = await fetch(
+        `https://api.github.com/repos/${fullRepo}/contents`,
+        { headers }
+      );
+
+      if (rootRes.ok) {
+        const items = (await rootRes.json()) as { name: string; type: string }[];
+        const candidates = items.filter(
+          (i) => i.type === "dir" && !i.name.startsWith(".")
+        );
+
+        for (const c of candidates) {
+          const checkRes = await fetch(
+            `https://api.github.com/repos/${fullRepo}/contents/${c.name}/SKILL.md`,
+            { headers }
+          );
+          if (checkRes.ok) dirs.push({ name: c.name });
+        }
+      }
+    }
+
+    if (dirs.length === 0) {
+      const rootSkill = await fetch(
+        `https://api.github.com/repos/${fullRepo}/contents/SKILL.md`,
+        { headers }
+      );
+      if (rootSkill.ok) {
+        console.log(chalk.green(`  This repo is a single skill.\n`));
+        console.log(chalk.dim(`  Install with: hub skills add ${fullRepo}\n`));
+        return;
+      }
+    }
 
     if (dirs.length === 0) {
       console.log(chalk.dim("  No skills found."));
@@ -200,8 +266,7 @@ async function addFromLocalPath(
     return;
   }
 
-  const sourceSkillsDir = join(absPath, "skills");
-  await installSkillsFromDir(sourceSkillsDir, hubDir, opts);
+  await installSkillsFromDir(absPath, hubDir, opts);
 }
 
 async function addFromGitRepo(
@@ -223,8 +288,7 @@ async function addFromGitRepo(
       return;
     }
 
-    const sourceSkillsDir = join(tmp, "skills");
-    await installSkillsFromDir(sourceSkillsDir, hubDir, opts);
+    await installSkillsFromDir(tmp, hubDir, opts);
   } finally {
     if (existsSync(tmp)) {
       await rm(tmp, { recursive: true });
@@ -252,7 +316,7 @@ export const skillsCommand = new Command("skills")
   .description("Manage agent skills")
   .addCommand(
     new Command("add")
-      .description("Install skills from registry, GitHub (skills.sh compatible), git URL, or local path")
+      .description("Install skills from registry, GitHub, git URL, or local path")
       .argument("<source>", "Skill name, owner/repo, owner/repo/skill, git URL, or local path")
       .option("-s, --skill <name>", "Install a specific skill only (for repo sources)")
       .option("-g, --global", "Install to global ~/.cursor/skills/")
@@ -300,14 +364,15 @@ export const skillsCommand = new Command("skills")
   )
   .addCommand(
     new Command("find")
-      .description("Browse community skills on skills.sh")
-      .argument("[query]", "Search term (opens skills.sh)")
+      .description("Browse curated skills in the Repo Hub directory")
+      .argument("[query]", "Search term")
       .action(async (query?: string) => {
+        const base = "https://rhm-website.vercel.app/directory?type=skill";
         const url = query
-          ? `https://skills.sh/?q=${encodeURIComponent(query)}`
-          : "https://skills.sh";
+          ? `${base}&q=${encodeURIComponent(query)}`
+          : base;
 
-        console.log(chalk.blue("\n  Browse community skills at:\n"));
+        console.log(chalk.blue("\n  Browse curated skills at:\n"));
         console.log(chalk.cyan(`  ${url}\n`));
         console.log(chalk.dim("  Install with: hub skills add <owner>/<repo>/<skill-name>"));
         console.log(chalk.dim("  Example:      hub skills add vercel-labs/agent-skills/react-best-practices\n"));

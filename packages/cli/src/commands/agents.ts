@@ -77,28 +77,46 @@ async function addFromLocalPath(
     return;
   }
 
-  const sourceAgentsDir = statSync(absPath).isDirectory()
-    ? join(absPath, "agents")
-    : absPath;
-
-  await installAgentsFromDir(sourceAgentsDir, hubDir, opts);
-}
-
-async function installAgentsFromDir(
-  sourceAgentsDir: string,
-  hubDir: string,
-  opts: { agent?: string; global?: boolean }
-) {
-  if (!existsSync(sourceAgentsDir)) {
-    console.log(chalk.red("  No agents/ directory found in source"));
+  if (!statSync(absPath).isDirectory()) {
+    console.log(chalk.red(`  Path is not a directory: ${absPath}`));
     return;
   }
 
-  const files = await readdir(sourceAgentsDir);
-  const mdFiles = files.filter((f) => f.endsWith(".md"));
+  await installAgentsFromDir(absPath, hubDir, opts);
+}
+
+async function findAgentFiles(rootDir: string): Promise<{ dir: string; files: string[] }> {
+  const agentsDir = join(rootDir, "agents");
+  if (existsSync(agentsDir)) {
+    const entries = await readdir(agentsDir);
+    const mdFiles = entries.filter((f) => f.endsWith(".md"));
+    if (mdFiles.length > 0) return { dir: agentsDir, files: mdFiles };
+  }
+
+  if (existsSync(rootDir)) {
+    const entries = await readdir(rootDir);
+    const mdFiles = entries.filter(
+      (f) => f.endsWith(".md") && !f.startsWith(".") && f !== "README.md" && f !== "CHANGELOG.md"
+    );
+    if (mdFiles.length > 0) return { dir: rootDir, files: mdFiles };
+  }
+
+  return { dir: agentsDir, files: [] };
+}
+
+async function installAgentsFromDir(
+  sourceDir: string,
+  hubDir: string,
+  opts: { agent?: string; global?: boolean }
+) {
+  const rootDir = sourceDir.endsWith("/agents")
+    ? sourceDir.replace(/\/agents$/, "")
+    : sourceDir;
+
+  const { dir, files: mdFiles } = await findAgentFiles(rootDir);
 
   if (mdFiles.length === 0) {
-    console.log(chalk.red("  No agent files found (looking for agents/*.md)"));
+    console.log(chalk.red("  No agent files found (looked in agents/ and root .md files)"));
     return;
   }
 
@@ -119,7 +137,7 @@ async function installAgentsFromDir(
   await mkdir(targetBase, { recursive: true });
 
   for (const file of toInstall) {
-    await copyFile(join(sourceAgentsDir, file), join(targetBase, file));
+    await copyFile(join(dir, file), join(targetBase, file));
     console.log(chalk.green(`  Installed: ${file.replace(/\.md$/, "")}`));
   }
 
@@ -148,8 +166,7 @@ async function addFromGitRepo(
       return;
     }
 
-    const sourceAgentsDir = join(tmp, "agents");
-    await installAgentsFromDir(sourceAgentsDir, hubDir, opts);
+    await installAgentsFromDir(tmp, hubDir, opts);
   } finally {
     if (existsSync(tmp)) {
       await rm(tmp, { recursive: true });
@@ -250,6 +267,22 @@ export const agentsCommand = new Command("agents")
 
         await rm(target);
         console.log(chalk.green(`\nRemoved agent: ${name}\n`));
+      })
+  )
+  .addCommand(
+    new Command("find")
+      .description("Browse curated agents in the Repo Hub directory")
+      .argument("[query]", "Search term")
+      .action(async (query?: string) => {
+        const base = "https://rhm-website.vercel.app/directory?type=agent";
+        const url = query
+          ? `${base}&q=${encodeURIComponent(query)}`
+          : base;
+
+        console.log(chalk.blue("\n  Browse curated agents at:\n"));
+        console.log(chalk.cyan(`  ${url}\n`));
+        console.log(chalk.dim("  Install with: hub agents add <owner>/<repo>"));
+        console.log(chalk.dim("  Example:      hub agents add my-org/my-agents\n"));
       })
   )
   .addCommand(

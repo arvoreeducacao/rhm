@@ -113,6 +113,13 @@ export interface HookEntry {
   timeout_ms?: number;
 }
 
+export interface MemoryConfig {
+  path?: string;
+  categories?: string[];
+  auto_capture?: boolean;
+  embedding_model?: string;
+}
+
 export interface HubConfig {
   name: string;
   description?: string;
@@ -130,6 +137,7 @@ export interface HubConfig {
   hooks?: Record<string, HookEntry[]>;
   commands?: Record<string, string>;
   commands_dir?: string;
+  memory?: MemoryConfig;
   workflow?: {
     task_folder?: string;
     pipeline?: WorkflowStep[];

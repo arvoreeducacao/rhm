@@ -16,6 +16,7 @@ import { pullCommand, statusCommand, execCommand } from "./commands/repos.js";
 import { worktreeCommand } from "./commands/worktree.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { toolsCommand } from "./commands/tools.js";
+import { memoryCommand } from "./commands/memory.js";
 import { updateCommand } from "./commands/update.js";
 
 const program = new Command();
@@ -45,6 +46,7 @@ program.addCommand(execCommand);
 program.addCommand(worktreeCommand);
 program.addCommand(doctorCommand);
 program.addCommand(toolsCommand);
+program.addCommand(memoryCommand);
 program.addCommand(updateCommand);
 
 program.parse();

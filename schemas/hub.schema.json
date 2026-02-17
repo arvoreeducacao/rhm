@@ -140,6 +140,7 @@
       "type": "string",
       "description": "Directory containing custom command scripts"
     },
+    "memory": { "$ref": "#/definitions/memory" },
     "workflow": { "$ref": "#/definitions/workflow" }
   },
   "definitions": {
@@ -209,20 +210,52 @@
         "name": { "type": "string", "description": "MCP server name" },
         "package": {
           "type": "string",
-          "description": "npm package name",
-          "enum": [
+          "description": "npm package name for the MCP server",
+          "examples": [
             "@arvoretech/postgresql-mcp",
             "@arvoretech/mysql-mcp",
             "@arvoretech/aws-secrets-manager-mcp",
             "@arvoretech/datadog-mcp",
             "@arvoretech/npm-registry-mcp",
             "@arvoretech/tempmail-mcp",
-            "@playwright/mcp"
+            "@arvoretech/memory-mcp",
+            "@arvoretech/launchdarkly-mcp"
           ]
         },
         "url": { "type": "string", "description": "MCP server URL (remote)" },
         "image": { "type": "string", "description": "Docker image (containerized)" },
         "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Env vars" }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Team memory configuration — persistent knowledge base for AI context",
+      "properties": {
+        "path": {
+          "type": "string",
+          "default": "./memories",
+          "description": "Path to the memories directory"
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["decisions", "conventions", "incidents", "domain", "gotchas"]
+          },
+          "default": ["decisions", "conventions", "incidents", "domain", "gotchas"],
+          "description": "Memory categories to use"
+        },
+        "auto_capture": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the orchestrator extracts learnings from completed tasks and saves them as memories"
+        },
+        "embedding_model": {
+          "type": "string",
+          "default": "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
+          "description": "HuggingFace model name for semantic search embeddings"
+        }
       }
     },
     "workflow": {

@@ -1,0 +1,145 @@
+---
+title: Memory
+description: Team memory — persistent knowledge base that gives AI context about your team's decisions, conventions, and learnings.
+order: 7
+---
+
+Team memory captures accumulated knowledge over time. Unlike [skills](/docs/skills) (which are prescriptive patterns), memories are descriptive facts the team has learned — decisions made, conventions adopted, incidents resolved, and domain knowledge documented.
+
+The `@arvoretech/memory-mcp` provides semantic search via MCP tools, so AI agents can search your team's knowledge base on-demand during conversations.
+
+## Quick Start
+
+Add the `memory` section to your `hub.yaml`:
+
+```yaml
+memory:
+  path: ./memories
+  categories:
+    - decisions
+    - conventions
+    - incidents
+    - domain
+    - gotchas
+  auto_capture: true
+```
+
+Create your first memory:
+
+```bash
+hub memory add decisions "Use PostgreSQL for all services" \
+  --content "We chose PostgreSQL over MongoDB because we need ACID transactions and complex joins." \
+  --tags "database,architecture" \
+  --author joao.barros
+```
+
+Run `hub generate` to inject memories into your editor config.
+
+## Categories
+
+| Category | Purpose | Examples |
+|----------|---------|---------|
+| `decisions` | Architectural Decision Records | Database choice, auth strategy, API design |
+| `conventions` | Coding standards and preferences | Naming, file structure, PR process |
+| `incidents` | Past bugs and their root causes | Outages, memory leaks, data issues |
+| `domain` | Business domain knowledge | Glossary, product concepts, user flows |
+| `gotchas` | Known issues and workarounds | Library bugs, env quirks, deploy caveats |
+
+## Memory File Format
+
+Memories are markdown files with YAML frontmatter, stored in `memories/<category>/`:
+
+```markdown
+---
+title: Use PostgreSQL for all services
+category: decisions
+date: 2024-06-01
+author: joao.barros
+tags: [database, architecture]
+status: active
+---
+
+## Context
+We needed to choose between PostgreSQL and MongoDB for our main database.
+
+## Decision
+PostgreSQL, because we need ACID transactions and complex joins across entities.
+
+## Consequences
+- Migrations managed by Ecto (Elixir) and Prisma (NestJS)
+- No dynamic schema flexibility
+- Need to manage connection pools carefully
+```
+
+### Status Values
+
+- **`active`** — Included in searches and prompt injection (default)
+- **`superseded`** — Replaced by a newer decision, kept for history
+- **`archived`** — Soft-deleted, excluded from active searches
+
+## Semantic Search via MCP
+
+The `@arvoretech/memory-mcp` server provides semantic search using local embeddings. Add it to your `hub.yaml`:
+
+```yaml
+mcps:
+  - name: team-memory
+    package: "@arvoretech/memory-mcp"
+    env:
+      MEMORY_PATH: ./memories
+```
+
+This gives AI agents access to these tools during conversations:
+
+| Tool | Description |
+|------|-------------|
+| `search_memories` | Semantic search across all memories |
+| `get_memory` | Get full content of a specific memory |
+| `add_memory` | Create a new memory (AI can capture learnings) |
+| `list_memories` | List memories with optional filters |
+| `archive_memory` | Soft-delete a memory |
+| `remove_memory` | Permanently delete a memory |
+
+The MCP uses the `paraphrase-multilingual-MiniLM-L12-v2` model by default, supporting Portuguese and English queries. Vectors are stored in a local **LanceDB** database (`memories/.lancedb/`) with cosine similarity search and metadata filtering.
+
+### Custom Model
+
+Override the embedding model via environment variable:
+
+```yaml
+mcps:
+  - name: team-memory
+    package: "@arvoretech/memory-mcp"
+    env:
+      MEMORY_PATH: ./memories
+      MEMORY_EMBEDDING_MODEL: Xenova/all-MiniLM-L6-v2  # Smaller, English-only
+```
+
+## Auto-Capture
+
+When `auto_capture: true`, the orchestrator is instructed to extract learnings from completed tasks and save them as new memories. After each task delivery, the AI may create entries for:
+
+- Architectural decisions made during the task
+- New conventions discovered
+- Bugs found and their root causes
+- Domain knowledge clarified
+
+## CLI Commands
+
+```bash
+hub memory list                           # List all active memories
+hub memory list --category decisions      # Filter by category
+hub memory list --status archived         # Show archived memories
+hub memory add <category> "<title>"       # Create a memory
+hub memory archive <id>                   # Soft-delete
+hub memory remove <id>                    # Permanent delete
+```
+
+## Configuration Reference
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `path` | string | `./memories` | Directory for memory files |
+| `categories` | string[] | all 5 | Which categories to use |
+| `auto_capture` | boolean | `false` | Auto-extract learnings from tasks |
+| `embedding_model` | string | multilingual MiniLM | HuggingFace model for MCP |

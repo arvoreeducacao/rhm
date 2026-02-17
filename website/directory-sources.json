@@ -1,0 +1,47 @@
+{
+  "registry": "arvoreeducacao/rhm",
+  "curated": [
+    {
+      "repo": "vercel-labs/agent-skills",
+      "type": "skills",
+      "verified": true,
+      "description": "React, Next.js, and web design skills by Vercel"
+    },
+    {
+      "repo": "obra/superpowers",
+      "type": "skills",
+      "verified": true,
+      "description": "TDD, debugging, code review, brainstorming and workflow skills"
+    },
+    {
+      "repo": "obra/superpowers",
+      "type": "agents",
+      "verified": true,
+      "description": "Superpowers agents for development workflows"
+    },
+    {
+      "repo": "obra/superpowers",
+      "type": "hooks",
+      "verified": true,
+      "description": "Git hooks for automated workflow enforcement"
+    },
+    {
+      "repo": "obra/superpowers",
+      "type": "commands",
+      "verified": true,
+      "description": "CLI commands for agent-driven development"
+    },
+    {
+      "repo": "supabase/agent-skills",
+      "type": "skills",
+      "verified": true,
+      "description": "Supabase Postgres best practices"
+    },
+    {
+      "repo": "VoltAgent/awesome-claude-code-subagents",
+      "type": "agents",
+      "verified": true,
+      "description": "100+ specialized subagents for development, infrastructure, QA, and more"
+    }
+  ]
+}
