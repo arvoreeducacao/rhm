@@ -280,3 +280,20 @@ hub worktree copy-envs feature-login  # Copy to specific worktree
 ```
 
 See [Worktrees](/docs/worktrees) for more details.
+
+## Update
+
+### `hub update`
+
+Update the hub CLI to the latest version:
+
+```bash
+hub update           # Update to latest
+hub update --check   # Check for updates without installing
+```
+
+Automatically detects your package manager (pnpm, npm, or yarn) and runs the appropriate global install command.
+
+| Flag | Description |
+|------|-------------|
+| `--check` | Only check for updates, don't install |
