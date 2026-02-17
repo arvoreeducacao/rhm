@@ -398,6 +398,19 @@ If the user doesn't have a task in their project management tool, create one usi
     sections.push(`\n${prompt.sections.after_delivery.trim()}`);
   }
 
+  if (config.memory) {
+    sections.push(`
+## Team Memory
+
+This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
+
+**Before starting any task**, use \`search_memories\` to find relevant context — past decisions, conventions, known issues, and domain knowledge. This avoids repeating mistakes and ensures consistency with previous choices.
+
+**After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
+
+Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
+  }
+
   sections.push(`
 ## Troubleshooting and Debugging
 
@@ -596,6 +609,19 @@ If the user doesn't have a task in their project management tool, create one usi
 
   if (prompt?.sections?.after_delivery) {
     sections.push(`\n${prompt.sections.after_delivery.trim()}`);
+  }
+
+  if (config.memory) {
+    sections.push(`
+## Team Memory
+
+This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
+
+**Before starting any task**, use \`search_memories\` to find relevant context — past decisions, conventions, known issues, and domain knowledge. This avoids repeating mistakes and ensures consistency with previous choices.
+
+**After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
+
+Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
   }
 
   sections.push(`
@@ -1068,6 +1094,22 @@ export const generateCommand = new Command("generate")
   .action(async (opts: { editor: string }) => {
     const hubDir = process.cwd();
     const config = await loadHubConfig(hubDir);
+
+    if (config.memory) {
+      const hasMemoryMcp = config.mcps?.some(
+        (m) => m.name === "team-memory" || m.package === "@arvoretech/memory-mcp"
+      );
+      if (!hasMemoryMcp) {
+        console.log(chalk.red(`\n  Error: 'memory' is configured but no memory MCP is declared in 'mcps'.\n`));
+        console.log(chalk.yellow(`  Add this to your hub.yaml:\n`));
+        console.log(chalk.dim(`  mcps:`));
+        console.log(chalk.dim(`    - name: team-memory`));
+        console.log(chalk.dim(`      package: "@arvoretech/memory-mcp"`));
+        console.log(chalk.dim(`      env:`));
+        console.log(chalk.dim(`        MEMORY_PATH: ${config.memory.path || "./memories"}\n`));
+        process.exit(1);
+      }
+    }
 
     const generator = generators[opts.editor];
     if (!generator) {
