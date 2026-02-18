@@ -239,6 +239,7 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   }
 
   await generateCursorCommands(config, hubDir, cursorDir);
+  await generateVSCodeSettings(config, hubDir);
 }
 
 function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
@@ -1039,6 +1040,35 @@ async function generateKiro(config: HubConfig, hubDir: string) {
       }
     }
   }
+
+  await generateVSCodeSettings(config, hubDir);
+}
+
+async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
+  const vscodeDir = join(hubDir, ".vscode");
+  await mkdir(vscodeDir, { recursive: true });
+
+  const settingsPath = join(vscodeDir, "settings.json");
+  let existing: Record<string, unknown> = {};
+
+  if (existsSync(settingsPath)) {
+    try {
+      const raw = await readFile(settingsPath, "utf-8");
+      existing = JSON.parse(raw);
+    } catch {
+      existing = {};
+    }
+  }
+
+  const managed: Record<string, unknown> = {
+    "git.autoRepositoryDetection": true,
+    "git.detectSubmodules": true,
+    "git.detectSubmodulesLimit": Math.max(config.repos.length * 2, 20),
+  };
+
+  const merged = { ...existing, ...managed };
+  await writeFile(settingsPath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
+  console.log(chalk.green("  Generated .vscode/settings.json (git multi-repo detection)"));
 }
 
 function buildGitignoreLines(config: HubConfig): string[] {
