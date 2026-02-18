@@ -69,9 +69,9 @@ const uniqueRepos = new Set(items.map(i => i.repo)).size;
 
     <DirectoryFilter counts={counts} />
 
-    <div id="directory-grid" class="mt-8 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div id="directory-grid" class="mt-8 grid grid-cols-1 auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map(item => (
-        <div class="directory-item" data-type={item.type} data-name={item.name.toLowerCase()} data-description={item.description.toLowerCase()} data-repo={item.repo.toLowerCase()}>
+        <div class="directory-item min-w-0" data-type={item.type} data-name={item.name.toLowerCase()} data-description={item.description.toLowerCase()} data-repo={item.repo.toLowerCase()}>
           <DirectoryCard {...item} />
         </div>
       ))}
