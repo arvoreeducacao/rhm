@@ -220,6 +220,22 @@ export const commandsCommand = new Command("commands")
     })
   )
   .addCommand(
+    new Command("find")
+      .description("Browse curated commands in the Repo Hub directory")
+      .argument("[query]", "Search term")
+      .action(async (query?: string) => {
+        const base = "https://rhm-website.vercel.app/directory?type=command";
+        const url = query
+          ? `${base}&q=${encodeURIComponent(query)}`
+          : base;
+
+        console.log(chalk.blue("\n  Browse curated commands at:\n"));
+        console.log(chalk.cyan(`  ${url}\n`));
+        console.log(chalk.dim("  Install with: hub commands add <owner>/<repo>"));
+        console.log(chalk.dim("  Example:      hub commands add obra/superpowers\n"));
+      })
+  )
+  .addCommand(
     new Command("remove")
       .description("Remove a command")
       .argument("<name>", "Command name to remove")

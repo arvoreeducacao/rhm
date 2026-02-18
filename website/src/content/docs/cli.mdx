@@ -151,6 +151,33 @@ hub tools check                # Verify versions match
 
 See [Tools](/docs/tools) for configuration details.
 
+## Directory
+
+### `hub directory [query]`
+
+Browse the curated Repo Hub directory of skills, agents, hooks, and commands:
+
+```bash
+hub directory                     # Open the full directory
+hub dir                           # Short alias
+hub directory "aws"               # Search for "aws"
+hub directory -t skill            # Filter by type
+hub directory -t hook "session"   # Combine type filter + search
+```
+
+| Flag | Description |
+|------|-------------|
+| `-t, --type <type>` | Filter by type: `skill`, `agent`, `hook`, `command` |
+
+Each resource type also has its own `find` subcommand:
+
+```bash
+hub skills find react             # Browse skills
+hub agents find aws               # Browse agents
+hub hooks find                    # Browse hooks
+hub commands find                 # Browse commands
+```
+
 ## Skills
 
 ### `hub skills [subcommand]`
@@ -212,6 +239,7 @@ Manage editor hooks:
 
 ```bash
 hub hooks list                          # List installed hooks
+hub hooks find                          # Browse curated hooks in the directory
 hub hooks add format-on-save            # Install from registry
 hub hooks add company/shared-hooks      # Install from GitHub repo
 hub hooks add ./my-hooks                # Install from local path
@@ -233,6 +261,7 @@ Manage slash commands (Cursor only):
 
 ```bash
 hub commands list                       # List installed commands
+hub commands find                       # Browse curated commands in the directory
 hub commands add review                 # Install from registry
 hub commands add company/shared-cmds    # Install from GitHub repo
 hub commands add ./my-commands          # Install from local path

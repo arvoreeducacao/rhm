@@ -18,6 +18,7 @@ import { doctorCommand } from "./commands/doctor.js";
 import { toolsCommand } from "./commands/tools.js";
 import { memoryCommand } from "./commands/memory.js";
 import { updateCommand } from "./commands/update.js";
+import { directoryCommand } from "./commands/directory.js";
 
 const program = new Command();
 
@@ -26,7 +27,7 @@ program
   .description(
     "Give your AI coding assistant the full picture. Multi-repo context, agent orchestration, and end-to-end workflows."
   )
-  .version("0.2.0")
+  .version("0.5.0")
   .enablePositionalOptions();
 
 program.addCommand(initCommand);
@@ -48,5 +49,6 @@ program.addCommand(doctorCommand);
 program.addCommand(toolsCommand);
 program.addCommand(memoryCommand);
 program.addCommand(updateCommand);
+program.addCommand(directoryCommand);
 
 program.parse();

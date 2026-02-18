@@ -218,6 +218,22 @@ export const hooksCommand = new Command("hooks")
     })
   )
   .addCommand(
+    new Command("find")
+      .description("Browse curated hooks in the Repo Hub directory")
+      .argument("[query]", "Search term")
+      .action(async (query?: string) => {
+        const base = "https://rhm-website.vercel.app/directory?type=hook";
+        const url = query
+          ? `${base}&q=${encodeURIComponent(query)}`
+          : base;
+
+        console.log(chalk.blue("\n  Browse curated hooks at:\n"));
+        console.log(chalk.cyan(`  ${url}\n`));
+        console.log(chalk.dim("  Install with: hub hooks add <owner>/<repo>"));
+        console.log(chalk.dim("  Example:      hub hooks add obra/superpowers\n"));
+      })
+  )
+  .addCommand(
     new Command("remove")
       .description("Remove a hook")
       .argument("<name>", "Hook name to remove")
