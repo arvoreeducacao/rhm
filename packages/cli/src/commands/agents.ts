@@ -279,7 +279,7 @@ export const agentsCommand = new Command("agents")
       .description("Browse curated agents in the Repo Hub directory")
       .argument("[query]", "Search term")
       .action(async (query?: string) => {
-        const base = "https://rhm-website.vercel.app/directory?type=agent";
+        const base = "https://hub.arvore.com.br/directory?type=agent";
         const url = query
           ? `${base}&q=${encodeURIComponent(query)}`
           : base;

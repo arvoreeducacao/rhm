@@ -373,7 +373,7 @@ export const skillsCommand = new Command("skills")
       .description("Browse curated skills in the Repo Hub directory")
       .argument("[query]", "Search term")
       .action(async (query?: string) => {
-        const base = "https://rhm-website.vercel.app/directory?type=skill";
+        const base = "https://hub.arvore.com.br/directory?type=skill";
         const url = query
           ? `${base}&q=${encodeURIComponent(query)}`
           : base;

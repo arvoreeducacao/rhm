@@ -203,7 +203,7 @@ export async function generateOgImage({
               fontWeight: 400,
               letterSpacing: '0.01em',
             },
-            children: 'rhm-website.vercel.app',
+            children: 'hub.arvore.com.br',
           },
         },
         {

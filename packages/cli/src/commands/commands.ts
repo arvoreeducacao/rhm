@@ -227,7 +227,7 @@ export const commandsCommand = new Command("commands")
       .description("Browse curated commands in the Repo Hub directory")
       .argument("[query]", "Search term")
       .action(async (query?: string) => {
-        const base = "https://rhm-website.vercel.app/directory?type=command";
+        const base = "https://hub.arvore.com.br/directory?type=command";
         const url = query
           ? `${base}&q=${encodeURIComponent(query)}`
           : base;

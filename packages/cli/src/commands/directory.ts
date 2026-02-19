@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 
-const BASE_URL = "https://rhm-website.vercel.app/directory";
+const BASE_URL = "https://hub.arvore.com.br/directory";
 
 export const directoryCommand = new Command("directory")
   .alias("dir")

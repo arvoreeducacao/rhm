@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 
-const SITE_URL = 'https://repo-hub.dev';
+const SITE_URL = 'https://hub.arvore.com.br';
 
 const sections = [
   {
