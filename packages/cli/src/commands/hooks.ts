@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { downloadDirFromGitHub } from "./registry.js";
+import { checkAndAutoRegenerate } from "../core/hub-cache.js";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 
@@ -198,6 +199,8 @@ export const hooksCommand = new Command("hooks")
         } else {
           await addFromRegistry(source, hubDir, opts);
         }
+
+        await checkAndAutoRegenerate(hubDir);
       })
   )
   .addCommand(
@@ -252,6 +255,9 @@ export const hooksCommand = new Command("hooks")
           console.log(chalk.green(`\nRemoved hook: ${name}\n`));
         } else {
           console.log(chalk.red(`\nHook '${name}' not found in hooks/\n`));
+          return;
         }
+
+        await checkAndAutoRegenerate(hubDir);
       })
   );

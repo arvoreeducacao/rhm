@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { loadHubConfig } from "../core/hub-config.js";
+import { checkAndAutoRegenerate } from "../core/hub-cache.js";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 const DEFAULT_BRANCH = "main";
@@ -216,6 +217,8 @@ export const agentsCommand = new Command("agents")
         } else {
           await addFromRegistry(source, hubDir, opts);
         }
+
+        if (!opts.global) await checkAndAutoRegenerate(hubDir);
       })
   )
   .addCommand(
@@ -267,6 +270,8 @@ export const agentsCommand = new Command("agents")
 
         await rm(target);
         console.log(chalk.green(`\nRemoved agent: ${name}\n`));
+
+        if (!opts.global) await checkAndAutoRegenerate(hubDir);
       })
   )
   .addCommand(
@@ -349,5 +354,7 @@ export const agentsCommand = new Command("agents")
           console.log(chalk.green("  All agents are already installed. Use --force to re-install."));
         }
         console.log();
+
+        if (!opts.global && installed > 0) await checkAndAutoRegenerate(hubDir);
       })
   );

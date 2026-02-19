@@ -4,6 +4,7 @@ import { mkdir, readdir, readFile, rm, copyFile, writeFile } from "node:fs/promi
 import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
 import chalk from "chalk";
+import { checkAndAutoRegenerate } from "../core/hub-cache.js";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 const DEFAULT_BRANCH = "main";
@@ -200,6 +201,8 @@ export const commandsCommand = new Command("commands")
         } else {
           await addFromRegistry(source, hubDir, opts);
         }
+
+        await checkAndAutoRegenerate(hubDir);
       })
   )
   .addCommand(
@@ -252,5 +255,7 @@ export const commandsCommand = new Command("commands")
 
         await rm(target);
         console.log(chalk.green(`\nRemoved command: ${name}\n`));
+
+        await checkAndAutoRegenerate(hubDir);
       })
   );

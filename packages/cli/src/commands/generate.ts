@@ -3,7 +3,9 @@ import { existsSync } from "node:fs";
 import { mkdir, writeFile, readdir, copyFile, readFile, cp } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import chalk from "chalk";
+import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig, type WorkflowStep } from "../core/hub-config.js";
+import { getSavedEditor, saveGenerateState } from "../core/hub-cache.js";
 
 const HUB_MARKER_START = "# >>> hub-managed (do not edit this section)";
 const HUB_MARKER_END = "# <<< hub-managed";
@@ -1085,6 +1087,9 @@ function buildGitignoreLines(config: HubConfig): string[] {
 
   lines.push(
     "",
+    "# Hub local cache",
+    ".hub/",
+    "",
     "# Docker volumes",
     "*_data/",
     "",
@@ -1112,16 +1117,54 @@ function buildGitignoreLines(config: HubConfig): string[] {
   return lines;
 }
 
-const generators: Record<string, Generator> = {
+export const generators: Record<string, Generator> = {
   cursor: { name: "Cursor", generate: generateCursor },
   "claude-code": { name: "Claude Code", generate: generateClaudeCode },
   kiro: { name: "Kiro", generate: generateKiro },
 };
 
+async function resolveEditor(opts: { editor?: string; resetEditor?: boolean }): Promise<string> {
+  const hubDir = process.cwd();
+
+  if (opts.resetEditor) {
+    const { editor } = await inquirer.prompt<{ editor: string }>([
+      {
+        type: "list",
+        name: "editor",
+        message: "Which editor do you use?",
+        choices: Object.entries(generators).map(([key, gen]) => ({
+          name: gen.name,
+          value: key,
+        })),
+      },
+    ]);
+    return editor;
+  }
+
+  if (opts.editor) return opts.editor;
+
+  const saved = await getSavedEditor(hubDir);
+  if (saved) return saved;
+
+  const { editor } = await inquirer.prompt<{ editor: string }>([
+    {
+      type: "list",
+      name: "editor",
+      message: "No editor preference saved. Which editor do you use?",
+      choices: Object.entries(generators).map(([key, gen]) => ({
+        name: gen.name,
+        value: key,
+      })),
+    },
+  ]);
+  return editor;
+}
+
 export const generateCommand = new Command("generate")
   .description("Generate editor-specific configuration files from hub.yaml")
-  .option("-e, --editor <editor>", "Target editor (cursor, claude-code, kiro)", "cursor")
-  .action(async (opts: { editor: string }) => {
+  .option("-e, --editor <editor>", "Target editor (cursor, claude-code, kiro)")
+  .option("--reset-editor", "Reset saved editor preference and choose again")
+  .action(async (opts: { editor?: string; resetEditor?: boolean }) => {
     const hubDir = process.cwd();
     const config = await loadHubConfig(hubDir);
 
@@ -1141,15 +1184,21 @@ export const generateCommand = new Command("generate")
       }
     }
 
-    const generator = generators[opts.editor];
+    const editorKey = await resolveEditor(opts);
+    const generator = generators[editorKey];
     if (!generator) {
       console.log(
-        chalk.red(`Unknown editor: ${opts.editor}. Available: ${Object.keys(generators).join(", ")}`)
+        chalk.red(`Unknown editor: ${editorKey}. Available: ${Object.keys(generators).join(", ")}`)
       );
       return;
     }
 
+    if (opts.editor || opts.resetEditor) {
+      console.log(chalk.dim(`  Saving editor preference: ${generator.name}`));
+    }
+
     console.log(chalk.blue(`\nGenerating ${generator.name} configuration\n`));
     await generator.generate(config, hubDir);
+    await saveGenerateState(hubDir, editorKey);
     console.log(chalk.green("\nDone!\n"));
   });

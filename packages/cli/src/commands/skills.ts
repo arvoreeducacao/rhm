@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { downloadDirFromGitHub } from "./registry.js";
+import { checkAndAutoRegenerate } from "../core/hub-cache.js";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 
@@ -328,12 +329,14 @@ export const skillsCommand = new Command("skills")
         if (isLocalPath(source)) {
           console.log(chalk.blue(`\nInstalling skills from ${source}\n`));
           await addFromLocalPath(source, hubDir, opts);
+          if (!opts.global) await checkAndAutoRegenerate(hubDir);
           return;
         }
 
         if (source.startsWith("git@") || source.startsWith("https://")) {
           console.log(chalk.blue(`\nInstalling skills from ${source}\n`));
           await addFromGitRepo(source, hubDir, opts);
+          if (!opts.global) await checkAndAutoRegenerate(hubDir);
           return;
         }
 
@@ -348,6 +351,7 @@ export const skillsCommand = new Command("skills")
         if (parsed?.skill) {
           console.log(chalk.blue(`\nInstalling skill ${parsed.skill} from ${parsed.owner}/${parsed.repo}\n`));
           await addFromGitHubSkill(parsed.owner, parsed.repo, parsed.skill, hubDir, opts);
+          if (!opts.global) await checkAndAutoRegenerate(hubDir);
           return;
         }
 
@@ -355,11 +359,13 @@ export const skillsCommand = new Command("skills")
           console.log(chalk.blue(`\nInstalling skills from ${source}\n`));
           const url = `https://github.com/${source}.git`;
           await addFromGitRepo(url, hubDir, opts);
+          if (!opts.global) await checkAndAutoRegenerate(hubDir);
           return;
         }
 
         console.log(chalk.blue(`\nInstalling skill ${source} from registry\n`));
         await addFromRegistry(source, hubDir, opts);
+        if (!opts.global) await checkAndAutoRegenerate(hubDir);
       })
   )
   .addCommand(
@@ -426,5 +432,7 @@ export const skillsCommand = new Command("skills")
 
         await rm(target, { recursive: true });
         console.log(chalk.green(`\nRemoved skill: ${name}\n`));
+
+        if (!opts.global) await checkAndAutoRegenerate(hubDir);
       })
   );

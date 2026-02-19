@@ -6,6 +6,7 @@ import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { loadHubConfig } from "../core/hub-config.js";
 import { generateDockerCompose } from "../core/docker-compose.js";
+import { checkAndAutoRegenerate } from "../core/hub-cache.js";
 
 function run(cmd: string, cwd?: string) {
   execSync(cmd, { stdio: "inherit", cwd });
@@ -207,8 +208,11 @@ export const setupCommand = new Command("setup")
     }
 
     console.log(chalk.blue("\n━━━ Setup complete ━━━\n"));
+
+    await checkAndAutoRegenerate(hubDir);
+
     console.log("Next steps:");
-    console.log(`  npx @arvoretech/hub generate --editor cursor`);
-    console.log(`  Open the project in Cursor and start building`);
+    console.log(`  npx @arvoretech/hub generate`);
+    console.log(`  Open the project in your editor and start building`);
     console.log();
   });
