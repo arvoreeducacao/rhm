@@ -37,10 +37,7 @@ export const addRepoCommand = new Command("add-repo")
       ...(opts.tech && { tech: opts.tech }),
     });
 
-    const header = content.startsWith("# yaml-language-server")
-      ? ""
-      : SCHEMA_COMMENT;
-    await writeFile(configPath, header + stringify(config), "utf-8");
+    await writeFile(configPath, SCHEMA_COMMENT + stringify(config), "utf-8");
 
     const gitignorePath = join(hubDir, ".gitignore");
     await appendFile(gitignorePath, `${repoName}\n`);
