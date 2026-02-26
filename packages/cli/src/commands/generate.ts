@@ -1071,6 +1071,40 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
   const merged = { ...existing, ...managed };
   await writeFile(settingsPath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
   console.log(chalk.green("  Generated .vscode/settings.json (git multi-repo detection)"));
+
+  await generateVSCodeWorkspace(config, hubDir);
+}
+
+async function generateVSCodeWorkspace(config: HubConfig, hubDir: string) {
+  const workspaceName = config.name.toLowerCase().replace(/\s+/g, "-");
+  const workspacePath = join(hubDir, `${workspaceName}.code-workspace`);
+
+  const folders = [
+    { name: config.name, path: "." },
+    ...config.repos.map((repo) => ({
+      name: repo.name,
+      path: repo.path.startsWith("./") ? repo.path.slice(2) : repo.path,
+    })),
+  ];
+
+  const workspace = {
+    folders,
+    settings: {
+      "files.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/coverage": true,
+      },
+      "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/coverage": true,
+      },
+    },
+  };
+
+  await writeFile(workspacePath, JSON.stringify(workspace, null, 2) + "\n", "utf-8");
+  console.log(chalk.green(`  Generated ${workspaceName}.code-workspace`));
 }
 
 function buildGitignoreLines(config: HubConfig): string[] {
