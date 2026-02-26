@@ -10,31 +10,31 @@ import { getSavedEditor, saveGenerateState } from "../core/hub-cache.js";
 const HUB_MARKER_START = "# >>> hub-managed (do not edit this section)";
 const HUB_MARKER_END = "# <<< hub-managed";
 
-const HOOK_EVENT_MAP: Record<string, { cursor?: string; claude?: string; kiro?: string }> = {
-  session_start:            { cursor: "sessionStart",            claude: "SessionStart",       kiro: undefined },
-  session_end:              { cursor: "sessionEnd",              claude: "SessionEnd",          kiro: undefined },
-  pre_tool_use:             { cursor: "preToolUse",              claude: "PreToolUse",          kiro: "pre_tool_use" },
-  post_tool_use:            { cursor: "postToolUse",             claude: "PostToolUse",         kiro: "post_tool_use" },
-  post_tool_use_failure:    { cursor: undefined,                 claude: "PostToolUseFailure",  kiro: undefined },
-  stop:                     { cursor: "stop",                    claude: "Stop",                kiro: "agent_stop" },
-  subagent_start:           { cursor: "subagentStart",           claude: "SubagentStart",       kiro: undefined },
-  subagent_stop:            { cursor: "subagentStop",            claude: "SubagentStop",        kiro: undefined },
-  pre_compact:              { cursor: "preCompact",              claude: "PreCompact",          kiro: undefined },
-  before_submit_prompt:     { cursor: "beforeSubmitPrompt",      claude: "UserPromptSubmit",    kiro: "prompt_submit" },
-  before_shell_execution:   { cursor: "beforeShellExecution",    claude: undefined,             kiro: undefined },
-  after_shell_execution:    { cursor: "afterShellExecution",     claude: undefined,             kiro: undefined },
-  before_mcp_execution:     { cursor: "beforeMCPExecution",      claude: undefined,             kiro: undefined },
-  after_mcp_execution:      { cursor: "afterMCPExecution",       claude: undefined,             kiro: undefined },
-  after_file_edit:          { cursor: "afterFileEdit",           claude: undefined,             kiro: "file_save" },
-  before_read_file:         { cursor: "beforeReadFile",          claude: undefined,             kiro: undefined },
-  before_tab_file_read:     { cursor: "beforeTabFileRead",       claude: undefined,             kiro: undefined },
-  after_tab_file_edit:      { cursor: "afterTabFileEdit",        claude: undefined,             kiro: undefined },
-  after_agent_response:     { cursor: "afterAgentResponse",      claude: undefined,             kiro: undefined },
-  after_agent_thought:      { cursor: "afterAgentThought",       claude: undefined,             kiro: undefined },
-  notification:             { cursor: undefined,                 claude: "Notification",        kiro: undefined },
-  permission_request:       { cursor: undefined,                 claude: "PermissionRequest",   kiro: undefined },
-  task_completed:           { cursor: undefined,                 claude: "TaskCompleted",       kiro: undefined },
-  teammate_idle:            { cursor: undefined,                 claude: "TeammateIdle",        kiro: undefined },
+const HOOK_EVENT_MAP: Record<string, { cursor?: string; claude?: string; kiro?: string; opencode?: string }> = {
+  session_start:            { cursor: "sessionStart",            claude: "SessionStart",       kiro: undefined,        opencode: "session.created" },
+  session_end:              { cursor: "sessionEnd",              claude: "SessionEnd",          kiro: undefined,        opencode: "session.idle" },
+  pre_tool_use:             { cursor: "preToolUse",              claude: "PreToolUse",          kiro: "pre_tool_use",   opencode: "tool.execute.before" },
+  post_tool_use:            { cursor: "postToolUse",             claude: "PostToolUse",         kiro: "post_tool_use",  opencode: "tool.execute.after" },
+  post_tool_use_failure:    { cursor: undefined,                 claude: "PostToolUseFailure",  kiro: undefined,        opencode: undefined },
+  stop:                     { cursor: "stop",                    claude: "Stop",                kiro: "agent_stop",     opencode: "session.idle" },
+  subagent_start:           { cursor: "subagentStart",           claude: "SubagentStart",       kiro: undefined,        opencode: undefined },
+  subagent_stop:            { cursor: "subagentStop",            claude: "SubagentStop",        kiro: undefined,        opencode: undefined },
+  pre_compact:              { cursor: "preCompact",              claude: "PreCompact",          kiro: undefined,        opencode: "session.compacted" },
+  before_submit_prompt:     { cursor: "beforeSubmitPrompt",      claude: "UserPromptSubmit",    kiro: "prompt_submit",  opencode: undefined },
+  before_shell_execution:   { cursor: "beforeShellExecution",    claude: undefined,             kiro: undefined,        opencode: "tool.execute.before" },
+  after_shell_execution:    { cursor: "afterShellExecution",     claude: undefined,             kiro: undefined,        opencode: "tool.execute.after" },
+  before_mcp_execution:     { cursor: "beforeMCPExecution",      claude: undefined,             kiro: undefined,        opencode: "tool.execute.before" },
+  after_mcp_execution:      { cursor: "afterMCPExecution",       claude: undefined,             kiro: undefined,        opencode: "tool.execute.after" },
+  after_file_edit:          { cursor: "afterFileEdit",           claude: undefined,             kiro: "file_save",      opencode: "file.edited" },
+  before_read_file:         { cursor: "beforeReadFile",          claude: undefined,             kiro: undefined,        opencode: undefined },
+  before_tab_file_read:     { cursor: "beforeTabFileRead",       claude: undefined,             kiro: undefined,        opencode: undefined },
+  after_tab_file_edit:      { cursor: "afterTabFileEdit",        claude: undefined,             kiro: undefined,        opencode: "file.edited" },
+  after_agent_response:     { cursor: "afterAgentResponse",      claude: undefined,             kiro: undefined,        opencode: undefined },
+  after_agent_thought:      { cursor: "afterAgentThought",       claude: undefined,             kiro: undefined,        opencode: undefined },
+  notification:             { cursor: undefined,                 claude: "Notification",        kiro: undefined,        opencode: undefined },
+  permission_request:       { cursor: undefined,                 claude: "PermissionRequest",   kiro: undefined,        opencode: "permission.asked" },
+  task_completed:           { cursor: undefined,                 claude: "TaskCompleted",       kiro: undefined,        opencode: "session.idle" },
+  teammate_idle:            { cursor: undefined,                 claude: "TeammateIdle",        kiro: undefined,        opencode: undefined },
 };
 
 function buildCursorHooks(hooks: Record<string, HookEntry[]>): Record<string, unknown> | null {
@@ -305,6 +305,430 @@ function buildKiroMcpEntry(mcp: MCPConfig): Record<string, unknown> {
     args: ["-y", mcp.package!],
     ...(mcp.env && { env: mcp.env }),
   };
+}
+
+function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
+  if (mcp.url) {
+    return { type: "remote", url: mcp.url };
+  }
+  if (mcp.image) {
+    const cmd = ["docker", "run", "-i", "--rm"];
+    if (mcp.env) {
+      for (const [key, value] of Object.entries(mcp.env)) {
+        cmd.push("-e", `${key}=${value}`);
+      }
+    }
+    cmd.push(mcp.image);
+    return { type: "local", command: cmd, ...(mcp.env && { environment: mcp.env }) };
+  }
+  return {
+    type: "local",
+    command: ["npx", "-y", mcp.package!],
+    ...(mcp.env && { environment: mcp.env }),
+  };
+}
+
+function buildOpenCodeHooksPlugin(hooks: Record<string, HookEntry[]>): string | null {
+  const handlers: string[] = [];
+  const seen = new Set<string>();
+
+  for (const [event, entries] of Object.entries(hooks)) {
+    const mapped = HOOK_EVENT_MAP[event]?.opencode;
+    if (!mapped || seen.has(mapped)) continue;
+    seen.add(mapped);
+
+    const commandEntries = entries.filter((e) => e.type === "command" && e.command);
+    if (commandEntries.length === 0) continue;
+
+    const cmds = commandEntries.map((e) => JSON.stringify(e.command));
+    handlers.push(`    "${mapped}": async (input, output) => {
+      for (const cmd of [${cmds.join(", ")}]) {
+        try { await $\`\${cmd}\`; } catch (e) { console.error("Hook failed:", cmd, e); }
+      }
+    }`);
+  }
+
+  if (handlers.length === 0) return null;
+
+  return `// Auto-generated by hub — maps hub.yaml hooks to OpenCode plugin events
+export const HubHooksPlugin = async ({ $ }) => {
+  return {
+${handlers.join(",\n")}
+  };
+};
+`;
+}
+
+function buildOpenCodeAgentMarkdown(name: string, content: string): string {
+  const existingFrontmatter = content.match(/^---\n([\s\S]*?)\n---/);
+  let description = `Specialized agent for ${name} tasks`;
+  if (existingFrontmatter) {
+    const descMatch = existingFrontmatter[1].match(/^description:\s*["']?(.+?)["']?\s*$/m);
+    if (descMatch) description = descMatch[1];
+  }
+
+  const body = existingFrontmatter
+    ? content.replace(/^---\n[\s\S]*?\n---\n*/, "")
+    : content;
+
+  return `---
+description: "${description}"
+mode: subagent
+tools:
+  write: true
+  edit: true
+  bash: true
+---
+
+${body.trim()}
+`;
+}
+
+function buildOpenCodeOrchestratorRule(config: HubConfig): string {
+  const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
+  const steps = config.workflow?.pipeline || [];
+  const prompt = config.workflow?.prompt;
+  const enforce = config.workflow?.enforce_workflow ?? false;
+
+  const sections: string[] = [];
+
+  sections.push(`# Orchestrator
+
+## Your Main Responsibility
+
+You are an agent orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end using specialized sub-agents. Use \`@agent-name\` to invoke sub-agents for each phase of the pipeline.`);
+
+  if (enforce) {
+    sections.push(`
+## STRICT WORKFLOW ENFORCEMENT
+
+**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
+
+- NEVER skip a pipeline step, even if the task seems simple or obvious.
+- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
+- ALWAYS call the designated sub-agent for each step. Do not attempt to perform a step yourself if an agent is assigned to it.
+- ALWAYS wait for a step to complete and validate its output before moving to the next step.
+- If a step produces a document, READ the document and confirm it is complete before proceeding.
+- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
+- NEVER jump directly to coding without completing refinement first.
+- NEVER skip review or QA steps, even for small changes.
+- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
+  }
+
+  if (prompt?.prepend) {
+    sections.push(`\n${prompt.prepend.trim()}`);
+  }
+
+  if (config.integrations?.linear) {
+    const linear = config.integrations.linear;
+    sections.push(`
+## Task Management
+
+If the user doesn't have a task in their project management tool, create one using the Linear MCP.${linear.team ? ` Add it to the **${linear.team}** team.` : ""} Provide the link to the user so they can review and modify as needed.`);
+  }
+
+  sections.push(`
+## Repositories
+`);
+  for (const repo of config.repos) {
+    const parts = [`- **${repo.path}**`];
+    if (repo.description) parts.push(`— ${repo.description}`);
+    else if (repo.tech) parts.push(`— ${repo.tech}`);
+    if (repo.skills?.length) parts.push(`(skills: ${repo.skills.join(", ")})`);
+    sections.push(parts.join(" "));
+
+    if (repo.commands) {
+      const cmds = Object.entries(repo.commands)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `\`${k}\`: \`${v}\``)
+        .join(", ");
+      if (cmds) sections.push(`  Commands: ${cmds}`);
+    }
+  }
+
+  if (prompt?.sections?.after_repositories) {
+    sections.push(`\n${prompt.sections.after_repositories.trim()}`);
+  }
+
+  const docStructure = buildDocumentStructure(steps, taskFolder);
+  sections.push(docStructure);
+
+  const pipelineSection = buildOpenCodePipelineSection(steps);
+  sections.push(pipelineSection);
+
+  if (prompt?.sections?.after_pipeline) {
+    sections.push(`\n${prompt.sections.after_pipeline.trim()}`);
+  }
+
+  if (config.integrations?.slack || config.integrations?.github) {
+    sections.push(buildDeliverySection(config));
+  }
+
+  if (prompt?.sections?.after_delivery) {
+    sections.push(`\n${prompt.sections.after_delivery.trim()}`);
+  }
+
+  if (config.memory) {
+    sections.push(`
+## Team Memory
+
+This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
+
+**Before starting any task**, use \`search_memories\` to find relevant context — past decisions, conventions, known issues, and domain knowledge. This avoids repeating mistakes and ensures consistency with previous choices.
+
+**After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
+
+Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
+  }
+
+  sections.push(`
+## Troubleshooting and Debugging
+
+For bug reports or unexpected behavior, use the \`@debugger\` agent directly.
+It will:
+1. Collect context (symptoms, environment, timeline)
+2. Analyze logs and stack traces
+3. Form and test hypotheses systematically
+4. Identify the root cause
+5. Propose a solution or call coding agents to implement the fix`);
+
+  if (prompt?.sections) {
+    const reservedKeys = new Set(["after_repositories", "after_pipeline", "after_delivery"]);
+    for (const [name, content] of Object.entries(prompt.sections)) {
+      if (reservedKeys.has(name)) continue;
+      const title = name
+        .split(/[-_]/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+      sections.push(`\n## ${title}\n\n${content.trim()}`);
+    }
+  }
+
+  if (prompt?.append) {
+    sections.push(`\n${prompt.append.trim()}`);
+  }
+
+  return sections.join("\n");
+}
+
+function buildOpenCodePipelineSection(steps: WorkflowStep[]): string {
+  if (steps.length === 0) {
+    return `
+## Development Pipeline
+
+1. Use \`@refinement\` to collect requirements
+2. Use \`@coding-backend\` and/or \`@coding-frontend\` agents to implement
+3. Use \`@code-reviewer\` to review the implementation
+4. Use \`@qa-backend\` and/or \`@qa-frontend\` to test
+5. Create PRs and notify the team`;
+  }
+
+  const parts: string[] = [`
+## Development Pipeline
+`];
+
+  for (const step of steps) {
+    if (step.actions) {
+      parts.push(`### Delivery`);
+      parts.push(`After all validations pass, execute these actions:`);
+      for (const action of step.actions) {
+        parts.push(`- ${formatAction(action)}`);
+      }
+      continue;
+    }
+
+    const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
+    parts.push(`### ${stepTitle}`);
+
+    if (step.mode === "plan") {
+      parts.push(`**This step is a planning phase.** Switch to the Plan agent (Tab key) for collaborative planning with the user before any implementation begins.`);
+      parts.push(``);
+    }
+
+    if (step.agent) {
+      parts.push(`Call \`@${step.agent}\`.${step.output ? ` It writes to \`${step.output}\`.` : ""}`);
+
+      if (step.step === "refinement") {
+        parts.push(`
+After it runs, read the document and validate with the user:
+- If there are unanswered questions, ask the user one at a time
+- If the user requests adjustments, send back to the refinement agent
+- Do not proceed until the document is complete and approved by the user`);
+      }
+    }
+
+    if (Array.isArray(step.agents)) {
+      const agentList = step.agents.map((a) => {
+        if (typeof a === "string") return { agent: a };
+        return a;
+      });
+
+      if (step.parallel) {
+        parts.push(`Call these agents in parallel:`);
+      } else {
+        parts.push(`Call these agents in sequence:`);
+      }
+
+      for (const a of agentList) {
+        let line = `- \`@${a.agent}\``;
+        if (a.output) line += ` → writes to \`${a.output}\``;
+        if (a.when) line += ` (when: ${a.when})`;
+        parts.push(line);
+      }
+
+      if (step.step === "coding" || step.step === "code" || step.step === "implementation") {
+        parts.push(`
+If any coding agent has doubts, they will write questions in their document. Apply the same Q&A logic as refinement — validate with the user before proceeding.`);
+      }
+
+      if (step.step === "validation" || step.step === "review" || step.step === "qa") {
+        parts.push(`
+If any validation agent leaves comments requiring fixes, call the relevant coding agents again to address them.`);
+      }
+    }
+
+    if (step.mode === "plan") {
+      parts.push(`
+**After this step is complete and approved**, switch back to Build agent to proceed with the next step.`);
+    }
+
+    parts.push("");
+  }
+
+  return parts.join("\n");
+}
+
+async function generateOpenCodeCommands(config: HubConfig, hubDir: string, opencodeDir: string) {
+  const commandsDir = join(opencodeDir, "commands");
+  let count = 0;
+
+  if (config.commands_dir) {
+    const srcDir = resolve(hubDir, config.commands_dir);
+    try {
+      const files = await readdir(srcDir);
+      const mdFiles = files.filter((f) => f.endsWith(".md"));
+      if (mdFiles.length > 0) {
+        await mkdir(commandsDir, { recursive: true });
+        for (const file of mdFiles) {
+          await copyFile(join(srcDir, file), join(commandsDir, file));
+          count++;
+        }
+      }
+    } catch {
+      console.log(chalk.yellow(`  Commands directory ${config.commands_dir} not found, skipping`));
+    }
+  }
+
+  if (config.commands) {
+    await mkdir(commandsDir, { recursive: true });
+    for (const [name, filePath] of Object.entries(config.commands)) {
+      const src = resolve(hubDir, filePath);
+      const dest = join(commandsDir, name.endsWith(".md") ? name : `${name}.md`);
+      try {
+        await copyFile(src, dest);
+        count++;
+      } catch {
+        console.log(chalk.yellow(`  Command file ${filePath} not found, skipping`));
+      }
+    }
+  }
+
+  if (count > 0) {
+    console.log(chalk.green(`  Copied ${count} commands to .opencode/commands/`));
+  }
+}
+
+async function generateOpenCode(config: HubConfig, hubDir: string) {
+  const opencodeDir = join(hubDir, ".opencode");
+  await mkdir(join(opencodeDir, "agents"), { recursive: true });
+  await mkdir(join(opencodeDir, "skills"), { recursive: true });
+  await mkdir(join(opencodeDir, "commands"), { recursive: true });
+  await mkdir(join(opencodeDir, "plugins"), { recursive: true });
+
+  const gitignoreLines = buildGitignoreLines(config);
+  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
+  console.log(chalk.green("  Generated .gitignore"));
+
+  // Generate AGENTS.md (OpenCode's native rules file)
+  const orchestratorRule = buildOpenCodeOrchestratorRule(config);
+  await writeFile(join(hubDir, "AGENTS.md"), orchestratorRule + "\n", "utf-8");
+  console.log(chalk.green("  Generated AGENTS.md"));
+
+  // Generate opencode.json with MCP servers, instructions, and agent config
+  const opencodeConfig: Record<string, unknown> = {
+    $schema: "https://opencode.ai/config.json",
+  };
+
+  if (config.mcps?.length) {
+    const mcpConfig: Record<string, Record<string, unknown>> = {};
+    for (const mcp of config.mcps) {
+      mcpConfig[mcp.name] = buildOpenCodeMcpEntry(mcp);
+    }
+    opencodeConfig.mcp = mcpConfig;
+  }
+
+  // Point to AGENTS.md and any skill files as instructions
+  const instructions: string[] = ["AGENTS.md"];
+  opencodeConfig.instructions = instructions;
+
+  await writeFile(
+    join(hubDir, "opencode.json"),
+    JSON.stringify(opencodeConfig, null, 2) + "\n",
+    "utf-8"
+  );
+  console.log(chalk.green("  Generated opencode.json"));
+
+  // Copy agents as .opencode/agents/*.md with OpenCode frontmatter
+  const agentsDir = resolve(hubDir, "agents");
+  try {
+    const agentFiles = await readdir(agentsDir);
+    const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
+    for (const file of mdFiles) {
+      const content = await readFile(join(agentsDir, file), "utf-8");
+      const agentName = file.replace(/\.md$/, "");
+      const converted = buildOpenCodeAgentMarkdown(agentName, content);
+      await writeFile(join(opencodeDir, "agents", file), converted, "utf-8");
+    }
+    console.log(chalk.green(`  Copied ${mdFiles.length} agents to .opencode/agents/`));
+  } catch {
+    console.log(chalk.yellow("  No agents/ directory found, skipping agent copy"));
+  }
+
+  // Copy skills to .opencode/skills/
+  const skillsDir = resolve(hubDir, "skills");
+  try {
+    const skillFolders = await readdir(skillsDir);
+    let count = 0;
+    for (const folder of skillFolders) {
+      const skillFile = join(skillsDir, folder, "SKILL.md");
+      try {
+        await readFile(skillFile);
+        await cp(join(skillsDir, folder), join(opencodeDir, "skills", folder), { recursive: true });
+        count++;
+      } catch {
+        // skip
+      }
+    }
+    if (count > 0) {
+      console.log(chalk.green(`  Copied ${count} skills to .opencode/skills/`));
+    }
+  } catch {
+    // no skills dir
+  }
+
+  // Copy commands to .opencode/commands/
+  await generateOpenCodeCommands(config, hubDir, opencodeDir);
+
+  // Generate hooks plugin if hooks are defined
+  if (config.hooks) {
+    const plugin = buildOpenCodeHooksPlugin(config.hooks);
+    if (plugin) {
+      await writeFile(join(opencodeDir, "plugins", "hub-hooks.js"), plugin, "utf-8");
+      console.log(chalk.green("  Generated .opencode/plugins/hub-hooks.js"));
+    }
+  }
+
+  await generateVSCodeSettings(config, hubDir);
 }
 
 function buildKiroSteeringContent(content: string, inclusion: "always" | "auto" = "always", meta?: { name?: string; description?: string }): string {
@@ -1121,6 +1545,7 @@ export const generators: Record<string, Generator> = {
   cursor: { name: "Cursor", generate: generateCursor },
   "claude-code": { name: "Claude Code", generate: generateClaudeCode },
   kiro: { name: "Kiro", generate: generateKiro },
+  opencode: { name: "OpenCode", generate: generateOpenCode },
 };
 
 async function resolveEditor(opts: { editor?: string; resetEditor?: boolean }): Promise<string> {
@@ -1162,7 +1587,7 @@ async function resolveEditor(opts: { editor?: string; resetEditor?: boolean }): 
 
 export const generateCommand = new Command("generate")
   .description("Generate editor-specific configuration files from hub.yaml")
-  .option("-e, --editor <editor>", "Target editor (cursor, claude-code, kiro)")
+  .option("-e, --editor <editor>", "Target editor (cursor, claude-code, kiro, opencode)")
   .option("--reset-editor", "Reset saved editor preference and choose again")
   .action(async (opts: { editor?: string; resetEditor?: boolean }) => {
     const hubDir = process.cwd();

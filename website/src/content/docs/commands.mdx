@@ -12,9 +12,10 @@ Commands are reusable prompts that you trigger with a `/` prefix in your AI edit
 |--------|---------|
 | **Cursor** | `.cursor/commands/*.md` — triggered via `/command-name` |
 | **Claude Code** | Commands are merged into skills. Use [Skills](/docs/skills) instead. |
+| **OpenCode** | `.opencode/commands/*.md` — triggered via `/command-name` |
 | **Kiro** | Not supported. Use [Steering](/docs/steering) files or [Skills](/docs/skills) instead. |
 
-Since Claude Code treats commands as skills and Kiro doesn't have slash commands, `hub generate` only copies commands to `.cursor/commands/` for Cursor.
+Since Claude Code treats commands as skills and Kiro doesn't have slash commands, `hub generate` copies commands to `.cursor/commands/` for Cursor and `.opencode/commands/` for OpenCode.
 
 ## hub.yaml Schema
 

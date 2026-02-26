@@ -53,12 +53,14 @@ Generate editor configuration files from `hub.yaml`:
 hub generate --editor cursor       # Cursor IDE (default)
 hub generate --editor claude-code  # Claude Code (CLAUDE.md)
 hub generate --editor kiro         # Kiro IDE
+hub generate --editor opencode      # OpenCode CLI
 ```
 
 Produces:
 - **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/agents/`, `.cursor/skills/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `.gitignore`, `.cursorignore`
 - **Claude Code**: `CLAUDE.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` (with hooks), `.mcp.json`, `.gitignore`
 - **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/agent-*.md`, `.kiro/skills/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `.gitignore`
+- **OpenCode**: `AGENTS.md`, `opencode.json`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/plugins/hub-hooks.js`, `.gitignore`
 
 ## Repositories
 
@@ -257,7 +259,7 @@ See [Hooks](/docs/hooks) for more details.
 
 ### `hub commands [subcommand]`
 
-Manage slash commands (Cursor only):
+Manage slash commands (Cursor and OpenCode):
 
 ```bash
 hub commands list                       # List installed commands

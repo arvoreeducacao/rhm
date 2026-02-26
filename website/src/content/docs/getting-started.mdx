@@ -10,7 +10,7 @@ Repo Hub gives your AI coding agent everything it needs to ship real features â€
 
 - **Node.js** 18+ installed
 - **Git** configured with SSH access to your repositories
-- **Cursor**, **Kiro**, or any AI-powered editor installed
+- **Cursor**, **Kiro**, **OpenCode**, or any AI-powered editor installed
 
 ## Quick Start
 
@@ -51,7 +51,8 @@ This clones all repos, starts infrastructure services (databases, caches), and i
 ```bash
 hub generate --editor cursor      # or
 hub generate --editor kiro         # or
-hub generate --editor claude-code
+hub generate --editor claude-code  # or
+hub generate --editor opencode
 ```
 
 This reads `hub.yaml` and produces editor-specific files:
@@ -59,6 +60,7 @@ This reads `hub.yaml` and produces editor-specific files:
 - **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/agents/*.md`, `.cursor/mcp.json`, `.gitignore` + `.cursorignore`
 - **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/agent-*.md`, `.kiro/settings/mcp.json`, `AGENTS.md`, `.gitignore`
 - **Claude Code**: `CLAUDE.md`, `.claude/agents/`, `.mcp.json`, `.gitignore`
+- **OpenCode**: `AGENTS.md`, `opencode.json`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/plugins/`, `.gitignore`
 
 ### 5. Open and start building
 
