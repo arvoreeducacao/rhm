@@ -87,8 +87,8 @@ function buildClaudeHooks(hooks: Record<string, HookEntry[]>): Record<string, un
   return claudeHooks;
 }
 
-async function generateCursorCommands(config: HubConfig, hubDir: string, cursorDir: string) {
-  const commandsDir = join(cursorDir, "commands");
+async function generateEditorCommands(config: HubConfig, hubDir: string, targetDir: string, editorName: string) {
+  const commandsDir = join(targetDir, "commands");
   let count = 0;
 
   if (config.commands_dir) {
@@ -123,7 +123,7 @@ async function generateCursorCommands(config: HubConfig, hubDir: string, cursorD
   }
 
   if (count > 0) {
-    console.log(chalk.green(`  Copied ${count} commands to .cursor/commands/`));
+    console.log(chalk.green(`  Copied ${count} commands to ${editorName}`));
   }
 }
 
@@ -240,7 +240,7 @@ async function generateCursor(config: HubConfig, hubDir: string) {
     }
   }
 
-  await generateCursorCommands(config, hubDir, cursorDir);
+  await generateEditorCommands(config, hubDir, cursorDir, ".cursor/commands/");
   await generateVSCodeSettings(config, hubDir);
 }
 
@@ -598,45 +598,6 @@ If any validation agent leaves comments requiring fixes, call the relevant codin
   return parts.join("\n");
 }
 
-async function generateOpenCodeCommands(config: HubConfig, hubDir: string, opencodeDir: string) {
-  const commandsDir = join(opencodeDir, "commands");
-  let count = 0;
-
-  if (config.commands_dir) {
-    const srcDir = resolve(hubDir, config.commands_dir);
-    try {
-      const files = await readdir(srcDir);
-      const mdFiles = files.filter((f) => f.endsWith(".md"));
-      if (mdFiles.length > 0) {
-        await mkdir(commandsDir, { recursive: true });
-        for (const file of mdFiles) {
-          await copyFile(join(srcDir, file), join(commandsDir, file));
-          count++;
-        }
-      }
-    } catch {
-      console.log(chalk.yellow(`  Commands directory ${config.commands_dir} not found, skipping`));
-    }
-  }
-
-  if (config.commands) {
-    await mkdir(commandsDir, { recursive: true });
-    for (const [name, filePath] of Object.entries(config.commands)) {
-      const src = resolve(hubDir, filePath);
-      const dest = join(commandsDir, name.endsWith(".md") ? name : `${name}.md`);
-      try {
-        await copyFile(src, dest);
-        count++;
-      } catch {
-        console.log(chalk.yellow(`  Command file ${filePath} not found, skipping`));
-      }
-    }
-  }
-
-  if (count > 0) {
-    console.log(chalk.green(`  Copied ${count} commands to .opencode/commands/`));
-  }
-}
 
 async function generateOpenCode(config: HubConfig, hubDir: string) {
   const opencodeDir = join(hubDir, ".opencode");
@@ -717,7 +678,7 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   }
 
   // Copy commands to .opencode/commands/
-  await generateOpenCodeCommands(config, hubDir, opencodeDir);
+  await generateEditorCommands(config, hubDir, opencodeDir, ".opencode/commands/");
 
   // Generate hooks plugin if hooks are defined
   if (config.hooks) {
