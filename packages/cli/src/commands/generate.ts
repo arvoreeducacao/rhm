@@ -602,6 +602,7 @@ If any validation agent leaves comments requiring fixes, call the relevant codin
 async function generateOpenCode(config: HubConfig, hubDir: string) {
   const opencodeDir = join(hubDir, ".opencode");
   await mkdir(join(opencodeDir, "agents"), { recursive: true });
+  await mkdir(join(opencodeDir, "rules"), { recursive: true });
   await mkdir(join(opencodeDir, "skills"), { recursive: true });
   await mkdir(join(opencodeDir, "commands"), { recursive: true });
   await mkdir(join(opencodeDir, "plugins"), { recursive: true });
@@ -610,10 +611,10 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
   console.log(chalk.green("  Generated .gitignore"));
 
-  // Generate AGENTS.md (OpenCode's native rules file)
+  // Generate orchestrator rule in .opencode/rules/
   const orchestratorRule = buildOpenCodeOrchestratorRule(config);
-  await writeFile(join(hubDir, "AGENTS.md"), orchestratorRule + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
+  await writeFile(join(opencodeDir, "rules", "orchestrator.md"), orchestratorRule + "\n", "utf-8");
+  console.log(chalk.green("  Generated .opencode/rules/orchestrator.md"));
 
   // Generate opencode.json with MCP servers, instructions, and agent config
   const opencodeConfig: Record<string, unknown> = {
@@ -628,9 +629,8 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
     opencodeConfig.mcp = mcpConfig;
   }
 
-  // Point to AGENTS.md and any skill files as instructions
-  const instructions: string[] = ["AGENTS.md"];
-  opencodeConfig.instructions = instructions;
+  // Reference rules via glob so additional rule files are auto-discovered
+  opencodeConfig.instructions = [".opencode/rules/*.md"];
 
   await writeFile(
     join(hubDir, "opencode.json"),
