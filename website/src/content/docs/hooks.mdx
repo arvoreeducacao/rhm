@@ -4,7 +4,7 @@ description: Automate workflows with editor lifecycle hooks.
 order: 12
 ---
 
-Hooks let you run shell commands or prompt the AI at specific points during an editor session. Cursor, Claude Code, and Kiro all support hooks, and `hub.yaml` provides a unified way to define them once and generate the correct format for each editor.
+Hooks let you run shell commands or prompt the AI at specific points during an editor session. Cursor, Claude Code, Kiro, and OpenCode all support hooks, and `hub.yaml` provides a unified way to define them once and generate the correct format for each editor.
 
 ## What Are Hooks?
 
@@ -53,17 +53,17 @@ Hub uses `snake_case` event names. `hub generate` maps them to each editor's nam
 
 ### Shared Events
 
-| hub.yaml | Cursor | Claude Code | Kiro |
-|----------|--------|-------------|------|
-| `session_start` | `sessionStart` | `SessionStart` | — |
-| `session_end` | `sessionEnd` | `SessionEnd` | — |
-| `pre_tool_use` | `preToolUse` | `PreToolUse` | `pre_tool_use` |
-| `post_tool_use` | `postToolUse` | `PostToolUse` | `post_tool_use` |
-| `stop` | `stop` | `Stop` | `agent_stop` |
-| `subagent_start` | `subagentStart` | `SubagentStart` | — |
-| `subagent_stop` | `subagentStop` | `SubagentStop` | — |
-| `pre_compact` | `preCompact` | `PreCompact` | — |
-| `before_submit_prompt` | `beforeSubmitPrompt` | `UserPromptSubmit` | `prompt_submit` |
+| hub.yaml | Cursor | Claude Code | Kiro | OpenCode |
+|----------|--------|-------------|------|----------|
+| `session_start` | `sessionStart` | `SessionStart` | — | `session.created` |
+| `session_end` | `sessionEnd` | `SessionEnd` | — | `session.idle` |
+| `pre_tool_use` | `preToolUse` | `PreToolUse` | `pre_tool_use` | `tool.execute.before` |
+| `post_tool_use` | `postToolUse` | `PostToolUse` | `post_tool_use` | `tool.execute.after` |
+| `stop` | `stop` | `Stop` | `agent_stop` | `session.idle` |
+| `subagent_start` | `subagentStart` | `SubagentStart` | — | — |
+| `subagent_stop` | `subagentStop` | `SubagentStop` | — | — |
+| `pre_compact` | `preCompact` | `PreCompact` | — | `session.compacted` |
+| `before_submit_prompt` | `beforeSubmitPrompt` | `UserPromptSubmit` | `prompt_submit` | — |
 
 ### Cursor-Only Events
 
@@ -99,6 +99,19 @@ Hub uses `snake_case` event names. `hub generate` maps them to each editor's nam
 | `stop` | `agent_stop` |
 | `before_submit_prompt` | `prompt_submit` |
 | `after_file_edit` | `file_save` |
+
+### OpenCode-Mapped Events
+
+OpenCode uses a plugin system for hooks. `hub generate` creates `.opencode/plugins/hub-hooks.js` that maps hub events to OpenCode plugin events.
+
+| hub.yaml | OpenCode Plugin Event |
+|----------|----------------------|
+| `pre_tool_use` | `tool.execute.before` |
+| `post_tool_use` | `tool.execute.after` |
+| `after_file_edit` | `file.edited` |
+| `session_start` | `session.created` |
+| `session_end` / `stop` | `session.idle` |
+| `permission_request` | `permission.asked` |
 
 > **Note:** Kiro hooks are managed via the Kiro panel UI, not through configuration files. When generating for Kiro, `hub generate` will display the hooks that should be configured manually in the Kiro IDE.
 
@@ -138,6 +151,17 @@ When you run `hub generate`, hooks are generated in each editor's native format:
 ```
 
 **Kiro** — hooks are displayed as instructions for manual setup in the Kiro panel UI. Kiro supports the following hook triggers: Prompt Submit, Agent Stop, Pre Tool Use, Post Tool Use, File Create, File Save, File Delete, and Manual Trigger.
+
+**OpenCode** — `.opencode/plugins/hub-hooks.js`:
+```js
+export const HubHooksPlugin = async ({ $ }) => {
+  return {
+    "file.edited": async (input, output) => {
+      try { await $`./hooks/format.sh`; } catch (e) { console.error("Hook failed:", e); }
+    }
+  };
+};
+```
 
 ## CLI Commands
 

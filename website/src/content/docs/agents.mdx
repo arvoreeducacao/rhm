@@ -39,6 +39,8 @@ Developer: "PR is ready, tested, and notified"
 
 > **Kiro note:** Kiro does not support sub-agents. When generating for Kiro, each agent definition becomes a steering file (`.kiro/steering/agent-*.md`) with `inclusion: auto`. The orchestrator instructs the AI to follow each steering file's guidelines sequentially instead of spawning sub-agents. The result is the same structured pipeline, executed by a single agent that switches roles at each step.
 
+> **OpenCode note:** OpenCode has native support for sub-agents via `@mention` and the Task tool. When generating for OpenCode, agents are placed in `.opencode/agents/` as markdown files with `mode: subagent` frontmatter. The orchestrator references agents using `@agent-name` syntax, matching OpenCode's native invocation model.
+
 ## Built-in Agents
 
 ### Orchestrator

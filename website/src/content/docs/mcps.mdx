@@ -93,7 +93,7 @@ mcps:
 
 *One of `package`, `url`, or `image` is required.
 
-When you run `hub generate`, these are written to `.cursor/mcp.json` (Cursor), `.mcp.json` (Claude Code), or `.kiro/settings/mcp.json` (Kiro), making them available to all agents.
+When you run `hub generate`, these are written to `.cursor/mcp.json` (Cursor), `.mcp.json` (Claude Code), `.kiro/settings/mcp.json` (Kiro), or `opencode.json` (OpenCode), making them available to all agents.
 
 ## How Agents Use MCPs
 
@@ -131,7 +131,7 @@ mcps:
       PG_PASSWORD: "${env:PG_PASSWORD}"
 ```
 
-When `hub generate` runs, `${env:VAR_NAME}` is written as-is to the generated MCP config file. The editor (Cursor, Claude Code, or Kiro) resolves the reference at runtime, reading the value from your local environment.
+When `hub generate` runs, `${env:VAR_NAME}` is written as-is to the generated MCP config file. The editor (Cursor, Claude Code, Kiro, or OpenCode) resolves the reference at runtime, reading the value from your local environment.
 
 This means:
 - `hub.yaml` can be safely committed to git — no secrets in the repo
