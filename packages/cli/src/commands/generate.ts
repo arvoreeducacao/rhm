@@ -7,6 +7,32 @@ import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig, type WorkflowStep } from "../core/hub-config.js";
 import { getSavedEditor, saveGenerateState } from "../core/hub-cache.js";
 
+const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
+
+async function fetchHubDocsSkill(skillsDir: string): Promise<void> {
+  try {
+    const res = await fetch(HUB_DOCS_URL);
+    if (!res.ok) {
+      console.log(chalk.yellow(`  Could not fetch hub docs (${res.status}), skipping hub-docs skill`));
+      return;
+    }
+    const content = await res.text();
+    const hubSkillDir = join(skillsDir, "hub-docs");
+    await mkdir(hubSkillDir, { recursive: true });
+    const skillContent = `---
+name: hub-docs
+description: Repo Hub (rhm) documentation. Use when working with hub.yaml, hub CLI commands, agent orchestration, MCP configuration, skills, workflows, or multi-repo workspace setup.
+triggers: [hub, rhm, hub.yaml, generate, scan, setup, orchestrator, multi-repo, workspace]
+---
+
+${content}`;
+    await writeFile(join(hubSkillDir, "SKILL.md"), skillContent, "utf-8");
+    console.log(chalk.green("  Fetched hub-docs skill from hub.arvore.com.br"));
+  } catch (err) {
+    console.log(chalk.yellow(`  Could not fetch hub docs, skipping hub-docs skill`));
+  }
+}
+
 const HUB_MARKER_START = "# >>> hub-managed (do not edit this section)";
 const HUB_MARKER_END = "# <<< hub-managed";
 
@@ -233,6 +259,10 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   } catch {
     // no skills dir
   }
+
+  const cursorSkillsDirForDocs = join(cursorDir, "skills");
+  await mkdir(cursorSkillsDirForDocs, { recursive: true });
+  await fetchHubDocsSkill(cursorSkillsDirForDocs);
 
   if (config.hooks) {
     const cursorHooks = buildCursorHooks(config.hooks);
@@ -798,6 +828,8 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   } catch {
     // no skills dir
   }
+
+  await fetchHubDocsSkill(join(opencodeDir, "skills"));
 
   // Copy commands to .opencode/commands/
   await generateEditorCommands(config, hubDir, opencodeDir, ".opencode/commands/");
@@ -1390,6 +1422,10 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
     // no skills dir
   }
 
+  const claudeSkillsDirForDocs = join(claudeDir, "skills");
+  await mkdir(claudeSkillsDirForDocs, { recursive: true });
+  await fetchHubDocsSkill(claudeSkillsDirForDocs);
+
   await writeFile(join(hubDir, "CLAUDE.md"), claudeMdSections.join("\n"), "utf-8");
   console.log(chalk.green("  Generated CLAUDE.md"));
 
@@ -1523,6 +1559,10 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   } catch {
     // no skills dir
   }
+
+  const kiroSkillsDirForDocs = join(kiroDir, "skills");
+  await mkdir(kiroSkillsDirForDocs, { recursive: true });
+  await fetchHubDocsSkill(kiroSkillsDirForDocs);
 
   if (config.mcps?.length) {
     const mcpConfig: Record<string, Record<string, unknown>> = {};
