@@ -47,6 +47,7 @@ export interface IntegrationConfig {
   github?: {
     org?: string;
     pr_branch_pattern?: string;
+    pr_tool?: "cli" | "mcp";
   };
   slack?: {
     channels?: Record<string, string>;

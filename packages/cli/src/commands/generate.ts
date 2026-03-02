@@ -1260,8 +1260,9 @@ function buildDeliverySection(config: HubConfig): string {
 
   if (config.integrations?.github) {
     const gh = config.integrations.github;
+    const tool = gh.pr_tool === "mcp" ? "GitHub MCP" : "GitHub CLI";
     parts.push(`### Pull Requests`);
-    parts.push(`For each repository with changes, push the branch and create a PR using the GitHub MCP.`);
+    parts.push(`For each repository with changes, push the branch and create a PR using the ${tool}.`);
     if (gh.pr_branch_pattern) {
       parts.push(`Branch naming pattern: \`${gh.pr_branch_pattern}\``);
     }

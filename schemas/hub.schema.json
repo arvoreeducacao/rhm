@@ -92,7 +92,8 @@
           "description": "GitHub integration",
           "properties": {
             "org": { "type": "string", "description": "GitHub organization name" },
-            "pr_branch_pattern": { "type": "string", "description": "Branch pattern (e.g. {linear_id}-{slug})" }
+            "pr_branch_pattern": { "type": "string", "description": "Branch pattern (e.g. {linear_id}-{slug})" },
+            "pr_tool": { "type": "string", "enum": ["cli", "mcp"], "default": "cli", "description": "Tool to use for creating PRs: 'cli' (GitHub CLI) or 'mcp' (GitHub MCP)" }
           },
           "additionalProperties": false
         },
