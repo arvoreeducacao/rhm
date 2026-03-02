@@ -1,0 +1,83 @@
+---
+title: Scan
+description: Auto-detect unregistered repositories in your workspace.
+order: 3
+---
+
+As your workspace grows, new repos get cloned but not always added to `hub.yaml`. The `hub scan` command finds them for you.
+
+## What it does
+
+`hub scan` walks the workspace root looking for directories that contain a `.git` folder but aren't listed in `hub.yaml`. For each one it:
+
+1. Detects the tech stack by checking for framework-specific files (`mix.exs` → Elixir, `nest-cli.json` → NestJS, `next.config.*` → Next.js, etc.)
+2. Reads the git remote URL
+3. Offers to add them to `hub.yaml`
+
+## Usage
+
+```bash
+# Interactive — choose which repos to add
+hub scan
+
+# Auto-add everything without prompting
+hub scan --yes
+```
+
+| Flag | Description |
+|------|-------------|
+| `-y, --yes` | Add all found repos without prompting |
+
+## Example
+
+```
+$ hub scan
+
+Scanning for unregistered repositories...
+
+Found 2 unregistered repo(s):
+
+  notifications-service (nestjs)
+  admin-dashboard (nextjs)
+
+? Select repos to add to hub.yaml:
+  ◉ notifications-service (nestjs)
+  ◉ admin-dashboard (nextjs)
+
+Added 2 repo(s) to hub.yaml.
+Run hub generate to update editor configs.
+```
+
+## How it works
+
+The scan preserves your existing `hub.yaml` formatting. Instead of parsing and re-serializing the YAML (which would lose comments and ordering), it finds the end of the `repos:` array and inserts new entries as raw text.
+
+Each added repo gets the minimal fields:
+
+```yaml
+  - name: notifications-service
+    path: ./notifications-service
+    url: git@github.com:company/notifications-service.git
+    tech: nestjs
+```
+
+After scanning, run `hub generate` to regenerate editor configs with the new repos.
+
+## Tech detection
+
+| File detected | Tech assigned |
+|---------------|---------------|
+| `mix.exs` | `elixir` |
+| `next.config.js/ts/mjs` | `nextjs` |
+| `nest-cli.json` | `nestjs` |
+| `angular.json` | `angular` |
+| `svelte.config.js` | `svelte` |
+| `nuxt.config.ts/js` | `vue` |
+| `go.mod` | `go` |
+| `Gemfile` | `rails` |
+| `manage.py` | `django` |
+| `package.json` (fallback) | `react` |
+
+## Ignored directories
+
+The scan skips common non-repo directories: `node_modules`, `dist`, `build`, `.cache`, `tasks`, `agents`, `skills`, `memories`, `docs`, `scripts`, and editor config folders (`.cursor`, `.kiro`, `.vscode`, etc.).
