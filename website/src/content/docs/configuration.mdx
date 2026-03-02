@@ -73,6 +73,7 @@ repos:
     path: ./backend
     url: git@github.com:company/backend.git
     tech: elixir
+    display_name: "Backend (Phoenix)"
     tools:
       erlang: "27.3.3"
       elixir: "1.18.3-otp-27"
@@ -118,6 +119,7 @@ mcps:
 integrations:
   github:
     pr_branch_pattern: "{linear_id}-{slug}"
+    pr_tool: cli
   slack:
     channels:
       prs: "#eng-prs"

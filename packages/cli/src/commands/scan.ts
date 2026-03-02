@@ -1,19 +1,12 @@
 import { Command } from "commander";
 import { existsSync } from "node:fs";
-import { readdir, readFile, appendFile, stat } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { parse } from "yaml";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import type { HubConfig } from "../core/hub-config.js";
-
-const IGNORE_DIRS = new Set([
-  ".git", ".vscode", ".cursor", ".kiro", ".opencode", ".claude",
-  "node_modules", "dist", "build", ".cache", "tasks", "agents",
-  "skills", "memories", ".devcontainer", "rhm", "docs", "scripts",
-  "package", ".hub",
-]);
 
 async function findUnregisteredRepos(hubDir: string, config: HubConfig): Promise<string[]> {
   const registeredPaths = new Set(
@@ -24,14 +17,9 @@ async function findUnregisteredRepos(hubDir: string, config: HubConfig): Promise
   const unregistered: string[] = [];
 
   for (const entry of entries) {
-    if (entry.startsWith(".") || IGNORE_DIRS.has(entry)) continue;
-
-    const fullPath = join(hubDir, entry);
-    const entryStat = await stat(fullPath);
-    if (!entryStat.isDirectory()) continue;
     if (registeredPaths.has(entry)) continue;
 
-    const gitDir = join(fullPath, ".git");
+    const gitDir = join(hubDir, entry, ".git");
     if (existsSync(gitDir)) {
       unregistered.push(entry);
     }

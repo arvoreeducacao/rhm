@@ -57,9 +57,9 @@ hub generate --editor opencode      # OpenCode CLI
 ```
 
 Produces:
-- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/agents/`, `.cursor/skills/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `.gitignore`, `.cursorignore`
+- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/agents/`, `.cursor/skills/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `<name>.code-workspace`, `.gitignore`, `.cursorignore`
 - **Claude Code**: `CLAUDE.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` (with hooks), `.mcp.json`, `.gitignore`
-- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/agent-*.md`, `.kiro/skills/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `.gitignore`
+- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/agents/`, `.kiro/skills/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
 - **OpenCode**: `opencode.json`, `.opencode/rules/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/plugins/hub-hooks.js`, `.gitignore`
 
 ## Repositories
@@ -105,6 +105,21 @@ hub exec "git checkout main"
 hub exec "git stash"
 hub exec "pnpm outdated"
 ```
+
+### `hub scan`
+
+Detect git repositories in the workspace that are not registered in `hub.yaml`:
+
+```bash
+hub scan          # Interactive — select which repos to add
+hub scan --yes    # Auto-add all found repos without prompting
+```
+
+| Flag | Description |
+|------|-------------|
+| `-y, --yes` | Auto-add all found repos without prompting |
+
+The command scans the workspace root for directories containing a `.git` folder, compares them against the `repos` list in `hub.yaml`, and offers to add any unregistered ones. It auto-detects the tech stack (NestJS, Next.js, Elixir, React, etc.) and reads the git remote URL.
 
 ## Environment
 

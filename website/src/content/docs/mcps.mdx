@@ -24,6 +24,11 @@ Repo Hub's MCP servers are maintained at [arvore-mcp-servers](https://github.com
 | `@arvoretech/tempmail-mcp` | Temporary email for E2E tests |
 | `@arvoretech/memory-mcp` | Team memory with semantic search |
 | `@arvoretech/launchdarkly-mcp` | Feature flag management |
+| `@arvoretech/mcp-proxy` | Intelligent proxy that reduces token usage via `mcp_search` and `mcp_call` |
+| `@arvoretech/google-chat-mcp` | Google Chat spaces, members, and messages |
+| `@arvoretech/meet-transcriptions-mcp` | Semantic search across meeting transcriptions |
+| `@arvoretech/sendgrid-mcp` | SendGrid dynamic email templates |
+| `runtime-lens` | Runtime inspection with inline values for React, NestJS, and Next.js |
 
 ## Common MCPs (Practical Examples)
 
@@ -90,6 +95,7 @@ mcps:
 | `url` | string | No* | SSE URL for remote MCP servers |
 | `image` | string | No* | Docker image (runs via `docker run -i --rm <image>`) |
 | `env` | object | No | Environment variables passed to the MCP process |
+| `upstreams` | string[] | No | List of MCP names to route through this proxy (see [MCP Proxy](#mcp-proxy)) |
 
 *One of `package`, `url`, or `image` is required.
 
@@ -163,6 +169,38 @@ Or use a tool like [direnv](https://direnv.net/) with a `.envrc` file (added to 
 - **Database MCPs are read-only** — Agents can query but cannot modify data
 - **Secrets are resolved at runtime** — No credentials stored in generated files (use `${env:VAR}`)
 - **MCPs run locally** — They connect to your infrastructure from your machine
+
+## MCP Proxy
+
+If you use `@arvoretech/mcp-proxy`, you can route multiple MCP servers through a single proxy process. This reduces the number of running processes and lets the proxy handle connection management.
+
+Declare the proxy MCP with an `upstreams` list referencing other MCP names:
+
+```yaml
+mcps:
+  - name: postgresql
+    package: "@arvoretech/postgresql-mcp"
+    env:
+      PG_HOST: localhost
+      PG_DATABASE: myapp
+
+  - name: mysql
+    package: "@arvoretech/mysql-mcp"
+    env:
+      MYSQL_HOST: localhost
+
+  - name: mcp-proxy
+    package: "@arvoretech/mcp-proxy"
+    upstreams: [postgresql, mysql]
+```
+
+When `hub generate` runs:
+
+- MCPs listed in `upstreams` are **skipped** as standalone entries (they won't appear individually in the generated `mcp.json`)
+- The proxy entry receives a `MCP_PROXY_UPSTREAMS` environment variable containing the upstream configurations as JSON
+- All environment variables from upstream MCPs are collected and passed to the proxy process
+
+This means the AI editor sees a single `mcp-proxy` server that exposes all tools from the upstream MCPs.
 
 ## Creating Custom MCPs
 

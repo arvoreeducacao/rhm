@@ -276,6 +276,13 @@ workflow:
 | `@arvoretech/datadog-mcp` | Read metrics, logs, and traces for debugging |
 | `@arvoretech/npm-registry-mcp` | Check package security and versions |
 | `@arvoretech/tempmail-mcp` | Create temporary emails for E2E test flows |
+| `@arvoretech/memory-mcp` | Team memory with semantic search |
+| `@arvoretech/launchdarkly-mcp` | Feature flag management |
+| `@arvoretech/mcp-proxy` | Intelligent proxy that reduces token usage via `mcp_search` / `mcp_call` |
+| `@arvoretech/google-chat-mcp` | Manage Google Chat spaces, members, and messages |
+| `@arvoretech/meet-transcriptions-mcp` | Semantic search across meeting transcriptions |
+| `@arvoretech/sendgrid-mcp` | Manage SendGrid dynamic email templates |
+| `runtime-lens` | Runtime inspection with inline values for React, NestJS, and Next.js |
 | `@playwright/mcp` | Control a browser to test your app |
 
 MCPs are maintained at [arvore-mcp-servers](https://github.com/arvoreeducacao/arvore-mcp-servers).

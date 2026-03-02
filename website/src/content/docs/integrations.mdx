@@ -50,6 +50,7 @@ Pull request and repository integration.
 |-------|------|-------------|
 | `org` | string | GitHub organization name |
 | `pr_branch_pattern` | string | Branch naming pattern for PRs |
+| `pr_tool` | `"cli"` \| `"mcp"` | How the agent creates PRs. `"cli"` uses the `gh` CLI (default), `"mcp"` uses the GitHub MCP server |
 
 Available variables in `pr_branch_pattern`:
 - `{linear_id}` — Linear task ID (e.g., `ENG-123`)
