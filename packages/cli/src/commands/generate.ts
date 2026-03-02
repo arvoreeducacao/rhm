@@ -389,6 +389,40 @@ function buildKiroMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   };
 }
 
+function buildKiroAgentContent(rawContent: string): string {
+  const fmMatch = rawContent.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (!fmMatch) {
+    return `---\nname: agent\ntools: ["@builtin"]\n---\n\n${rawContent}`;
+  }
+
+  const fmBlock = fmMatch[1];
+  const body = fmMatch[2];
+
+  const attrs: Record<string, string> = {};
+  for (const line of fmBlock.split("\n")) {
+    const match = line.match(/^(\w+):\s*(.+)$/);
+    if (match) attrs[match[1]] = match[2].trim();
+  }
+
+  const lines: string[] = ["---"];
+  if (attrs.name) lines.push(`name: ${attrs.name}`);
+  if (attrs.description) lines.push(`description: ${attrs.description}`);
+
+  if (attrs.tools) {
+    lines.push(`tools: ${attrs.tools}`);
+  } else {
+    lines.push(`tools: ["@builtin"]`);
+  }
+
+  if (attrs.model && attrs.model !== "inherit") {
+    lines.push(`model: ${attrs.model}`);
+  }
+
+  lines.push("---");
+  return `${lines.join("\n")}\n${body}`;
+}
+
+
 function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   if (mcp.url) {
     return { type: "remote", url: mcp.url };
@@ -800,9 +834,9 @@ function buildKiroOrchestratorRule(config: HubConfig): string {
 
 ## Your Main Responsibility
 
-You are the development orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end by following a structured pipeline. You work as a single agent but follow specialized instructions from steering files for each phase of development.
+You are the development orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end by following a structured pipeline. You delegate specialized work to subagents defined in \`.kiro/agents/\`.
 
-> **Note:** This workspace uses steering files in \`.kiro/steering/\` to provide role-specific instructions for each pipeline step. When a step says "follow the instructions from steering file X", read that file and apply its guidelines to the current task.`);
+> **Note:** This workspace has custom subagents in \`.kiro/agents/\`. Each pipeline step delegates to the appropriate subagent. Use \`/agent-name\` or instruct Kiro to "use the X subagent" to invoke them.`);
 
   if (enforce) {
     sections.push(`
@@ -812,7 +846,7 @@ You are the development orchestrator. Your job is to ensure that any feature or 
 
 - NEVER skip a pipeline step, even if the task seems simple or obvious.
 - ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
-- ALWAYS follow the designated steering file for each step. Do not improvise if a steering file is assigned.
+- ALWAYS use the designated subagent for each step. Do not improvise if a subagent is assigned.
 - ALWAYS wait for a step to complete and validate its output before moving to the next step.
 - If a step produces a document, READ the document and confirm it is complete before proceeding.
 - If a step has unanswered questions or validation issues, RESOLVE them before advancing.
@@ -921,19 +955,19 @@ function buildKiroPipelineSection(steps: WorkflowStep[]): string {
     return `
 ## Development Pipeline
 
-Since Kiro does not support sub-agents, follow each step sequentially, applying the guidelines from the corresponding steering file:
+Follow each step sequentially, delegating to the appropriate subagent:
 
-1. **Refinement** — Read and follow \`agent-refinement.md\` steering file to collect requirements. Write output to the task document.
-2. **Coding** — Follow the coding steering files (\`agent-coding-backend.md\`, \`agent-coding-frontend.md\`) to implement the feature.
-3. **Review** — Follow \`agent-code-reviewer.md\` to review the implementation.
-4. **QA** — Follow \`agent-qa-backend.md\` and/or \`agent-qa-frontend.md\` to test.
+1. **Refinement** — Use the \`refinement\` subagent to collect requirements. Write output to the task document.
+2. **Coding** — Use the \`coding-backend\` and \`coding-frontend\` subagents to implement the feature.
+3. **Review** — Use the \`code-reviewer\` subagent to review the implementation.
+4. **QA** — Use the \`qa-backend\` and/or \`qa-frontend\` subagents to test.
 5. **Delivery** — Create PRs and notify the team.`;
   }
 
   const parts: string[] = [`
 ## Development Pipeline
 
-Follow each step sequentially, applying the role-specific instructions from the corresponding steering file at each phase.
+Follow each step sequentially, delegating to the appropriate subagent at each phase.
 `];
 
   for (const step of steps) {
@@ -955,7 +989,7 @@ Follow each step sequentially, applying the role-specific instructions from the 
     }
 
     if (step.agent) {
-      parts.push(`Follow the instructions from the \`agent-${step.agent}.md\` steering file.${step.output ? ` Write output to \`${step.output}\`.` : ""}`);
+      parts.push(`Use the \`${step.agent}\` subagent.${step.output ? ` Write output to \`${step.output}\`.` : ""}`);
 
       if (step.step === "refinement") {
         parts.push(`
@@ -972,10 +1006,10 @@ After completing the refinement, validate with the user:
         return a;
       });
 
-      parts.push(`Follow the instructions from these steering files sequentially:`);
+      parts.push(`Use these subagents sequentially:`);
 
       for (const a of agentList) {
-        let line = `- \`agent-${a.agent}.md\``;
+        let line = `- \`${a.agent}\``;
         if (a.output) line += ` → write to \`${a.output}\``;
         if (a.when) line += ` (when: ${a.when})`;
         parts.push(line);
@@ -997,6 +1031,7 @@ If any validation step reveals issues requiring fixes, go back to the relevant c
 
   return parts.join("\n");
 }
+
 
 function buildOrchestratorRule(config: HubConfig): string {
   const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
@@ -1448,19 +1483,16 @@ async function generateKiro(config: HubConfig, hubDir: string) {
 
   const agentsDir = resolve(hubDir, "agents");
   try {
+    const kiroAgentsDir = join(kiroDir, "agents");
+    await mkdir(kiroAgentsDir, { recursive: true });
     const agentFiles = await readdir(agentsDir);
     const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
     for (const file of mdFiles) {
       const agentContent = await readFile(join(agentsDir, file), "utf-8");
-      const agentName = file.replace(/\.md$/, "");
-      const steeringContent = buildKiroSteeringContent(agentContent, "auto", {
-        name: agentName,
-        description: `Role-specific instructions for the ${agentName} phase. Include when working on ${agentName}-related tasks.`,
-      });
-      const steeringName = `agent-${file}`;
-      await writeFile(join(steeringDir, steeringName), steeringContent, "utf-8");
+      const kiroAgent = buildKiroAgentContent(agentContent);
+      await writeFile(join(kiroAgentsDir, file), kiroAgent, "utf-8");
     }
-    console.log(chalk.green(`  Copied ${mdFiles.length} agents as steering files`));
+    console.log(chalk.green(`  Copied ${mdFiles.length} agents to .kiro/agents/`));
   } catch {
     console.log(chalk.yellow("  No agents/ directory found, skipping agent copy"));
   }
