@@ -164,6 +164,7 @@
           ]
         },
         "description": { "type": "string", "description": "What this repository does" },
+        "display_name": { "type": "string", "description": "Human-friendly name for workspace files (e.g. 'API Árvore (NestJS)')" },
         "env_file": { "type": "string", "description": "Path to environment file" },
         "commands": {
           "type": "object",

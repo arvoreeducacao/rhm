@@ -1589,7 +1589,58 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
   const merged = { ...existing, ...managed };
   await writeFile(settingsPath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
   console.log(chalk.green("  Generated .vscode/settings.json (git multi-repo detection)"));
+
+  const workspaceFile = `${config.name}.code-workspace`;
+  const workspacePath = join(hubDir, workspaceFile);
+
+  let existingWorkspace: Record<string, unknown> = {};
+  if (existsSync(workspacePath)) {
+    try {
+      const raw = await readFile(workspacePath, "utf-8");
+      existingWorkspace = JSON.parse(raw);
+    } catch {
+      existingWorkspace = {};
+    }
+  } else {
+    const files = await readdir(hubDir);
+    const existing = files.find((f) => f.endsWith(".code-workspace"));
+    if (existing) {
+      try {
+        const raw = await readFile(join(hubDir, existing), "utf-8");
+        existingWorkspace = JSON.parse(raw);
+      } catch {
+        existingWorkspace = {};
+      }
+    }
+  }
+
+  const TECH_LABELS: Record<string, string> = {
+    nestjs: "NestJS", nextjs: "Next.js", react: "React",
+    elixir: "Elixir", phoenix: "Phoenix", django: "Django",
+    fastapi: "FastAPI", rails: "Rails", spring: "Spring",
+    go: "Go", vue: "Vue", svelte: "Svelte", angular: "Angular",
+    express: "Express", koa: "Koa",
+  };
+
+  const folders: { path: string; name: string }[] = [
+    { path: ".", name: "Root" },
+  ];
+  for (const repo of config.repos) {
+    const repoPath = repo.path.replace(/^\.\//, "");
+    const displayName = repo.display_name
+      || (repo.tech ? `${repo.name} (${TECH_LABELS[repo.tech] || repo.tech})` : repo.name);
+    folders.push({ path: repoPath, name: displayName });
+  }
+
+  const workspace = {
+    folders,
+    settings: (existingWorkspace as Record<string, unknown>).settings || {},
+  };
+
+  await writeFile(workspacePath, JSON.stringify(workspace, null, "\t") + "\n", "utf-8");
+  console.log(chalk.green(`  Generated ${workspaceFile}`));
 }
+
 
 function buildGitignoreLines(config: HubConfig): string[] {
   const lines = [

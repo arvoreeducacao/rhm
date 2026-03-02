@@ -8,6 +8,7 @@ export interface Repo {
   url: string;
   tech?: string;
   description?: string;
+  display_name?: string;
   env_file?: string;
   commands?: {
     install?: string;

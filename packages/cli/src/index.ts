@@ -19,6 +19,7 @@ import { toolsCommand } from "./commands/tools.js";
 import { memoryCommand } from "./commands/memory.js";
 import { updateCommand } from "./commands/update.js";
 import { directoryCommand } from "./commands/directory.js";
+import { scanCommand } from "./commands/scan.js";
 
 const program = new Command();
 
@@ -50,5 +51,6 @@ program.addCommand(toolsCommand);
 program.addCommand(memoryCommand);
 program.addCommand(updateCommand);
 program.addCommand(directoryCommand);
+program.addCommand(scanCommand);
 
 program.parse();
