@@ -34,7 +34,7 @@ triggers: [hub, rhm, hub.yaml, generate, scan, setup, orchestrator, multi-repo, 
 ${content}`;
     await writeFile(join(hubSkillDir, "SKILL.md"), skillContent, "utf-8");
     console.log(chalk.green("  Fetched hub-docs skill from hub.arvore.com.br"));
-  } catch (err) {
+  } catch {
     console.log(chalk.yellow(`  Could not fetch hub docs, skipping hub-docs skill`));
   }
 }
