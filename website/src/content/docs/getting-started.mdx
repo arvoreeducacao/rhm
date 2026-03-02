@@ -57,10 +57,12 @@ hub generate --editor opencode
 
 This reads `hub.yaml` and produces editor-specific files:
 
-- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/agents/*.md`, `.cursor/mcp.json`, `.gitignore` + `.cursorignore`
-- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/agents/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
-- **Claude Code**: `CLAUDE.md`, `.claude/agents/`, `.mcp.json`, `.gitignore`
-- **OpenCode**: `opencode.json`, `.opencode/rules/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/plugins/`, `.gitignore`
+- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/rules/<steering>.mdc`, `.cursor/agents/*.md`, `.cursor/skills/hub-docs/`, `.cursor/mcp.json`, `.gitignore` + `.cursorignore`
+- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/<steering>.md`, `.kiro/agents/`, `.kiro/skills/hub-docs/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
+- **Claude Code**: `CLAUDE.md` (with steering appended), `.claude/agents/`, `.claude/skills/hub-docs/`, `.mcp.json`, `.gitignore`
+- **OpenCode**: `opencode.json`, `.opencode/rules/orchestrator.md`, `.opencode/rules/<steering>.md`, `.opencode/agents/`, `.opencode/skills/hub-docs/`, `.opencode/commands/`, `.opencode/plugins/`, `.gitignore`
+
+All editors also get a `hub-docs` skill automatically fetched from hub.arvore.com.br, giving agents access to Repo Hub documentation. Steering files from the `steering/` directory are distributed to each editor in its native format.
 
 ### 5. Open and start building
 
@@ -88,9 +90,11 @@ When you run `hub generate --editor cursor`, the CLI:
 
 1. Reads your `hub.yaml` declaring the full pipeline
 2. Generates an orchestrator rule with workflow instructions
-3. Creates agent definitions for each pipeline step
-4. Configures MCP connections for infrastructure access
-5. Sets up `.gitignore` and `.cursorignore` for the context pattern
+3. Copies steering files from `steering/` to the editor's native format
+4. Creates agent definitions for each pipeline step
+5. Fetches the `hub-docs` skill from hub.arvore.com.br
+6. Configures MCP connections for infrastructure access
+7. Sets up `.gitignore` and `.cursorignore` for the context pattern
 
 **The editor is the runtime.** There is no daemon, no server, no separate process. Your AI editor executes the workflow by following the generated rules.
 

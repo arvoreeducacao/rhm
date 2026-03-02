@@ -229,6 +229,7 @@ Skills are stored in two locations:
 When `hub generate` runs:
 - **Cursor**: Skills are copied to `.cursor/skills/` as directories
 - **Claude Code**: Skills are copied to `.claude/skills/` as directories (native skills support)
+- **Kiro**: Skills are copied to `.kiro/skills/` as directories
 - **OpenCode**: Skills are copied to `.opencode/skills/` as directories (native skills support)
 
-All editors discover skills automatically from their respective directories.
+All editors also receive a `hub-docs` skill automatically fetched from hub.arvore.com.br, which gives agents access to the full Repo Hub documentation. This skill is regenerated on each `hub generate` run.

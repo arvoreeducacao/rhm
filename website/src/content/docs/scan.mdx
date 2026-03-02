@@ -1,32 +1,46 @@
 ---
 title: Scan
-description: Auto-detect unregistered repositories in your workspace.
+description: Auto-detect unregistered repositories and unsynced assets in your workspace.
 order: 3
 ---
 
-As your workspace grows, new repos get cloned but not always added to `hub.yaml`. The `hub scan` command finds them for you.
+As your workspace grows, new repos get cloned but not always added to `hub.yaml`. Skills, agents, and steering files get created inside editor-specific folders but never promoted to the canonical `skills/`, `agents/`, or `steering/` directories. The `hub scan` command finds all of them for you.
 
 ## What it does
 
-`hub scan` walks the workspace root looking for directories that contain a `.git` folder but aren't listed in `hub.yaml`. For each one it:
+`hub scan` performs two passes:
+
+### 1. Unregistered repositories
+
+Walks the workspace root looking for directories that contain a `.git` folder but aren't listed in `hub.yaml`. For each one it:
 
 1. Detects the tech stack by checking for framework-specific files (`mix.exs` → Elixir, `nest-cli.json` → NestJS, `next.config.*` → Next.js, etc.)
 2. Reads the git remote URL
 3. Offers to add them to `hub.yaml`
 
+### 2. Unsynced assets
+
+Scans editor-specific directories (`.kiro`, `.cursor`, `.opencode`, `.claude`) for skills, agents, and steering files that don't exist in the canonical hub folders (`skills/`, `agents/`, `steering/`). For each unsynced asset it:
+
+1. Identifies the type (skill, agent, or steering) and source editor
+2. Offers to copy them to the canonical location
+3. Strips front-matter during the copy so files are editor-agnostic
+
+This ensures that assets created in one editor are available to all editors after the next `hub generate`.
+
 ## Usage
 
 ```bash
-# Interactive — choose which repos to add
+# Interactive — choose which repos and assets to sync
 hub scan
 
-# Auto-add everything without prompting
+# Auto-add and sync everything without prompting
 hub scan --yes
 ```
 
 | Flag | Description |
 |------|-------------|
-| `-y, --yes` | Add all found repos without prompting |
+| `-y, --yes` | Add all found repos and sync all assets without prompting |
 
 ## Example
 
@@ -45,10 +59,31 @@ Found 2 unregistered repo(s):
   ◉ admin-dashboard (nextjs)
 
 Added 2 repo(s) to hub.yaml.
+
+Scanning for unsynced skills, agents, and steering...
+
+Found 3 unsynced asset(s):
+
+  my-custom-skill (skill from .cursor)
+  pr-review.md (agent from .kiro)
+  code-standards.md (steering from .cursor)
+
+? Select assets to sync to canonical folders:
+  ◉ my-custom-skill (skill from .cursor)
+  ◉ pr-review.md (agent from .kiro)
+  ◉ code-standards.md (steering from .cursor)
+
+  Synced skill: my-custom-skill (from .cursor)
+  Synced agent: pr-review.md (from .kiro)
+  Synced steering: code-standards.md (from .cursor)
+Synced 3 asset(s).
+
 Run hub generate to update editor configs.
 ```
 
 ## How it works
+
+### Repository scanning
 
 The scan preserves your existing `hub.yaml` formatting. Instead of parsing and re-serializing the YAML (which would lose comments and ordering), it finds the end of the `repos:` array and inserts new entries as raw text.
 
@@ -61,7 +96,21 @@ Each added repo gets the minimal fields:
     tech: nestjs
 ```
 
-After scanning, run `hub generate` to regenerate editor configs with the new repos.
+### Asset syncing
+
+For each editor directory, the scan checks:
+
+| Source | Asset type | Canonical destination |
+|--------|-----------|----------------------|
+| `.kiro/skills/`, `.cursor/skills/`, `.opencode/skills/`, `.claude/skills/` | Skill | `skills/<name>/` |
+| `.kiro/agents/`, `.cursor/agents/`, `.opencode/agents/`, `.claude/agents/` | Agent | `agents/<name>.md` |
+| `.kiro/steering/` | Steering | `steering/<name>.md` |
+| `.cursor/rules/` (`.mdc` files) | Steering | `steering/<name>.md` |
+| `.opencode/rules/` | Steering | `steering/<name>.md` |
+
+Auto-generated files like `orchestrator.md` and `hub-docs` are skipped.
+
+After scanning, run `hub generate` to regenerate editor configs with the new repos and assets.
 
 ## Tech detection
 

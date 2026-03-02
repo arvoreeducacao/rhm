@@ -57,10 +57,14 @@ hub generate --editor opencode      # OpenCode CLI
 ```
 
 Produces:
-- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/agents/`, `.cursor/skills/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `<name>.code-workspace`, `.gitignore`, `.cursorignore`
-- **Claude Code**: `CLAUDE.md`, `.claude/agents/`, `.claude/skills/`, `.claude/settings.json` (with hooks), `.mcp.json`, `.gitignore`
-- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/agents/`, `.kiro/skills/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
-- **OpenCode**: `opencode.json`, `.opencode/rules/`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, `.opencode/plugins/hub-hooks.js`, `.gitignore`
+- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/rules/<steering>.mdc`, `.cursor/agents/`, `.cursor/skills/`, `.cursor/skills/hub-docs/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `<name>.code-workspace`, `.gitignore`, `.cursorignore`
+- **Claude Code**: `CLAUDE.md` (with steering appended), `.claude/agents/`, `.claude/skills/`, `.claude/skills/hub-docs/`, `.claude/settings.json` (with hooks), `.mcp.json`, `.gitignore`
+- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/<steering>.md`, `.kiro/agents/`, `.kiro/skills/`, `.kiro/skills/hub-docs/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
+- **OpenCode**: `opencode.json`, `.opencode/rules/orchestrator.md`, `.opencode/rules/<steering>.md`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/skills/hub-docs/`, `.opencode/commands/`, `.opencode/plugins/hub-hooks.js`, `.gitignore`
+
+All editors get steering files from the `steering/` directory copied in their native format, and a `hub-docs` skill auto-fetched from hub.arvore.com.br.
+
+When generating for Kiro, the CLI asks whether you use Kiro as an IDE or CLI. This affects how environment variables are referenced in MCP configs (`${VAR}` for IDE vs `${env:VAR}` for CLI). The choice is saved in `.hub/config.json` and reused on subsequent runs.
 
 ## Repositories
 
@@ -108,18 +112,22 @@ hub exec "pnpm outdated"
 
 ### `hub scan`
 
-Detect git repositories in the workspace that are not registered in `hub.yaml`:
+Detect unregistered repositories and unsynced assets (skills, agents, steering) in the workspace:
 
 ```bash
-hub scan          # Interactive — select which repos to add
-hub scan --yes    # Auto-add all found repos without prompting
+hub scan          # Interactive — select which repos to add and assets to sync
+hub scan --yes    # Auto-add all repos and sync all assets without prompting
 ```
 
 | Flag | Description |
 |------|-------------|
-| `-y, --yes` | Auto-add all found repos without prompting |
+| `-y, --yes` | Auto-add all repos and sync all assets without prompting |
 
-The command scans the workspace root for directories containing a `.git` folder, compares them against the `repos` list in `hub.yaml`, and offers to add any unregistered ones. It auto-detects the tech stack (NestJS, Next.js, Elixir, React, etc.) and reads the git remote URL.
+The command performs two passes:
+1. Scans the workspace root for directories containing a `.git` folder not listed in `hub.yaml`, auto-detecting the tech stack and git remote URL.
+2. Scans editor directories (`.kiro`, `.cursor`, `.opencode`, `.claude`) for skills, agents, and steering files that don't exist in the canonical `skills/`, `agents/`, or `steering/` folders, and offers to sync them.
+
+See [Scan](/docs/scan) for full documentation.
 
 ## Environment
 
