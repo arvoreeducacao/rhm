@@ -224,7 +224,12 @@
         },
         "url": { "type": "string", "description": "MCP server URL (remote)" },
         "image": { "type": "string", "description": "Docker image (containerized)" },
-        "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Env vars" }
+        "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Env vars" },
+        "upstreams": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Names of other MCP servers to route through this proxy. The proxy consolidates multiple MCPs into a single connection with mcp_search and mcp_call tools."
+        }
       }
     },
     "memory": {

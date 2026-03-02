@@ -176,8 +176,14 @@ async function generateCursor(config: HubConfig, hubDir: string) {
 
   if (config.mcps?.length) {
     const mcpConfig: Record<string, Record<string, unknown>> = {};
+    const upstreamSet = getUpstreamNames(config.mcps);
     for (const mcp of config.mcps) {
-      mcpConfig[mcp.name] = buildCursorMcpEntry(mcp);
+      if (upstreamSet.has(mcp.name)) continue;
+      if (mcp.upstreams?.length) {
+        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildCursorMcpEntry);
+      } else {
+        mcpConfig[mcp.name] = buildCursorMcpEntry(mcp);
+      }
     }
     await writeFile(
       join(cursorDir, "mcp.json"),
@@ -242,6 +248,82 @@ async function generateCursor(config: HubConfig, hubDir: string) {
 
   await generateEditorCommands(config, hubDir, cursorDir, ".cursor/commands/");
   await generateVSCodeSettings(config, hubDir);
+}
+
+interface ProxyUpstreamEntry {
+  name: string;
+  command: string;
+  args: string[];
+  env?: Record<string, string>;
+}
+
+function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): { upstreamsJson: string; collectedEnv: Record<string, string> } {
+  const upstreamNames = new Set(proxyMcp.upstreams || []);
+  const upstreamEntries: ProxyUpstreamEntry[] = [];
+  const collectedEnv: Record<string, string> = {};
+
+  for (const mcp of allMcps) {
+    if (!upstreamNames.has(mcp.name)) continue;
+    if (mcp.url || mcp.image) continue;
+
+    const entry: ProxyUpstreamEntry = {
+      name: mcp.name,
+      command: "npx",
+      args: ["-y", mcp.package!],
+    };
+
+    if (mcp.env) {
+      entry.env = {};
+      for (const [key, value] of Object.entries(mcp.env)) {
+        const envRef = value.match(/^\$\{(?:env:)?(\w+)\}$/);
+        if (envRef) {
+          entry.env[key] = `\${${envRef[1]}}`;
+          collectedEnv[envRef[1]] = value;
+        } else {
+          entry.env[key] = value;
+          collectedEnv[key] = value;
+        }
+      }
+    }
+
+    upstreamEntries.push(entry);
+  }
+
+  if (proxyMcp.env) {
+    for (const [key, value] of Object.entries(proxyMcp.env)) {
+      collectedEnv[key] = value;
+    }
+  }
+
+  return {
+    upstreamsJson: JSON.stringify(upstreamEntries),
+    collectedEnv,
+  };
+}
+
+function buildProxyMcpEntry(
+  proxyMcp: MCPConfig,
+  allMcps: MCPConfig[],
+  buildEntry: (mcp: MCPConfig) => Record<string, unknown>
+): Record<string, unknown> {
+  const { upstreamsJson, collectedEnv } = buildProxyUpstreams(proxyMcp, allMcps);
+  const env: Record<string, string> = {
+    MCP_PROXY_UPSTREAMS: upstreamsJson,
+    ...collectedEnv,
+  };
+  return buildEntry({ ...proxyMcp, env });
+}
+
+function getUpstreamNames(mcps: MCPConfig[]): Set<string> {
+  const names = new Set<string>();
+  for (const mcp of mcps) {
+    if (mcp.upstreams) {
+      for (const name of mcp.upstreams) {
+        names.add(name);
+      }
+    }
+  }
+  return names;
 }
 
 function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
@@ -623,8 +705,14 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
 
   if (config.mcps?.length) {
     const mcpConfig: Record<string, Record<string, unknown>> = {};
+    const upstreamSet = getUpstreamNames(config.mcps);
     for (const mcp of config.mcps) {
-      mcpConfig[mcp.name] = buildOpenCodeMcpEntry(mcp);
+      if (upstreamSet.has(mcp.name)) continue;
+      if (mcp.upstreams?.length) {
+        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildOpenCodeMcpEntry);
+      } else {
+        mcpConfig[mcp.name] = buildOpenCodeMcpEntry(mcp);
+      }
     }
     opencodeConfig.mcp = mcpConfig;
   }
@@ -1271,8 +1359,14 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
 
   if (config.mcps?.length) {
     const mcpJson: Record<string, Record<string, unknown>> = {};
+    const upstreamSet = getUpstreamNames(config.mcps);
     for (const mcp of config.mcps) {
-      mcpJson[mcp.name] = buildClaudeCodeMcpEntry(mcp);
+      if (upstreamSet.has(mcp.name)) continue;
+      if (mcp.upstreams?.length) {
+        mcpJson[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildClaudeCodeMcpEntry);
+      } else {
+        mcpJson[mcp.name] = buildClaudeCodeMcpEntry(mcp);
+      }
     }
     await writeFile(
       join(hubDir, ".mcp.json"),
@@ -1399,8 +1493,14 @@ async function generateKiro(config: HubConfig, hubDir: string) {
 
   if (config.mcps?.length) {
     const mcpConfig: Record<string, Record<string, unknown>> = {};
+    const upstreamSet = getUpstreamNames(config.mcps);
     for (const mcp of config.mcps) {
-      mcpConfig[mcp.name] = buildKiroMcpEntry(mcp);
+      if (upstreamSet.has(mcp.name)) continue;
+      if (mcp.upstreams?.length) {
+        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildKiroMcpEntry);
+      } else {
+        mcpConfig[mcp.name] = buildKiroMcpEntry(mcp);
+      }
     }
     await writeFile(
       join(settingsDir, "mcp.json"),

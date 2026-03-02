@@ -35,6 +35,7 @@ export interface MCPConfig {
   url?: string;
   image?: string;
   env?: Record<string, string>;
+  upstreams?: string[];
 }
 
 export interface IntegrationConfig {
