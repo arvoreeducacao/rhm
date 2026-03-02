@@ -569,6 +569,51 @@ ${body.trim()}
 `;
 }
 
+function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
+  if (!mcps || mcps.length === 0) return "";
+
+  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
+  const upstreamNames = getUpstreamNames(mcps);
+  const directMcps = mcps.filter((m) => !m.upstreams && !upstreamNames.has(m.name));
+
+  if (!proxyMcp && directMcps.length === 0) return "";
+
+  const lines: string[] = [];
+  lines.push(`
+## MCP Tools (Model Context Protocol)
+
+This workspace has multiple MCP servers available.`);
+
+  if (proxyMcp) {
+    lines.push(`
+Some MCPs are aggregated behind a proxy (\`${proxyMcp.name}\`). Their tools are NOT directly visible — you must use \`mcp_search\` to discover available tools and \`mcp_call\` to execute them.
+
+**How to use proxied tools:**
+1. \`mcp_search({ query: "your search term" })\` — find tools by name or description
+2. \`mcp_call({ ref: "tool-ref-from-search", args: { ... } })\` — execute the tool
+
+**MCPs available via proxy:**`);
+    for (const name of proxyMcp.upstreams!) {
+      lines.push(`- \`${name}\``);
+    }
+  }
+
+  if (directMcps.length > 0) {
+    lines.push(`
+**MCPs available directly:**`);
+    for (const mcp of directMcps) {
+      lines.push(`- \`${mcp.name}\``);
+    }
+  }
+
+  if (proxyMcp) {
+    lines.push(`
+> When you need a capability and are unsure which tool to use, always try \`mcp_search\` first with relevant keywords. The proxy aggregates tools from all upstream MCPs.`);
+  }
+
+  return lines.join("\n");
+}
+
 function buildOpenCodeOrchestratorRule(config: HubConfig): string {
   const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
   const steps = config.workflow?.pipeline || [];
@@ -651,6 +696,11 @@ If the user doesn't have a task in their project management tool, create one usi
 
   if (prompt?.sections?.after_delivery) {
     sections.push(`\n${prompt.sections.after_delivery.trim()}`);
+  }
+
+  const mcpToolsSectionOpenCode = buildMcpToolsSection(config.mcps);
+  if (mcpToolsSectionOpenCode) {
+    sections.push(mcpToolsSectionOpenCode);
   }
 
   if (config.memory) {
@@ -996,6 +1046,11 @@ If the user doesn't have a task in their project management tool, create one usi
     sections.push(`\n${prompt.sections.after_delivery.trim()}`);
   }
 
+  const mcpToolsSectionKiro = buildMcpToolsSection(config.mcps);
+  if (mcpToolsSectionKiro) {
+    sections.push(mcpToolsSectionKiro);
+  }
+
   if (config.memory) {
     sections.push(`
 ## Team Memory
@@ -1208,6 +1263,11 @@ If the user doesn't have a task in their project management tool, create one usi
 
   if (prompt?.sections?.after_delivery) {
     sections.push(`\n${prompt.sections.after_delivery.trim()}`);
+  }
+
+  const mcpToolsSectionCursor = buildMcpToolsSection(config.mcps);
+  if (mcpToolsSectionCursor) {
+    sections.push(mcpToolsSectionCursor);
   }
 
   if (config.memory) {
