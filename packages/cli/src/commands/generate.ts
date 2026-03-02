@@ -5,9 +5,15 @@ import { join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig, type WorkflowStep } from "../core/hub-config.js";
-import { getSavedEditor, saveGenerateState } from "../core/hub-cache.js";
+import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, type KiroMode } from "../core/hub-cache.js";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
+
+function stripFrontMatter(content: string): string {
+  const match = content.match(/^---\n[\s\S]*?\n---\n*/);
+  if (match) return content.slice(match[0].length);
+  return content;
+}
 
 async function fetchHubDocsSkill(skillsDir: string): Promise<void> {
   try {
@@ -223,6 +229,24 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   await writeFile(join(cursorDir, "rules", "orchestrator.mdc"), orchestratorRule, "utf-8");
   console.log(chalk.green("  Generated .cursor/rules/orchestrator.mdc"));
 
+  const hubSteeringDirCursor = resolve(hubDir, "steering");
+  try {
+    const steeringFiles = await readdir(hubSteeringDirCursor);
+    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
+    for (const file of mdFiles) {
+      const raw = await readFile(join(hubSteeringDirCursor, file), "utf-8");
+      const content = stripFrontMatter(raw);
+      const mdcName = file.replace(/\.md$/, ".mdc");
+      const mdcContent = `---\ndescription: "${file.replace(/\.md$/, "")}"\nalwaysApply: true\n---\n\n${content}`;
+      await writeFile(join(cursorDir, "rules", mdcName), mdcContent, "utf-8");
+    }
+    if (mdFiles.length > 0) {
+      console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .cursor/rules/`));
+    }
+  } catch {
+    // no steering dir
+  }
+
   const agentsDir = resolve(hubDir, "agents");
   try {
     const agentFiles = await readdir(agentsDir);
@@ -398,14 +422,29 @@ function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   };
 }
 
-function buildKiroMcpEntry(mcp: MCPConfig): Record<string, unknown> {
+/**
+ * Kiro IDE uses `${VAR_NAME}` for env references, while the CLI uses `${env:VAR_NAME}`.
+ * This strips the `env:` prefix when generating for the editor/IDE.
+ */
+function stripEnvPrefix(env: Record<string, string>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    result[key] = value.replace(/\$\{env:(\w+)\}/g, "${$1}");
+  }
+  return result;
+}
+
+function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Record<string, unknown> {
+  const env = mcp.env
+    ? mode === "editor" ? stripEnvPrefix(mcp.env) : mcp.env
+    : undefined;
   if (mcp.url) {
-    return { url: mcp.url, ...(mcp.env && { env: mcp.env }) };
+    return { url: mcp.url, ...(env && { env }) };
   }
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
-    if (mcp.env) {
-      for (const [key, value] of Object.entries(mcp.env)) {
+    if (env) {
+      for (const [key, value] of Object.entries(env)) {
         args.push("-e", `${key}=${value}`);
       }
     }
@@ -415,7 +454,7 @@ function buildKiroMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   return {
     command: "npx",
     args: ["-y", mcp.package!],
-    ...(mcp.env && { env: mcp.env }),
+    ...(env && { env }),
   };
 }
 
@@ -761,6 +800,23 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   const orchestratorRule = buildOpenCodeOrchestratorRule(config);
   await writeFile(join(opencodeDir, "rules", "orchestrator.md"), orchestratorRule + "\n", "utf-8");
   console.log(chalk.green("  Generated .opencode/rules/orchestrator.md"));
+
+  // Copy steering files from steering/ to .opencode/rules/
+  const hubSteeringDirOC = resolve(hubDir, "steering");
+  try {
+    const steeringFiles = await readdir(hubSteeringDirOC);
+    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
+    for (const file of mdFiles) {
+      const raw = await readFile(join(hubSteeringDirOC, file), "utf-8");
+      const content = stripFrontMatter(raw);
+      await writeFile(join(opencodeDir, "rules", file), content, "utf-8");
+    }
+    if (mdFiles.length > 0) {
+      console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .opencode/rules/`));
+    }
+  } catch {
+    // no steering dir
+  }
 
   // Generate opencode.json with MCP servers, instructions, and agent config
   const opencodeConfig: Record<string, unknown> = {
@@ -1426,7 +1482,26 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
   await mkdir(claudeSkillsDirForDocs, { recursive: true });
   await fetchHubDocsSkill(claudeSkillsDirForDocs);
 
-  await writeFile(join(hubDir, "CLAUDE.md"), claudeMdSections.join("\n"), "utf-8");
+  // Copy steering files content into CLAUDE.md
+  const hubSteeringDirClaude = resolve(hubDir, "steering");
+  try {
+    const steeringFiles = await readdir(hubSteeringDirClaude);
+    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
+    for (const file of mdFiles) {
+      const raw = await readFile(join(hubSteeringDirClaude, file), "utf-8");
+      const content = stripFrontMatter(raw).trim();
+      if (content) {
+        claudeMdSections.push(content);
+      }
+    }
+    if (mdFiles.length > 0) {
+      console.log(chalk.green(`  Appended ${mdFiles.length} steering files to CLAUDE.md`));
+    }
+  } catch {
+    // no steering dir
+  }
+
+  await writeFile(join(hubDir, "CLAUDE.md"), claudeMdSections.join("\n\n"), "utf-8");
   console.log(chalk.green("  Generated CLAUDE.md"));
 
   if (config.mcps?.length) {
@@ -1505,6 +1580,27 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   await mkdir(steeringDir, { recursive: true });
   await mkdir(settingsDir, { recursive: true });
 
+  // Ask for Kiro usage mode (editor IDE vs CLI)
+  let mode = await getKiroMode(hubDir);
+  if (!mode) {
+    const { kiroMode } = await inquirer.prompt<{ kiroMode: KiroMode }>([
+      {
+        type: "list",
+        name: "kiroMode",
+        message: "How do you use Kiro?",
+        choices: [
+          { name: "Editor / IDE (e.g. Kiro IDE, VS Code)", value: "editor" },
+          { name: "CLI (e.g. kiro-cli)", value: "cli" },
+        ],
+      },
+    ]);
+    mode = kiroMode;
+    await saveKiroMode(hubDir, mode);
+    console.log(chalk.dim(`  Saved Kiro mode: ${mode}`));
+  } else {
+    console.log(chalk.dim(`  Using saved Kiro mode: ${mode}`));
+  }
+
   const gitignoreLines = buildGitignoreLines(config);
   await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
   console.log(chalk.green("  Generated .gitignore"));
@@ -1516,6 +1612,23 @@ async function generateKiro(config: HubConfig, hubDir: string) {
 
   await writeFile(join(hubDir, "AGENTS.md"), kiroRule + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
+
+  const hubSteeringDir = resolve(hubDir, "steering");
+  try {
+    const steeringFiles = await readdir(hubSteeringDir);
+    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
+    for (const file of mdFiles) {
+      const raw = await readFile(join(hubSteeringDir, file), "utf-8");
+      const content = stripFrontMatter(raw);
+      const kiroSteering = buildKiroSteeringContent(content);
+      await writeFile(join(steeringDir, file), kiroSteering, "utf-8");
+    }
+    if (mdFiles.length > 0) {
+      console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .kiro/steering/`));
+    }
+  } catch {
+    // no steering dir
+  }
 
   const agentsDir = resolve(hubDir, "agents");
   try {
@@ -1567,12 +1680,13 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   if (config.mcps?.length) {
     const mcpConfig: Record<string, Record<string, unknown>> = {};
     const upstreamSet = getUpstreamNames(config.mcps);
+    const buildEntry = (mcp: MCPConfig) => buildKiroMcpEntry(mcp, mode);
     for (const mcp of config.mcps) {
       if (upstreamSet.has(mcp.name)) continue;
       if (mcp.upstreams?.length) {
-        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildKiroMcpEntry);
+        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildEntry);
       } else {
-        mcpConfig[mcp.name] = buildKiroMcpEntry(mcp);
+        mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, mode);
       }
     }
     await writeFile(
@@ -1748,6 +1862,9 @@ async function resolveEditor(opts: { editor?: string; resetEditor?: boolean }): 
         })),
       },
     ]);
+    const cache = await readCache(hubDir);
+    delete cache.kiroMode;
+    await writeCache(hubDir, cache);
     return editor;
   }
 

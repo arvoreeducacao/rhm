@@ -8,8 +8,11 @@ import { loadHubConfig } from "./hub-config.js";
 const HUB_DIR = ".hub";
 const CONFIG_FILE = "config.json";
 
+export type KiroMode = "editor" | "cli";
+
 export interface HubCacheConfig {
   editor?: string;
+  kiroMode?: KiroMode;
   lastGenerate?: {
     hash: string;
     timestamp: string;
@@ -43,6 +46,17 @@ export async function getSavedEditor(hubDir: string): Promise<string | undefined
 export async function saveEditor(hubDir: string, editor: string): Promise<void> {
   const cache = await readCache(hubDir);
   cache.editor = editor;
+  await writeCache(hubDir, cache);
+}
+
+export async function getKiroMode(hubDir: string): Promise<KiroMode | undefined> {
+  const cache = await readCache(hubDir);
+  return cache.kiroMode;
+}
+
+export async function saveKiroMode(hubDir: string, mode: KiroMode): Promise<void> {
+  const cache = await readCache(hubDir);
+  cache.kiroMode = mode;
   await writeCache(hubDir, cache);
 }
 

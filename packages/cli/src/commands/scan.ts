@@ -1,12 +1,14 @@
 import { Command } from "commander";
 import { existsSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, cp, mkdir, writeFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { parse } from "yaml";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import type { HubConfig } from "../core/hub-config.js";
+
+const EDITOR_DIRS = [".kiro", ".cursor", ".opencode", ".claude"];
 
 async function findUnregisteredRepos(hubDir: string, config: HubConfig): Promise<string[]> {
   const registeredPaths = new Set(
@@ -85,6 +87,183 @@ function findReposInsertionPoint(content: string): number {
   return offset;
 }
 
+interface UnsyncedAsset {
+  type: "skill" | "agent" | "steering";
+  name: string;
+  source: string;
+}
+
+async function findUnsyncedAssets(hubDir: string): Promise<UnsyncedAsset[]> {
+  const unsynced: UnsyncedAsset[] = [];
+  const seen = new Set<string>();
+
+  for (const editor of EDITOR_DIRS) {
+    const editorSkillsDir = join(hubDir, editor, "skills");
+    if (!existsSync(editorSkillsDir)) continue;
+
+    try {
+      const folders = await readdir(editorSkillsDir);
+      for (const folder of folders) {
+        if (folder === "hub-docs") continue; // auto-generated, skip
+        const skillFile = join(editorSkillsDir, folder, "SKILL.md");
+        if (!existsSync(skillFile)) continue;
+
+        const canonicalSkillFile = join(hubDir, "skills", folder, "SKILL.md");
+        if (existsSync(canonicalSkillFile)) continue;
+
+        const key = `skill:${folder}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        unsynced.push({ type: "skill", name: folder, source: editor });
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  for (const editor of EDITOR_DIRS) {
+    const editorAgentsDir = join(hubDir, editor, "agents");
+    if (!existsSync(editorAgentsDir)) continue;
+
+    try {
+      const files = await readdir(editorAgentsDir);
+      for (const file of files) {
+        if (!file.endsWith(".md")) continue;
+        const canonicalFile = join(hubDir, "agents", file);
+        if (existsSync(canonicalFile)) continue;
+
+        const key = `agent:${file}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        unsynced.push({ type: "agent", name: file, source: editor });
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  // Detect steering from .kiro/steering/
+  const steeringDir = join(hubDir, ".kiro", "steering");
+  if (existsSync(steeringDir)) {
+    const canonicalSteeringDir = join(hubDir, "steering");
+    try {
+      const files = await readdir(steeringDir);
+      for (const file of files) {
+        if (!file.endsWith(".md")) continue;
+        if (file === "orchestrator.md") continue; // auto-generated
+        const canonicalFile = join(canonicalSteeringDir, file);
+        if (existsSync(canonicalFile)) continue;
+
+        const key = `steering:${file}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        unsynced.push({ type: "steering", name: file, source: ".kiro" });
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  const cursorRulesDir = join(hubDir, ".cursor", "rules");
+  if (existsSync(cursorRulesDir)) {
+    const canonicalSteeringDir = join(hubDir, "steering");
+    try {
+      const files = await readdir(cursorRulesDir);
+      for (const file of files) {
+        if (!file.endsWith(".mdc")) continue;
+        if (file === "orchestrator.mdc") continue; // auto-generated
+        const mdName = file.replace(/\.mdc$/, ".md");
+        const canonicalFile = join(canonicalSteeringDir, mdName);
+        if (existsSync(canonicalFile)) continue;
+
+        const key = `steering:${mdName}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        unsynced.push({ type: "steering", name: mdName, source: ".cursor" });
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  const opencodeRulesDir = join(hubDir, ".opencode", "rules");
+  if (existsSync(opencodeRulesDir)) {
+    const canonicalSteeringDir = join(hubDir, "steering");
+    try {
+      const files = await readdir(opencodeRulesDir);
+      for (const file of files) {
+        if (!file.endsWith(".md")) continue;
+        if (file === "orchestrator.md") continue; // auto-generated
+        const canonicalFile = join(canonicalSteeringDir, file);
+        if (existsSync(canonicalFile)) continue;
+
+        const key = `steering:${file}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        unsynced.push({ type: "steering", name: file, source: ".opencode" });
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  return unsynced;
+}
+
+function stripFrontMatter(content: string): string {
+  const match = content.match(/^---\n[\s\S]*?\n---\n*/);
+  if (match) return content.slice(match[0].length);
+  return content;
+}
+
+async function syncAssets(hubDir: string, assets: UnsyncedAsset[]): Promise<void> {
+  for (const asset of assets) {
+    if (asset.type === "skill") {
+      const src = join(hubDir, asset.source, "skills", asset.name);
+      const dest = join(hubDir, "skills", asset.name);
+      await mkdir(join(hubDir, "skills"), { recursive: true });
+      await cp(src, dest, { recursive: true });
+      const skillMd = join(dest, "SKILL.md");
+      if (existsSync(skillMd)) {
+        const raw = await readFile(skillMd, "utf-8");
+        const cleaned = stripFrontMatter(raw);
+        if (cleaned !== raw) {
+          await writeFile(skillMd, cleaned, "utf-8");
+        }
+      }
+      console.log(chalk.green(`  Synced skill: ${asset.name} (from ${asset.source})`));
+    } else if (asset.type === "agent") {
+      const src = join(hubDir, asset.source, "agents", asset.name);
+      const dest = join(hubDir, "agents", asset.name);
+      await mkdir(join(hubDir, "agents"), { recursive: true });
+      const raw = await readFile(src, "utf-8");
+      const cleaned = stripFrontMatter(raw);
+      await writeFile(dest, cleaned, "utf-8");
+      console.log(chalk.green(`  Synced agent: ${asset.name} (from ${asset.source})`));
+    } else if (asset.type === "steering") {
+      const dest = join(hubDir, "steering", asset.name);
+      await mkdir(join(hubDir, "steering"), { recursive: true });
+      let raw: string;
+      if (asset.source === ".cursor") {
+        const mdcName = asset.name.replace(/\.md$/, ".mdc");
+        raw = await readFile(join(hubDir, ".cursor", "rules", mdcName), "utf-8");
+      } else if (asset.source === ".opencode") {
+        raw = await readFile(join(hubDir, ".opencode", "rules", asset.name), "utf-8");
+      } else {
+        raw = await readFile(join(hubDir, asset.source, "steering", asset.name), "utf-8");
+      }
+      const cleaned = stripFrontMatter(raw);
+      await writeFile(dest, cleaned, "utf-8");
+      console.log(chalk.green(`  Synced steering: ${asset.name} (from ${asset.source})`));
+    }
+  }
+}
+
 export const scanCommand = new Command("scan")
   .description("Detect git repositories not registered in hub.yaml")
   .option("-y, --yes", "Auto-add all found repos without prompting")
@@ -100,62 +279,105 @@ export const scanCommand = new Command("scan")
     const content = await readFile(configPath, "utf-8");
     const config = parse(content) as HubConfig;
 
+    let hasChanges = false;
+
     console.log(chalk.blue("\nScanning for unregistered repositories...\n"));
 
     const unregistered = await findUnregisteredRepos(hubDir, config);
 
     if (unregistered.length === 0) {
-      console.log(chalk.green("All repositories are registered in hub.yaml.\n"));
-      return;
+      console.log(chalk.green("All repositories are registered in hub.yaml."));
+    } else {
+      console.log(chalk.yellow(`Found ${unregistered.length} unregistered repo(s):\n`));
+
+      const repoDetails = unregistered.map((name) => {
+        const repoDir = join(hubDir, name);
+        const tech = detectTech(repoDir);
+        const url = getGitRemote(repoDir);
+        return { name, tech, url, path: `./${name}` };
+      });
+
+      for (const repo of repoDetails) {
+        const techLabel = repo.tech ? chalk.dim(` (${repo.tech})`) : "";
+        console.log(`  ${chalk.cyan(repo.name)}${techLabel}`);
+      }
+      console.log();
+
+      let toAdd = repoDetails;
+
+      if (!opts.yes) {
+        const { selected } = await inquirer.prompt<{ selected: string[] }>([
+          {
+            type: "checkbox",
+            name: "selected",
+            message: "Select repos to add to hub.yaml:",
+            choices: repoDetails.map((r) => ({
+              name: `${r.name}${r.tech ? ` (${r.tech})` : ""}`,
+              value: r.name,
+              checked: true,
+            })),
+          },
+        ]);
+        toAdd = repoDetails.filter((r) => selected.includes(r.name));
+      }
+
+      if (toAdd.length > 0) {
+        const originalContent = await readFile(configPath, "utf-8");
+        const insertAt = findReposInsertionPoint(originalContent);
+        const before = originalContent.slice(0, insertAt);
+        const after = originalContent.slice(insertAt);
+
+        const newEntries = toAdd.map(buildRepoYaml).join("\n");
+        const updatedContent = before + newEntries + "\n" + after;
+
+        await import("node:fs/promises").then((fs) => fs.writeFile(configPath, updatedContent, "utf-8"));
+        console.log(chalk.green(`Added ${toAdd.length} repo(s) to hub.yaml.`));
+        hasChanges = true;
+      }
     }
 
-    console.log(chalk.yellow(`Found ${unregistered.length} unregistered repo(s):\n`));
+    console.log(chalk.blue("\nScanning for unsynced skills, agents, and steering...\n"));
 
-    const repoDetails = unregistered.map((name) => {
-      const repoDir = join(hubDir, name);
-      const tech = detectTech(repoDir);
-      const url = getGitRemote(repoDir);
-      return { name, tech, url, path: `./${name}` };
-    });
+    const unsyncedAssets = await findUnsyncedAssets(hubDir);
 
-    for (const repo of repoDetails) {
-      const techLabel = repo.tech ? chalk.dim(` (${repo.tech})`) : "";
-      console.log(`  ${chalk.cyan(repo.name)}${techLabel}`);
+    if (unsyncedAssets.length === 0) {
+      console.log(chalk.green("All assets are synced."));
+    } else {
+      console.log(chalk.yellow(`Found ${unsyncedAssets.length} unsynced asset(s):\n`));
+
+      for (const asset of unsyncedAssets) {
+        console.log(`  ${chalk.cyan(asset.name)} ${chalk.dim(`(${asset.type} from ${asset.source})`)}`);
+      }
+      console.log();
+
+      let toSync = unsyncedAssets;
+
+      if (!opts.yes) {
+        const { selected } = await inquirer.prompt<{ selected: string[] }>([
+          {
+            type: "checkbox",
+            name: "selected",
+            message: "Select assets to sync to canonical folders:",
+            choices: unsyncedAssets.map((a) => ({
+              name: `${a.name} (${a.type} from ${a.source})`,
+              value: `${a.type}:${a.name}`,
+              checked: true,
+            })),
+          },
+        ]);
+        toSync = unsyncedAssets.filter((a) => selected.includes(`${a.type}:${a.name}`));
+      }
+
+      if (toSync.length > 0) {
+        await syncAssets(hubDir, toSync);
+        console.log(chalk.green(`Synced ${toSync.length} asset(s).`));
+        hasChanges = true;
+      }
     }
-    console.log();
 
-    let toAdd = repoDetails;
-
-    if (!opts.yes) {
-      const { selected } = await inquirer.prompt<{ selected: string[] }>([
-        {
-          type: "checkbox",
-          name: "selected",
-          message: "Select repos to add to hub.yaml:",
-          choices: repoDetails.map((r) => ({
-            name: `${r.name}${r.tech ? ` (${r.tech})` : ""}`,
-            value: r.name,
-            checked: true,
-          })),
-        },
-      ]);
-      toAdd = repoDetails.filter((r) => selected.includes(r.name));
+    if (hasChanges) {
+      console.log(chalk.cyan(`\nRun ${chalk.bold("hub generate")} to update editor configs.\n`));
+    } else {
+      console.log();
     }
-
-    if (toAdd.length === 0) {
-      console.log(chalk.dim("No repos selected.\n"));
-      return;
-    }
-
-    const originalContent = await readFile(configPath, "utf-8");
-    const insertAt = findReposInsertionPoint(originalContent);
-    const before = originalContent.slice(0, insertAt);
-    const after = originalContent.slice(insertAt);
-
-    const newEntries = toAdd.map(buildRepoYaml).join("\n");
-    const updatedContent = before + newEntries + "\n" + after;
-
-    await import("node:fs/promises").then((fs) => fs.writeFile(configPath, updatedContent, "utf-8"));
-    console.log(chalk.green(`\nAdded ${toAdd.length} repo(s) to hub.yaml.`));
-    console.log(chalk.cyan(`Run ${chalk.bold("hub generate")} to update editor configs.\n`));
   });
