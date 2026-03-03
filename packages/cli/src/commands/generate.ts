@@ -1899,7 +1899,7 @@ function buildGitignoreLines(config: HubConfig): string[] {
   );
 
   if (config.memory) {
-    const memPath = config.memory.path || "memories";
+    const memPath = (config.memory.path || "memories").replace(/^\.\//, "");
     lines.push(
       "",
       "# Memory vector store (generated from markdown files)",
