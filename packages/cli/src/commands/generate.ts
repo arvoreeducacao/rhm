@@ -380,9 +380,16 @@ function getUpstreamNames(mcps: MCPConfig[]): Set<string> {
   return names;
 }
 
+function resolveAutoApprove(mcp: MCPConfig): string[] | undefined {
+  if (mcp.autoApprove === true) return ["*"];
+  if (Array.isArray(mcp.autoApprove) && mcp.autoApprove.length > 0) return mcp.autoApprove;
+  return undefined;
+}
+
 function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
+  const autoApprove = resolveAutoApprove(mcp);
   if (mcp.url) {
-    return { url: mcp.url, ...(mcp.env && { env: mcp.env }) };
+    return { url: mcp.url, ...(mcp.env && { env: mcp.env }), ...(autoApprove && { autoApprove }) };
   }
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
@@ -392,12 +399,13 @@ function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
       }
     }
     args.push(mcp.image);
-    return { command: "docker", args };
+    return { command: "docker", args, ...(autoApprove && { autoApprove }) };
   }
   return {
     command: "npx",
     args: ["-y", mcp.package!],
     ...(mcp.env && { env: mcp.env }),
+    ...(autoApprove && { autoApprove }),
   };
 }
 
@@ -438,8 +446,9 @@ function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Record<st
   const env = mcp.env
     ? mode === "editor" ? stripEnvPrefix(mcp.env) : mcp.env
     : undefined;
+  const autoApprove = resolveAutoApprove(mcp);
   if (mcp.url) {
-    return { url: mcp.url, ...(env && { env }) };
+    return { url: mcp.url, ...(env && { env }), ...(autoApprove && { autoApprove }) };
   }
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
@@ -449,12 +458,13 @@ function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Record<st
       }
     }
     args.push(mcp.image);
-    return { command: "docker", args };
+    return { command: "docker", args, ...(autoApprove && { autoApprove }) };
   }
   return {
     command: "npx",
     args: ["-y", mcp.package!],
     ...(env && { env }),
+    ...(autoApprove && { autoApprove }),
   };
 }
 
