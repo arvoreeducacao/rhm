@@ -37,6 +37,7 @@ export interface MCPConfig {
   image?: string;
   env?: Record<string, string>;
   upstreams?: string[];
+  autoApprove?: boolean | string[];
 }
 
 export interface IntegrationConfig {

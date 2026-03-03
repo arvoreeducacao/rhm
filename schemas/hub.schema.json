@@ -231,6 +231,13 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Names of other MCP servers to route through this proxy. The proxy consolidates multiple MCPs into a single connection with mcp_search and mcp_call tools."
+        },
+        "autoApprove": {
+          "oneOf": [
+            { "type": "boolean", "description": "When true, auto-approves all tools (equivalent to [\"*\"])" },
+            { "type": "array", "items": { "type": "string" }, "description": "List of tool names to auto-approve. Use [\"*\"] to approve all." }
+          ],
+          "description": "Tools to auto-approve for this MCP server. Set to true or [\"*\"] to approve all tools without confirmation."
         }
       }
     },
