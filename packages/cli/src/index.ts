@@ -21,6 +21,14 @@ import { updateCommand } from "./commands/update.js";
 import { directoryCommand } from "./commands/directory.js";
 import { scanCommand } from "./commands/scan.js";
 
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
+
 const program = new Command();
 
 program
@@ -28,7 +36,7 @@ program
   .description(
     "Give your AI coding assistant the full picture. Multi-repo context, agent orchestration, and end-to-end workflows."
   )
-  .version("0.7.3")
+  .version(pkg.version)
   .enablePositionalOptions();
 
 program.addCommand(initCommand);
