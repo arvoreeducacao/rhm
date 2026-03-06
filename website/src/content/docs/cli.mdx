@@ -54,7 +54,14 @@ hub generate --editor cursor       # Cursor IDE (default)
 hub generate --editor claude-code  # Claude Code (CLAUDE.md)
 hub generate --editor kiro         # Kiro IDE
 hub generate --editor opencode      # OpenCode CLI
+hub generate --check               # Check if configs are outdated (exit 1 if outdated)
 ```
+
+| Flag | Description |
+|------|-------------|
+| `-e, --editor <editor>` | Target editor (cursor, claude-code, kiro, opencode) |
+| `--reset-editor` | Reset saved editor preference and choose again |
+| `--check` | Check if generated configs are outdated without regenerating. Exits with code 1 if outdated, 0 if up to date. Useful in CI and editor hooks. |
 
 Produces:
 - **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/rules/<steering>.mdc`, `.cursor/agents/`, `.cursor/skills/`, `.cursor/skills/hub-docs/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `<name>.code-workspace`, `.gitignore`, `.cursorignore`
@@ -112,7 +119,7 @@ hub exec "pnpm outdated"
 
 ### `hub scan`
 
-Detect unregistered repositories and unsynced assets (skills, agents, steering) in the workspace:
+Detect unregistered repositories and unsynced assets (skills, agents, steering, MCPs) in the workspace:
 
 ```bash
 hub scan          # Interactive — select which repos to add and assets to sync
@@ -123,9 +130,10 @@ hub scan --yes    # Auto-add all repos and sync all assets without prompting
 |------|-------------|
 | `-y, --yes` | Auto-add all repos and sync all assets without prompting |
 
-The command performs two passes:
+The command performs three passes:
 1. Scans the workspace root for directories containing a `.git` folder not listed in `hub.yaml`, auto-detecting the tech stack and git remote URL.
 2. Scans editor directories (`.kiro`, `.cursor`, `.opencode`, `.claude`) for skills, agents, and steering files that don't exist in the canonical `skills/`, `agents/`, or `steering/` folders, and offers to sync them.
+3. Scans editor MCP configs (`.cursor/mcp.json`, `.kiro/settings/mcp.json`, `.mcp.json`, `opencode.json`) for MCP servers not declared in `hub.yaml` and reports them.
 
 See [Scan](/docs/scan) for full documentation.
 

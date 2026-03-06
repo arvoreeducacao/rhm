@@ -88,7 +88,7 @@ function findReposInsertionPoint(content: string): number {
 }
 
 interface UnsyncedAsset {
-  type: "skill" | "agent" | "steering";
+  type: "skill" | "agent" | "steering" | "mcp";
   name: string;
   source: string;
 }
@@ -212,6 +212,41 @@ async function findUnsyncedAssets(hubDir: string): Promise<UnsyncedAsset[]> {
     }
   }
 
+  const hubYamlPath = join(hubDir, "hub.yaml");
+  if (existsSync(hubYamlPath)) {
+    const hubContent = await readFile(hubYamlPath, "utf-8");
+    const hubConfig = parse(hubContent) as HubConfig;
+    const hubMcpNames = new Set((hubConfig.mcps || []).map((m) => m.name));
+
+    const mcpConfigPaths: { path: string; source: string; key: string }[] = [
+      { path: join(hubDir, ".cursor", "mcp.json"), source: ".cursor", key: "mcpServers" },
+      { path: join(hubDir, ".kiro", "settings", "mcp.json"), source: ".kiro", key: "mcpServers" },
+      { path: join(hubDir, ".mcp.json"), source: ".mcp.json", key: "mcpServers" },
+      { path: join(hubDir, "opencode.json"), source: "opencode.json", key: "mcp" },
+    ];
+
+    for (const { path: mcpPath, source, key } of mcpConfigPaths) {
+      if (!existsSync(mcpPath)) continue;
+      try {
+        const content = JSON.parse(await readFile(mcpPath, "utf-8"));
+        const servers = content[key] as Record<string, unknown> | undefined;
+        if (!servers) continue;
+
+        for (const serverName of Object.keys(servers)) {
+          if (hubMcpNames.has(serverName)) continue;
+
+          const mcpKey = `mcp:${serverName}`;
+          if (seen.has(mcpKey)) continue;
+          seen.add(mcpKey);
+
+          unsynced.push({ type: "mcp", name: serverName, source });
+        }
+      } catch {
+        // skip
+      }
+    }
+  }
+
   return unsynced;
 }
 
@@ -223,6 +258,10 @@ function stripFrontMatter(content: string): string {
 
 async function syncAssets(hubDir: string, assets: UnsyncedAsset[]): Promise<void> {
   for (const asset of assets) {
+    if (asset.type === "mcp") {
+      console.log(chalk.yellow(`  MCP '${asset.name}' found in ${asset.source} but not in hub.yaml — add it manually.`));
+      continue;
+    }
     if (asset.type === "skill") {
       const src = join(hubDir, asset.source, "skills", asset.name);
       const dest = join(hubDir, "skills", asset.name);
@@ -336,7 +375,7 @@ export const scanCommand = new Command("scan")
       }
     }
 
-    console.log(chalk.blue("\nScanning for unsynced skills, agents, and steering...\n"));
+    console.log(chalk.blue("\nScanning for unsynced skills, agents, steering, and MCPs...\n"));
 
     const unsyncedAssets = await findUnsyncedAssets(hubDir);
 

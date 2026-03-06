@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig, type WorkflowStep } from "../core/hub-config.js";
-import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, type KiroMode } from "../core/hub-cache.js";
+import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
 
@@ -1961,8 +1961,24 @@ export const generateCommand = new Command("generate")
   .description("Generate editor-specific configuration files from hub.yaml")
   .option("-e, --editor <editor>", "Target editor (cursor, claude-code, kiro, opencode)")
   .option("--reset-editor", "Reset saved editor preference and choose again")
-  .action(async (opts: { editor?: string; resetEditor?: boolean }) => {
+  .option("--check", "Check if generated configs are outdated (exit code 1 if outdated)")
+  .action(async (opts: { editor?: string; resetEditor?: boolean; check?: boolean }) => {
     const hubDir = process.cwd();
+
+    if (opts.check) {
+      const result = await checkOutdated(hubDir);
+      if (result.reason === "no-previous-generate") {
+        console.log(chalk.yellow("No previous generate found. Run 'hub generate' first."));
+        process.exit(1);
+      }
+      if (result.outdated) {
+        console.log(chalk.yellow("Generated configs are outdated. Run 'hub generate' to update."));
+        process.exit(1);
+      }
+      console.log(chalk.green("Generated configs are up to date."));
+      return;
+    }
+
     const config = await loadHubConfig(hubDir);
 
     if (config.memory) {
