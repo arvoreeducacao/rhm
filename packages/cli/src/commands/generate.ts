@@ -15,6 +15,20 @@ function stripFrontMatter(content: string): string {
   return content;
 }
 
+function parseFrontMatter(content: string): Record<string, string> | null {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return null;
+  const result: Record<string, string> = {};
+  for (const line of match[1].split("\n")) {
+    const colonIdx = line.indexOf(":");
+    if (colonIdx === -1) continue;
+    const key = line.slice(0, colonIdx).trim();
+    const value = line.slice(colonIdx + 1).trim();
+    if (key) result[key] = value;
+  }
+  return result;
+}
+
 async function fetchHubDocsSkill(skillsDir: string): Promise<void> {
   try {
     const res = await fetch(HUB_DOCS_URL);
@@ -1690,8 +1704,40 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     for (const file of mdFiles) {
       const raw = await readFile(join(hubSteeringDir, file), "utf-8");
       const content = stripFrontMatter(raw);
-      const kiroSteering = buildKiroSteeringContent(content);
-      await writeFile(join(steeringDir, file), kiroSteering, "utf-8");
+
+      const destPath = join(steeringDir, file);
+      let inclusion: "always" | "auto" = "always";
+      let meta: { name?: string; description?: string } | undefined;
+
+      if (existsSync(destPath)) {
+        const existingContent = await readFile(destPath, "utf-8");
+        const existingFm = parseFrontMatter(existingContent);
+        if (existingFm) {
+          if (existingFm.inclusion === "auto" || existingFm.inclusion === "manual" || existingFm.inclusion === "fileMatch") {
+            inclusion = "auto";
+          }
+          if (existingFm.name || existingFm.description) {
+            meta = {};
+            if (existingFm.name) meta.name = existingFm.name;
+            if (existingFm.description) meta.description = existingFm.description;
+          }
+        }
+      }
+
+      const sourceFm = parseFrontMatter(raw);
+      if (sourceFm) {
+        if (sourceFm.inclusion === "auto" || sourceFm.inclusion === "manual" || sourceFm.inclusion === "fileMatch") {
+          inclusion = "auto";
+        }
+        if (sourceFm.name || sourceFm.description) {
+          meta = meta || {};
+          if (sourceFm.name) meta.name = sourceFm.name;
+          if (sourceFm.description) meta.description = sourceFm.description;
+        }
+      }
+
+      const kiroSteering = buildKiroSteeringContent(content, inclusion, meta);
+      await writeFile(destPath, kiroSteering, "utf-8");
     }
     if (mdFiles.length > 0) {
       console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .kiro/steering/`));
