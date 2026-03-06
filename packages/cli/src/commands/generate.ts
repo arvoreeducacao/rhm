@@ -1690,7 +1690,7 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .gitignore"));
 
   const kiroRule = buildKiroOrchestratorRule(config);
-  const kiroOrchestrator = buildKiroSteeringContent(kiroRule);
+  const kiroOrchestrator = buildKiroSteeringContent(kiroRule, "always", { name: "orchestrator" });
   await writeFile(join(steeringDir, "orchestrator.md"), kiroOrchestrator, "utf-8");
   console.log(chalk.green("  Generated .kiro/steering/orchestrator.md"));
 
