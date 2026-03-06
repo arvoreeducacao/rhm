@@ -49,11 +49,15 @@ hub scan
 
 # Auto-add and sync everything without prompting
 hub scan --yes
+
+# Check only — exit 1 if unsynced repos or assets are found
+hub scan --check
 ```
 
 | Flag | Description |
 |------|-------------|
 | `-y, --yes` | Add all found repos and sync all assets without prompting |
+| `--check` | Check for unsynced repos and assets without prompting. Exits with code 1 if any are found, 0 if all synced. Useful in CI and pre-commit hooks. |
 
 ## Example
 

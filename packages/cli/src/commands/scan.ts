@@ -306,7 +306,8 @@ async function syncAssets(hubDir: string, assets: UnsyncedAsset[]): Promise<void
 export const scanCommand = new Command("scan")
   .description("Detect git repositories not registered in hub.yaml")
   .option("-y, --yes", "Auto-add all found repos without prompting")
-  .action(async (opts: { yes?: boolean }) => {
+  .option("--check", "Check for unsynced assets without prompting (exit code 1 if found)")
+  .action(async (opts: { yes?: boolean; check?: boolean }) => {
     const hubDir = process.cwd();
     const configPath = join(hubDir, "hub.yaml");
 
@@ -317,6 +318,24 @@ export const scanCommand = new Command("scan")
 
     const content = await readFile(configPath, "utf-8");
     const config = parse(content) as HubConfig;
+
+    if (opts.check) {
+      const unregistered = await findUnregisteredRepos(hubDir, config);
+      const unsyncedAssets = await findUnsyncedAssets(hubDir);
+      const total = unregistered.length + unsyncedAssets.length;
+      if (total > 0) {
+        if (unregistered.length > 0) {
+          console.log(chalk.yellow(`Found ${unregistered.length} unregistered repo(s): ${unregistered.join(", ")}`));
+        }
+        if (unsyncedAssets.length > 0) {
+          console.log(chalk.yellow(`Found ${unsyncedAssets.length} unsynced asset(s): ${unsyncedAssets.map((a) => a.name).join(", ")}`));
+        }
+        console.log(chalk.yellow("Run 'hub scan' to sync."));
+        process.exit(1);
+      }
+      console.log(chalk.green("All repos and assets are synced."));
+      return;
+    }
 
     let hasChanges = false;
 
