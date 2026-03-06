@@ -124,11 +124,13 @@ Detect unregistered repositories and unsynced assets (skills, agents, steering, 
 ```bash
 hub scan          # Interactive — select which repos to add and assets to sync
 hub scan --yes    # Auto-add all repos and sync all assets without prompting
+hub scan --check  # Check for unsynced repos/assets (exit 1 if found)
 ```
 
 | Flag | Description |
 |------|-------------|
 | `-y, --yes` | Auto-add all repos and sync all assets without prompting |
+| `--check` | Check for unsynced repos and assets without prompting. Exits with code 1 if any are found, 0 if all synced. Useful in CI and pre-commit hooks. |
 
 The command performs three passes:
 1. Scans the workspace root for directories containing a `.git` folder not listed in `hub.yaml`, auto-detecting the tech stack and git remote URL.
