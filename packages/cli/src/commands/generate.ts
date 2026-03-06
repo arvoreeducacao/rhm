@@ -29,6 +29,34 @@ function parseFrontMatter(content: string): Record<string, string> | null {
   return result;
 }
 
+async function readExistingMcpDisabledState(mcpJsonPath: string): Promise<Record<string, boolean>> {
+  const disabledState: Record<string, boolean> = {};
+  if (!existsSync(mcpJsonPath)) return disabledState;
+  try {
+    const content = JSON.parse(await readFile(mcpJsonPath, "utf-8"));
+    const servers = (content.mcpServers || content.mcp || {}) as Record<string, Record<string, unknown>>;
+    for (const [name, config] of Object.entries(servers)) {
+      if (typeof config.disabled === "boolean") {
+        disabledState[name] = config.disabled;
+      }
+    }
+  } catch {
+    // skip
+  }
+  return disabledState;
+}
+
+function applyDisabledState(
+  mcpConfig: Record<string, Record<string, unknown>>,
+  disabledState: Record<string, boolean>
+): void {
+  for (const [name, entry] of Object.entries(mcpConfig)) {
+    if (name in disabledState) {
+      entry.disabled = disabledState[name];
+    }
+  }
+}
+
 async function fetchHubDocsSkill(skillsDir: string): Promise<void> {
   try {
     const res = await fetch(HUB_DOCS_URL);
@@ -1805,8 +1833,11 @@ async function generateKiro(config: HubConfig, hubDir: string) {
         mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, mode);
       }
     }
+    const mcpJsonPath = join(settingsDir, "mcp.json");
+    const disabledState = await readExistingMcpDisabledState(mcpJsonPath);
+    applyDisabledState(mcpConfig, disabledState);
     await writeFile(
-      join(settingsDir, "mcp.json"),
+      mcpJsonPath,
       JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n",
       "utf-8"
     );
