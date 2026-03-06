@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig, type WorkflowStep } from "../core/hub-config.js";
-import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, type KiroMode } from "../core/hub-cache.js";
+import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
 
@@ -13,6 +13,48 @@ function stripFrontMatter(content: string): string {
   const match = content.match(/^---\n[\s\S]*?\n---\n*/);
   if (match) return content.slice(match[0].length);
   return content;
+}
+
+function parseFrontMatter(content: string): Record<string, string> | null {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return null;
+  const result: Record<string, string> = {};
+  for (const line of match[1].split("\n")) {
+    const colonIdx = line.indexOf(":");
+    if (colonIdx === -1) continue;
+    const key = line.slice(0, colonIdx).trim();
+    const value = line.slice(colonIdx + 1).trim();
+    if (key) result[key] = value;
+  }
+  return result;
+}
+
+async function readExistingMcpDisabledState(mcpJsonPath: string): Promise<Record<string, boolean>> {
+  const disabledState: Record<string, boolean> = {};
+  if (!existsSync(mcpJsonPath)) return disabledState;
+  try {
+    const content = JSON.parse(await readFile(mcpJsonPath, "utf-8"));
+    const servers = (content.mcpServers || content.mcp || {}) as Record<string, Record<string, unknown>>;
+    for (const [name, config] of Object.entries(servers)) {
+      if (typeof config.disabled === "boolean") {
+        disabledState[name] = config.disabled;
+      }
+    }
+  } catch {
+    // skip
+  }
+  return disabledState;
+}
+
+function applyDisabledState(
+  mcpConfig: Record<string, Record<string, unknown>>,
+  disabledState: Record<string, boolean>
+): void {
+  for (const [name, entry] of Object.entries(mcpConfig)) {
+    if (name in disabledState) {
+      entry.disabled = disabledState[name];
+    }
+  }
 }
 
 async function fetchHubDocsSkill(skillsDir: string): Promise<void> {
@@ -1676,7 +1718,7 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .gitignore"));
 
   const kiroRule = buildKiroOrchestratorRule(config);
-  const kiroOrchestrator = buildKiroSteeringContent(kiroRule);
+  const kiroOrchestrator = buildKiroSteeringContent(kiroRule, "always", { name: "orchestrator" });
   await writeFile(join(steeringDir, "orchestrator.md"), kiroOrchestrator, "utf-8");
   console.log(chalk.green("  Generated .kiro/steering/orchestrator.md"));
 
@@ -1690,8 +1732,40 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     for (const file of mdFiles) {
       const raw = await readFile(join(hubSteeringDir, file), "utf-8");
       const content = stripFrontMatter(raw);
-      const kiroSteering = buildKiroSteeringContent(content);
-      await writeFile(join(steeringDir, file), kiroSteering, "utf-8");
+
+      const destPath = join(steeringDir, file);
+      let inclusion: "always" | "auto" = "always";
+      let meta: { name?: string; description?: string } | undefined;
+
+      if (existsSync(destPath)) {
+        const existingContent = await readFile(destPath, "utf-8");
+        const existingFm = parseFrontMatter(existingContent);
+        if (existingFm) {
+          if (existingFm.inclusion === "auto" || existingFm.inclusion === "manual" || existingFm.inclusion === "fileMatch") {
+            inclusion = "auto";
+          }
+          if (existingFm.name || existingFm.description) {
+            meta = {};
+            if (existingFm.name) meta.name = existingFm.name;
+            if (existingFm.description) meta.description = existingFm.description;
+          }
+        }
+      }
+
+      const sourceFm = parseFrontMatter(raw);
+      if (sourceFm) {
+        if (sourceFm.inclusion === "auto" || sourceFm.inclusion === "manual" || sourceFm.inclusion === "fileMatch") {
+          inclusion = "auto";
+        }
+        if (sourceFm.name || sourceFm.description) {
+          meta = meta || {};
+          if (sourceFm.name) meta.name = sourceFm.name;
+          if (sourceFm.description) meta.description = sourceFm.description;
+        }
+      }
+
+      const kiroSteering = buildKiroSteeringContent(content, inclusion, meta);
+      await writeFile(destPath, kiroSteering, "utf-8");
     }
     if (mdFiles.length > 0) {
       console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .kiro/steering/`));
@@ -1759,8 +1833,11 @@ async function generateKiro(config: HubConfig, hubDir: string) {
         mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, mode);
       }
     }
+    const mcpJsonPath = join(settingsDir, "mcp.json");
+    const disabledState = await readExistingMcpDisabledState(mcpJsonPath);
+    applyDisabledState(mcpConfig, disabledState);
     await writeFile(
-      join(settingsDir, "mcp.json"),
+      mcpJsonPath,
       JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n",
       "utf-8"
     );
@@ -1961,8 +2038,24 @@ export const generateCommand = new Command("generate")
   .description("Generate editor-specific configuration files from hub.yaml")
   .option("-e, --editor <editor>", "Target editor (cursor, claude-code, kiro, opencode)")
   .option("--reset-editor", "Reset saved editor preference and choose again")
-  .action(async (opts: { editor?: string; resetEditor?: boolean }) => {
+  .option("--check", "Check if generated configs are outdated (exit code 1 if outdated)")
+  .action(async (opts: { editor?: string; resetEditor?: boolean; check?: boolean }) => {
     const hubDir = process.cwd();
+
+    if (opts.check) {
+      const result = await checkOutdated(hubDir);
+      if (result.reason === "no-previous-generate") {
+        console.log(chalk.yellow("No previous generate found. Run 'hub generate' first."));
+        process.exit(1);
+      }
+      if (result.outdated) {
+        console.log(chalk.yellow("Generated configs are outdated. Run 'hub generate' to update."));
+        process.exit(1);
+      }
+      console.log(chalk.green("Generated configs are up to date."));
+      return;
+    }
+
     const config = await loadHubConfig(hubDir);
 
     if (config.memory) {

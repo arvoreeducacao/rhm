@@ -4,11 +4,11 @@ description: Auto-detect unregistered repositories and unsynced assets in your w
 order: 3
 ---
 
-As your workspace grows, new repos get cloned but not always added to `hub.yaml`. Skills, agents, and steering files get created inside editor-specific folders but never promoted to the canonical `skills/`, `agents/`, or `steering/` directories. The `hub scan` command finds all of them for you.
+As your workspace grows, new repos get cloned but not always added to `hub.yaml`. Skills, agents, and steering files get created inside editor-specific folders but never promoted to the canonical `skills/`, `agents/`, or `steering/` directories. MCP servers get added directly to editor configs without being declared in `hub.yaml`. The `hub scan` command finds all of them for you.
 
 ## What it does
 
-`hub scan` performs two passes:
+`hub scan` performs three passes:
 
 ### 1. Unregistered repositories
 
@@ -27,6 +27,19 @@ Scans editor-specific directories (`.kiro`, `.cursor`, `.opencode`, `.claude`) f
 3. Strips front-matter during the copy so files are editor-agnostic
 
 This ensures that assets created in one editor are available to all editors after the next `hub generate`.
+
+### 3. Unsynced MCP servers
+
+Scans editor-specific MCP config files for servers not declared in `hub.yaml`:
+
+| Editor | Config file | Key |
+|--------|------------|-----|
+| Cursor | `.cursor/mcp.json` | `mcpServers` |
+| Kiro | `.kiro/settings/mcp.json` | `mcpServers` |
+| Claude Code | `.mcp.json` | `mcpServers` |
+| OpenCode | `opencode.json` | `mcp` |
+
+MCP servers found in editor configs but missing from `hub.yaml` are reported so you can add them manually (since MCPs require `package`, `url`, or `image` fields that can't be inferred).
 
 ## Usage
 
@@ -60,23 +73,26 @@ Found 2 unregistered repo(s):
 
 Added 2 repo(s) to hub.yaml.
 
-Scanning for unsynced skills, agents, and steering...
+Scanning for unsynced skills, agents, steering, and MCPs...
 
-Found 3 unsynced asset(s):
+Found 4 unsynced asset(s):
 
   my-custom-skill (skill from .cursor)
   pr-review.md (agent from .kiro)
   code-standards.md (steering from .cursor)
+  my-new-mcp (mcp from .kiro)
 
 ? Select assets to sync to canonical folders:
   ◉ my-custom-skill (skill from .cursor)
   ◉ pr-review.md (agent from .kiro)
   ◉ code-standards.md (steering from .cursor)
+  ◉ my-new-mcp (mcp from .kiro)
 
   Synced skill: my-custom-skill (from .cursor)
   Synced agent: pr-review.md (from .kiro)
   Synced steering: code-standards.md (from .cursor)
-Synced 3 asset(s).
+  MCP 'my-new-mcp' found in .kiro but not in hub.yaml — add it manually.
+Synced 4 asset(s).
 
 Run hub generate to update editor configs.
 ```
@@ -107,6 +123,7 @@ For each editor directory, the scan checks:
 | `.kiro/steering/` | Steering | `steering/<name>.md` |
 | `.cursor/rules/` (`.mdc` files) | Steering | `steering/<name>.md` |
 | `.opencode/rules/` | Steering | `steering/<name>.md` |
+| `.cursor/mcp.json`, `.kiro/settings/mcp.json`, `.mcp.json`, `opencode.json` | MCP | Reported only (add to `hub.yaml` manually) |
 
 Auto-generated files like `orchestrator.md` and `hub-docs` are skipped.
 
