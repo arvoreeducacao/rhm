@@ -1943,6 +1943,56 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
 }
 
 
+function extractEnvVarsByMcp(mcps: MCPConfig[]): { name: string; vars: string[] }[] {
+  const envVarPattern = /\$\{env:([^}]+)\}/;
+  const groups: { name: string; vars: string[] }[] = [];
+
+  for (const mcp of mcps) {
+    if (!mcp.env) continue;
+    const vars: string[] = [];
+    const seenInGroup = new Set<string>();
+    for (const value of Object.values(mcp.env)) {
+      const match = envVarPattern.exec(value);
+      if (match && !seenInGroup.has(match[1])) {
+        seenInGroup.add(match[1]);
+        vars.push(match[1]);
+      }
+    }
+    if (vars.length > 0) {
+      groups.push({ name: mcp.name, vars: vars.sort() });
+    }
+  }
+
+  return groups;
+}
+
+async function generateEnvExample(config: HubConfig, hubDir: string): Promise<void> {
+  if (!config.mcps?.length) return;
+
+  const groups = extractEnvVarsByMcp(config.mcps);
+  if (groups.length === 0) return;
+
+  let totalVars = 0;
+  const lines: string[] = [];
+  const seen = new Set<string>();
+
+  for (const group of groups) {
+    const uniqueVars = group.vars.filter((v) => !seen.has(v));
+    if (uniqueVars.length === 0) continue;
+    for (const v of uniqueVars) seen.add(v);
+
+    if (lines.length > 0) lines.push("");
+    lines.push(`# ${group.name}`);
+    for (const v of uniqueVars) {
+      lines.push(`${v}=`);
+    }
+    totalVars += uniqueVars.length;
+  }
+
+  await writeFile(join(hubDir, ".env.example"), lines.join("\n") + "\n", "utf-8");
+  console.log(chalk.green(`  Generated .env.example (${totalVars} vars)`));
+}
+
 function buildGitignoreLines(config: HubConfig): string[] {
   const lines = [
     "node_modules/",
@@ -2089,6 +2139,7 @@ export const generateCommand = new Command("generate")
 
     console.log(chalk.blue(`\nGenerating ${generator.name} configuration\n`));
     await generator.generate(config, hubDir);
+    await generateEnvExample(config, hubDir);
     await saveGenerateState(hubDir, editorKey);
     console.log(chalk.green("\nDone!\n"));
   });
