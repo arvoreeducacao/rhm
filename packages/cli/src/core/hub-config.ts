@@ -32,6 +32,8 @@ export interface Service {
 
 export interface MCPConfig {
   name: string;
+  description?: string;
+  instructions?: string;
   package?: string;
   url?: string;
   image?: string;

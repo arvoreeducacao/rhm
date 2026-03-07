@@ -683,6 +683,7 @@ function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
   const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
   const upstreamNames = getUpstreamNames(mcps);
   const directMcps = mcps.filter((m) => !m.upstreams && !upstreamNames.has(m.name));
+  const mcpByName = new Map(mcps.map((m) => [m.name, m]));
 
   if (!proxyMcp && directMcps.length === 0) return "";
 
@@ -702,7 +703,9 @@ Some MCPs are aggregated behind a proxy (\`${proxyMcp.name}\`). Their tools are 
 
 **MCPs available via proxy:**`);
     for (const name of proxyMcp.upstreams!) {
-      lines.push(`- \`${name}\``);
+      const mcp = mcpByName.get(name);
+      const desc = mcp?.description ? ` — ${mcp.description}` : "";
+      lines.push(`- \`${name}\`${desc}`);
     }
   }
 
@@ -710,13 +713,25 @@ Some MCPs are aggregated behind a proxy (\`${proxyMcp.name}\`). Their tools are 
     lines.push(`
 **MCPs available directly:**`);
     for (const mcp of directMcps) {
-      lines.push(`- \`${mcp.name}\``);
+      const desc = mcp.description ? ` — ${mcp.description}` : "";
+      lines.push(`- \`${mcp.name}\`${desc}`);
     }
   }
 
   if (proxyMcp) {
     lines.push(`
 > When you need a capability and are unsure which tool to use, always try \`mcp_search\` first with relevant keywords. The proxy aggregates tools from all upstream MCPs.`);
+  }
+
+  const mcpsWithInstructions = mcps.filter((m) => m.instructions && !m.upstreams);
+  if (mcpsWithInstructions.length > 0) {
+    lines.push(`
+### MCP Instructions`);
+    for (const mcp of mcpsWithInstructions) {
+      lines.push(`
+#### ${mcp.name}
+${mcp.instructions!.trim()}`);
+    }
   }
 
   return lines.join("\n");
