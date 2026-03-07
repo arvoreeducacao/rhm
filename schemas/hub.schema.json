@@ -216,6 +216,8 @@
       "description": "An MCP server connection",
       "properties": {
         "name": { "type": "string", "description": "MCP server name" },
+        "description": { "type": "string", "description": "Short human-readable description of what this MCP provides. Shown inline in the orchestrator prompt next to the MCP name." },
+        "instructions": { "type": "string", "description": "Detailed instructions for the AI agent on how and when to use this MCP. Rendered as a dedicated subsection in the orchestrator prompt." },
         "package": {
           "type": "string",
           "description": "npm package name for the MCP server",
