@@ -147,13 +147,10 @@ function blockToMarkdown(block: Record<string, unknown>, indent = ""): string {
 
 async function blocksToMarkdown(blocks: Array<Record<string, unknown>>, token: string, indent = ""): Promise<string> {
   const lines: string[] = [];
-  let tableStarted = false;
-
   for (const block of blocks) {
     const type = block.type as string;
 
     if (type === "table") {
-      tableStarted = true;
       if (block.has_children) {
         const children = await fetchAllBlocks(block.id as string, token);
         const rows = children.map((child) => blockToMarkdown(child, indent));
@@ -164,7 +161,6 @@ async function blocksToMarkdown(blocks: Array<Record<string, unknown>>, token: s
           lines.push(...rows.slice(1));
         }
       }
-      tableStarted = false;
       lines.push("");
       continue;
     }
