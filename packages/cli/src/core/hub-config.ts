@@ -124,6 +124,30 @@ export interface MemoryConfig {
   embedding_model?: string;
 }
 
+export interface RemoteSource {
+  name: string;
+  type: "skill" | "steering";
+  notion_page?: string;
+  url?: string;
+  path?: string;
+  instructions?: string;
+  triggers?: string[];
+}
+
+export interface DesignLibrary {
+  name: string;
+  mcp?: string;
+  url?: string;
+  path?: string;
+}
+
+export interface DesignConfig {
+  skills?: string[];
+  libraries?: DesignLibrary[];
+  icons?: string;
+  instructions?: string;
+}
+
 export interface HubConfig {
   name: string;
   description?: string;
@@ -142,6 +166,8 @@ export interface HubConfig {
   commands?: Record<string, string>;
   commands_dir?: string;
   memory?: MemoryConfig;
+  remote_sources?: RemoteSource[];
+  design?: DesignConfig;
   workflow?: {
     task_folder?: string;
     pipeline?: WorkflowStep[];

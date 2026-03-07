@@ -6,8 +6,62 @@ import chalk from "chalk";
 import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig, type WorkflowStep } from "../core/hub-config.js";
 import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
+import { fetchRemoteSources } from "../core/design-sources.js";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
+
+async function syncRemoteSources(config: HubConfig, hubDir: string, skillsDir: string, steeringDir: string): Promise<void> {
+  if (!config.remote_sources?.length) return;
+  console.log(chalk.blue("  Syncing remote sources..."));
+  const result = await fetchRemoteSources(config.remote_sources, hubDir, skillsDir, steeringDir);
+  if (result.skills > 0 || result.steering > 0) {
+    console.log(chalk.green(`  Synced ${result.skills} skill(s) and ${result.steering} steering file(s) from remote sources`));
+  }
+  if (result.errors.length > 0) {
+    console.log(chalk.yellow(`  ${result.errors.length} remote source(s) failed`));
+  }
+}
+
+function buildDesignSection(config: HubConfig): string | null {
+  const design = config.design;
+  if (!design) return null;
+
+  const hasContent = design.skills?.length || design.libraries?.length || design.icons || design.instructions;
+  if (!hasContent) return null;
+
+  const parts: string[] = [];
+  parts.push(`\n## Design System`);
+
+  if (design.instructions) {
+    parts.push(`\n${design.instructions.trim()}`);
+  }
+
+  if (design.skills?.length) {
+    parts.push(`\n### Design Skills\n`);
+    parts.push(`The following skills contain design guidelines and should be consulted when working on UI:`);
+    for (const skill of design.skills) {
+      parts.push(`- \`${skill}\``);
+    }
+  }
+
+  if (design.libraries?.length) {
+    parts.push(`\n### UI Libraries\n`);
+    for (const lib of design.libraries) {
+      const refs: string[] = [];
+      if (lib.mcp) refs.push(`docs via \`${lib.mcp}\` MCP`);
+      if (lib.url) refs.push(`[docs](${lib.url})`);
+      if (lib.path) refs.push(`local docs at \`${lib.path}\``);
+      parts.push(`- **${lib.name}**${refs.length ? ` — ${refs.join(", ")}` : ""}`);
+    }
+  }
+
+  if (design.icons) {
+    parts.push(`\n### Icons\n`);
+    parts.push(`Icon library: **${design.icons}**. Always use this library for icons.`);
+  }
+
+  return parts.join("\n");
+}
 
 function stripFrontMatter(content: string): string {
   const match = content.match(/^---\n[\s\S]*?\n---\n*/);
@@ -329,6 +383,8 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   const cursorSkillsDirForDocs = join(cursorDir, "skills");
   await mkdir(cursorSkillsDirForDocs, { recursive: true });
   await fetchHubDocsSkill(cursorSkillsDirForDocs);
+
+  await syncRemoteSources(config, hubDir, join(cursorDir, "skills"), join(cursorDir, "rules"));
 
   if (config.hooks) {
     const cursorHooks = buildCursorHooks(config.hooks);
@@ -768,6 +824,9 @@ This workspace has a team memory knowledge base available via the \`team-memory\
 Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
   }
 
+  const designSectionOpenCode = buildDesignSection(config);
+  if (designSectionOpenCode) sections.push(designSectionOpenCode);
+
   sections.push(`
 ## Troubleshooting and Debugging
 
@@ -898,12 +957,10 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
   console.log(chalk.green("  Generated .gitignore"));
 
-  // Generate orchestrator rule in .opencode/rules/
   const orchestratorRule = buildOpenCodeOrchestratorRule(config);
   await writeFile(join(opencodeDir, "rules", "orchestrator.md"), orchestratorRule + "\n", "utf-8");
   console.log(chalk.green("  Generated .opencode/rules/orchestrator.md"));
 
-  // Copy steering files from steering/ to .opencode/rules/
   const hubSteeringDirOC = resolve(hubDir, "steering");
   try {
     const steeringFiles = await readdir(hubSteeringDirOC);
@@ -920,7 +977,6 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
     // no steering dir
   }
 
-  // Generate opencode.json with MCP servers, instructions, and agent config
   const opencodeConfig: Record<string, unknown> = {
     $schema: "https://opencode.ai/config.json",
   };
@@ -939,7 +995,6 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
     opencodeConfig.mcp = mcpConfig;
   }
 
-  // Reference rules via glob so additional rule files are auto-discovered
   opencodeConfig.instructions = [".opencode/rules/*.md"];
 
   await writeFile(
@@ -949,7 +1004,6 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   );
   console.log(chalk.green("  Generated opencode.json"));
 
-  // Copy agents as .opencode/agents/*.md with OpenCode frontmatter
   const agentsDir = resolve(hubDir, "agents");
   try {
     const agentFiles = await readdir(agentsDir);
@@ -965,7 +1019,6 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
     console.log(chalk.yellow("  No agents/ directory found, skipping agent copy"));
   }
 
-  // Copy skills to .opencode/skills/
   const skillsDir = resolve(hubDir, "skills");
   try {
     const skillFolders = await readdir(skillsDir);
@@ -989,10 +1042,10 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
 
   await fetchHubDocsSkill(join(opencodeDir, "skills"));
 
-  // Copy commands to .opencode/commands/
+  await syncRemoteSources(config, hubDir, join(opencodeDir, "skills"), join(opencodeDir, "rules"));
+
   await generateEditorCommands(config, hubDir, opencodeDir, ".opencode/commands/");
 
-  // Generate hooks plugin if hooks are defined
   if (config.hooks) {
     const plugin = buildOpenCodeHooksPlugin(config.hooks);
     if (plugin) {
@@ -1115,6 +1168,9 @@ This workspace has a team memory knowledge base available via the \`team-memory\
 
 Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
   }
+
+  const designSectionKiro = buildDesignSection(config);
+  if (designSectionKiro) sections.push(designSectionKiro);
 
   sections.push(`
 ## Troubleshooting and Debugging
@@ -1334,6 +1390,9 @@ This workspace has a team memory knowledge base available via the \`team-memory\
 
 Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
   }
+
+  const designSectionCursor = buildDesignSection(config);
+  if (designSectionCursor) sections.push(designSectionCursor);
 
   sections.push(`
 ## Troubleshooting and Debugging
@@ -1594,7 +1653,8 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
   await mkdir(claudeSkillsDirForDocs, { recursive: true });
   await fetchHubDocsSkill(claudeSkillsDirForDocs);
 
-  // Copy steering files content into CLAUDE.md
+  await syncRemoteSources(config, hubDir, join(claudeDir, "skills"), join(claudeDir, "steering"));
+
   const hubSteeringDirClaude = resolve(hubDir, "steering");
   try {
     const steeringFiles = await readdir(hubSteeringDirClaude);
@@ -1692,7 +1752,6 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   await mkdir(steeringDir, { recursive: true });
   await mkdir(settingsDir, { recursive: true });
 
-  // Ask for Kiro usage mode (editor IDE vs CLI)
   let mode = await getKiroMode(hubDir);
   if (!mode) {
     const { kiroMode } = await inquirer.prompt<{ kiroMode: KiroMode }>([
@@ -1820,6 +1879,8 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   const kiroSkillsDirForDocs = join(kiroDir, "skills");
   await mkdir(kiroSkillsDirForDocs, { recursive: true });
   await fetchHubDocsSkill(kiroSkillsDirForDocs);
+
+  await syncRemoteSources(config, hubDir, join(kiroDir, "skills"), steeringDir);
 
   if (config.mcps?.length) {
     const mcpConfig: Record<string, Record<string, unknown>> = {};
@@ -1967,10 +2028,7 @@ function extractEnvVarsByMcp(mcps: MCPConfig[]): { name: string; vars: string[] 
 }
 
 async function generateEnvExample(config: HubConfig, hubDir: string): Promise<void> {
-  if (!config.mcps?.length) return;
-
-  const groups = extractEnvVarsByMcp(config.mcps);
-  if (groups.length === 0) return;
+  const groups = extractEnvVarsByMcp(config.mcps || []);
 
   let totalVars = 0;
   const lines: string[] = [];
@@ -1988,6 +2046,16 @@ async function generateEnvExample(config: HubConfig, hubDir: string): Promise<vo
     }
     totalVars += uniqueVars.length;
   }
+
+  const hasNotionSources = config.remote_sources?.some((s) => s.notion_page);
+  if (hasNotionSources && !seen.has("NOTION_API_KEY")) {
+    if (lines.length > 0) lines.push("");
+    lines.push("# Remote Sources (Notion)");
+    lines.push("NOTION_API_KEY=");
+    totalVars++;
+  }
+
+  if (totalVars === 0) return;
 
   await writeFile(join(hubDir, ".env.example"), lines.join("\n") + "\n", "utf-8");
   console.log(chalk.green(`  Generated .env.example (${totalVars} vars)`));
@@ -2121,6 +2189,14 @@ export const generateCommand = new Command("generate")
         console.log(chalk.dim(`      env:`));
         console.log(chalk.dim(`        MEMORY_PATH: ${config.memory.path || "./memories"}\n`));
         process.exit(1);
+      }
+    }
+
+    if (config.remote_sources?.length) {
+      const hasNotionSources = config.remote_sources.some((s) => s.notion_page);
+      if (hasNotionSources && !process.env.NOTION_API_KEY && !process.env.NOTION_TOKEN) {
+        console.log(chalk.yellow(`\n  Warning: remote_sources include Notion pages but NOTION_API_KEY is not set.`));
+        console.log(chalk.yellow(`  Notion sources will be skipped. Set NOTION_API_KEY in your .env or environment.\n`));
       }
     }
 
