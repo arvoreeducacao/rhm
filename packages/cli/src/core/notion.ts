@@ -173,6 +173,8 @@ async function blocksToMarkdown(blocks: Array<Record<string, unknown>>, token: s
       const childMd = await blocksToMarkdown(children, token, indent + "  ");
       if (childMd) lines.push(childMd);
       if (type === "toggle") lines.push("</details>");
+    } else if (type === "toggle") {
+      lines.push("</details>");
     }
   }
 

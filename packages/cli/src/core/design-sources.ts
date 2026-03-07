@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import chalk from "chalk";
 import type { RemoteSource } from "./hub-config.js";
 import { fetchNotionPageAsMarkdown } from "./notion.js";
@@ -20,7 +20,7 @@ async function fetchFromNotion(source: RemoteSource): Promise<string> {
 
 async function fetchFromUrl(source: RemoteSource): Promise<string> {
   if (!source.url) throw new Error(`No url for source: ${source.name}`);
-  const res = await fetch(source.url);
+  const res = await fetch(source.url, { signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new Error(`Failed to fetch ${source.url}: ${res.status}`);
   return res.text();
 }
@@ -28,6 +28,10 @@ async function fetchFromUrl(source: RemoteSource): Promise<string> {
 async function fetchFromPath(source: RemoteSource, hubDir: string): Promise<string> {
   if (!source.path) throw new Error(`No path for source: ${source.name}`);
   const fullPath = resolve(hubDir, source.path);
+  const rel = relative(hubDir, fullPath);
+  if (rel.startsWith("..") || resolve(fullPath) === fullPath && !fullPath.startsWith(hubDir)) {
+    throw new Error(`Path "${source.path}" escapes the workspace for source: ${source.name}`);
+  }
   return readFile(fullPath, "utf-8");
 }
 

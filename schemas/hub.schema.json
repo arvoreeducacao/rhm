@@ -320,6 +320,11 @@
       "required": ["name", "type"],
       "additionalProperties": false,
       "description": "A remote source that gets fetched and installed as a skill or steering file during generate",
+      "anyOf": [
+        { "required": ["notion_page"] },
+        { "required": ["url"] },
+        { "required": ["path"] }
+      ],
       "properties": {
         "name": { "type": "string", "description": "Identifier for this source (used as filename)" },
         "type": {
