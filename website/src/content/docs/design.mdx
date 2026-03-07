@@ -1,0 +1,103 @@
+---
+title: Design
+description: Configure design system context for AI agents — skills, UI libraries, icons, and instructions.
+order: 9
+---
+
+The `design` section in `hub.yaml` gives AI agents structured context about your design system. Instead of repeating design guidelines in every prompt, you declare them once and they're injected into the orchestrator rule for all editors.
+
+This is different from [remote sources](/docs/remote-sources) — design is always local and declarative. It references existing skills, points to library docs, and sets general instructions.
+
+## Quick Start
+
+```yaml
+design:
+  skills:
+    - bonsai-design-system
+  libraries:
+    - name: shadcn/ui
+      mcp: context7
+    - name: Tailwind CSS
+      url: https://tailwindcss.com/docs
+  icons: lucide
+  instructions: |
+    Always use the Bonsai design tokens for colors, spacing, and typography.
+    Prefer composition over custom CSS. Use shadcn/ui primitives when available.
+```
+
+## Configuration
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `skills` | `string[]` | Skill names containing design guidelines |
+| `libraries` | `DesignLibrary[]` | UI libraries with documentation references |
+| `icons` | `string` | Icon library name (e.g. `lucide`, `phosphor`, `heroicons`) |
+| `instructions` | `string` | General design instructions for the AI agent |
+
+### Libraries
+
+Each library entry can reference documentation via different sources:
+
+```yaml
+libraries:
+  - name: shadcn/ui
+    mcp: context7          # docs available via MCP
+  - name: Radix Primitives
+    url: https://radix-ui.com/docs  # external docs URL
+  - name: Internal Components
+    path: ./docs/components.md      # local documentation
+```
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | Library name |
+| `mcp` | No | MCP server that provides docs (e.g. `context7`) |
+| `url` | No | Documentation URL |
+| `path` | No | Local path to documentation |
+
+## Generated Output
+
+When `design` is configured, a "Design System" section is added to the orchestrator rule. Example output:
+
+```markdown
+## Design System
+
+Always use the Bonsai design tokens for colors, spacing, and typography.
+Prefer composition over custom CSS. Use shadcn/ui primitives when available.
+
+### Design Skills
+
+The following skills contain design guidelines and should be consulted when working on UI:
+- `bonsai-design-system`
+
+### UI Libraries
+
+- **shadcn/ui** — docs via `context7` MCP
+- **Tailwind CSS** — [docs](https://tailwindcss.com/docs)
+
+### Icons
+
+Icon library: **lucide**. Always use this library for icons.
+```
+
+## Combining with Remote Sources
+
+You can use [remote sources](/docs/remote-sources) to sync design documentation from Notion and then reference the resulting skill in the `design` section:
+
+```yaml
+remote_sources:
+  - name: bonsai-design-system
+    type: skill
+    notion_page: https://www.notion.so/your-org/Bonsai-Design-abc123
+    triggers: [design, ui, components, colors, typography]
+
+design:
+  skills:
+    - bonsai-design-system
+  libraries:
+    - name: shadcn/ui
+      mcp: context7
+  icons: lucide
+```
+
+This way, the design guidelines are fetched from Notion on every `hub generate`, and the orchestrator always knows to reference them for UI work.

@@ -142,6 +142,12 @@
       "description": "Directory containing custom command scripts"
     },
     "memory": { "$ref": "#/definitions/memory" },
+    "remote_sources": {
+      "type": "array",
+      "description": "Remote skills and steering files fetched during generate (from Notion, URLs, or local paths)",
+      "items": { "$ref": "#/definitions/remoteSource" }
+    },
+    "design": { "$ref": "#/definitions/design" },
     "workflow": { "$ref": "#/definitions/workflow" }
   },
   "definitions": {
@@ -269,6 +275,71 @@
           "type": "string",
           "default": "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
           "description": "HuggingFace model name for semantic search embeddings"
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Design system configuration — local references for UI skills, libraries, icons, and instructions",
+      "properties": {
+        "skills": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Skill names containing design guidelines (e.g. bonsai-design-system)"
+        },
+        "libraries": {
+          "type": "array",
+          "description": "UI libraries with documentation references",
+          "items": { "$ref": "#/definitions/designLibrary" }
+        },
+        "icons": {
+          "type": "string",
+          "description": "Icon library name (e.g. lucide, phosphor, heroicons)"
+        },
+        "instructions": {
+          "type": "string",
+          "description": "General design instructions for the AI agent"
+        }
+      }
+    },
+    "designLibrary": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "description": "A UI library reference with documentation source",
+      "properties": {
+        "name": { "type": "string", "description": "Library name (e.g. shadcn, radix, tailwind)" },
+        "mcp": { "type": "string", "description": "MCP server name that provides docs (e.g. context7)" },
+        "url": { "type": "string", "description": "Documentation URL" },
+        "path": { "type": "string", "description": "Local path to documentation" }
+      }
+    },
+    "remoteSource": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "description": "A remote source that gets fetched and installed as a skill or steering file during generate",
+      "anyOf": [
+        { "required": ["notion_page"] },
+        { "required": ["url"] },
+        { "required": ["path"] }
+      ],
+      "properties": {
+        "name": { "type": "string", "description": "Identifier for this source (used as filename)" },
+        "type": {
+          "type": "string",
+          "enum": ["skill", "steering"],
+          "description": "Whether to install as a skill (with triggers) or steering file"
+        },
+        "notion_page": { "type": "string", "description": "Notion page URL or ID to fetch content from" },
+        "url": { "type": "string", "description": "URL to fetch content from (plain text or markdown)" },
+        "path": { "type": "string", "description": "Local file path to use as source" },
+        "instructions": { "type": "string", "description": "Additional instructions to prepend to the content" },
+        "triggers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Trigger keywords for skills (ignored for steering type)"
         }
       }
     },

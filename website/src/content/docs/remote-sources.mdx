@@ -1,0 +1,107 @@
+---
+title: Remote Sources
+description: Sync skills and steering files from external sources like Notion, URLs, or local paths during generate.
+order: 8
+---
+
+Remote sources let you keep skills and steering files in external locations (Notion pages, URLs, or local paths outside the hub) and automatically sync them into your workspace every time you run `hub generate`.
+
+This is useful when your team maintains documentation in Notion or other tools and wants that content to flow into AI agent context without manual copy-paste.
+
+## Quick Start
+
+Add `remote_sources` to your `hub.yaml`:
+
+```yaml
+remote_sources:
+  - name: api-conventions
+    type: steering
+    notion_page: https://www.notion.so/your-org/API-Conventions-abc123def456
+  - name: onboarding-guide
+    type: skill
+    url: https://your-docs.com/onboarding.md
+    triggers: [onboarding, new developer, setup]
+  - name: architecture-decisions
+    type: steering
+    path: ./docs/architecture.md
+```
+
+Run `hub generate` and the content will be fetched and installed as skills or steering files in your editor config.
+
+## Source Types
+
+### Notion Pages
+
+Fetches a Notion page and converts it to markdown. Requires `NOTION_API_KEY` or `NOTION_TOKEN` environment variable.
+
+```yaml
+remote_sources:
+  - name: design-guidelines
+    type: steering
+    notion_page: https://www.notion.so/your-org/Design-Guidelines-abc123
+    instructions: "Follow these guidelines for all UI work"
+```
+
+The Notion page ID is extracted automatically from the URL. You can also pass the raw page ID.
+
+### URLs
+
+Fetches plain text or markdown from any URL.
+
+```yaml
+remote_sources:
+  - name: coding-standards
+    type: skill
+    url: https://your-docs.com/standards.md
+    triggers: [standards, conventions, code style]
+```
+
+### Local Paths
+
+Reads a local file. Useful for docs that live outside the hub directory structure.
+
+```yaml
+remote_sources:
+  - name: api-spec
+    type: steering
+    path: ../shared-docs/api-spec.md
+```
+
+## Configuration
+
+Each remote source has these properties:
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | Identifier used as the filename |
+| `type` | Yes | `skill` or `steering` |
+| `notion_page` | No | Notion page URL or ID |
+| `url` | No | URL to fetch content from |
+| `path` | No | Local file path |
+| `instructions` | No | Text prepended to the content |
+| `triggers` | No | Keywords for skill activation (skills only) |
+
+At least one of `notion_page`, `url`, or `path` must be provided.
+
+## How It Works
+
+During `hub generate`:
+
+1. Each remote source is fetched from its origin
+2. Skills are written to `{editor}/skills/{name}/SKILL.md` with frontmatter
+3. Steering files are written to `{editor}/steering/{name}.md` (or equivalent)
+4. Failed fetches are logged as warnings but don't block generation
+
+## Notion Setup
+
+To use Notion sources, create an internal integration:
+
+1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations)
+2. Create a new integration with "Read content" capability
+3. Copy the token and set it as `NOTION_API_KEY` in your `.env`
+4. Share the Notion pages with your integration
+
+```bash
+# .env
+NOTION_API_KEY=ntn_xxxxxxxxxxxxx
+```
