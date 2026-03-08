@@ -12,13 +12,12 @@ interface Item {
 
 interface Props {
   step: Step
-  title: string
   subtitle?: string
   items: Item[]
   onSelect: (value: string) => void
 }
 
-export function SelectStep({ step, title, subtitle, items, onSelect }: Props) {
+export function SelectStep({ step, subtitle, items, onSelect }: Props) {
   const [cursor, setCursor] = useState(0)
 
   useInput((_input, key) => {

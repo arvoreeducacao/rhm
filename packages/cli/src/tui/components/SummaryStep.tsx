@@ -1,6 +1,6 @@
 import { Box, Text, useInput } from 'ink'
 import { Screen } from './Screen.js'
-import { colors, symbols } from '../theme.js'
+import { colors } from '../theme.js'
 import type { InitState } from '../types.js'
 
 interface Props {

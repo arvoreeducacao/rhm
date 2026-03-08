@@ -9,7 +9,9 @@ type RepoOverrides = Partial<Omit<Repo, "name" | "path" | "url" | "tech">>;
 function createRepo(tech: string, defaults: Repo["commands"]) {
   return (name: string, url: string, overrides?: RepoOverrides): Repo => {
     const merged = { ...defaults, ...overrides?.commands };
-    const { commands: _, ...rest } = overrides ?? {};
+    const rest = Object.fromEntries(
+      Object.entries(overrides ?? {}).filter(([k]) => k !== "commands")
+    );
     return {
       name,
       path: `./${name}`,

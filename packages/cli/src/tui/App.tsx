@@ -127,7 +127,6 @@ export function App({ defaultName, createWorkspace }: Props) {
       {state.step === 'editor' && (
         <SelectStep
           step="editor"
-          title="Editor"
           subtitle="Which AI editor will you use?"
           items={AVAILABLE_EDITORS.map((e) => ({ label: e.label, value: e.value }))}
           onSelect={(value) => {
@@ -221,7 +220,6 @@ export function App({ defaultName, createWorkspace }: Props) {
       {state.step === 'format' && (
         <SelectStep
           step="format"
-          title="Config Format"
           subtitle="How do you want to define your hub configuration?"
           items={[
             { label: 'YAML', value: 'yaml', hint: '— hub.yaml (simple, declarative)' },
