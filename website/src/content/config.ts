@@ -9,4 +9,14 @@ const docs = defineCollection({
   }),
 });
 
-export const collections = { docs };
+const releases = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title: z.string(),
+    version: z.string(),
+    date: z.string(),
+    description: z.string().optional(),
+  }),
+});
+
+export const collections = { docs, releases };
