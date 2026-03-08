@@ -83,10 +83,12 @@ async function collectFileHashes(dir: string, extensions: string[]): Promise<str
 export async function computeInputsHash(hubDir: string): Promise<string> {
   const parts: string[] = [];
 
-  const hubYamlPath = join(hubDir, "hub.yaml");
-  if (existsSync(hubYamlPath)) {
-    const content = await readFile(hubYamlPath, "utf-8");
-    parts.push(`hub.yaml:${createHash("sha256").update(content).digest("hex")}`);
+  for (const configFile of ["hub.yaml", "hub.config.ts"]) {
+    const configPath = join(hubDir, configFile);
+    if (existsSync(configPath)) {
+      const content = await readFile(configPath, "utf-8");
+      parts.push(`${configFile}:${createHash("sha256").update(content).digest("hex")}`);
+    }
   }
 
   const dirs = ["agents", "skills", "hooks", "commands"];

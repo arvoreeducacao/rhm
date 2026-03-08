@@ -4,7 +4,7 @@ import { readFile, writeFile, appendFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { parse, stringify } from "yaml";
 import chalk from "chalk";
-import type { HubConfig } from "../core/hub-config.js";
+import { resolveConfigPath, type HubConfig } from "../core/hub-config.js";
 
 const SCHEMA_COMMENT =
   "# yaml-language-server: $schema=https://raw.githubusercontent.com/arvoreeducacao/rhm/main/schemas/hub.schema.json\n";
@@ -16,7 +16,12 @@ export const addRepoCommand = new Command("add-repo")
   .option("-t, --tech <tech>", "Technology (nestjs, nextjs, elixir, react, etc)")
   .action(async (url: string, opts: { name?: string; tech?: string }) => {
     const hubDir = process.cwd();
-    const configPath = join(hubDir, "hub.yaml");
+    const { path: configPath, format } = resolveConfigPath(hubDir);
+
+    if (format === "typescript") {
+      console.log(chalk.yellow("add-repo is not supported with hub.config.ts — edit the file directly."));
+      return;
+    }
 
     const content = await readFile(configPath, "utf-8");
     const config = parse(content) as HubConfig;

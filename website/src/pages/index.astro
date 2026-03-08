@@ -357,84 +357,12 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <script>
+      import { createHeroScene } from '../components/HeroScene';
+
       const canvas = document.getElementById('mesh') as HTMLCanvasElement;
-      const ctx = canvas.getContext('2d')!;
-      let width = 0;
-      let height = 0;
-      let particles: { x: number; y: number; vx: number; vy: number; size: number }[] = [];
-      const CONNECTION_DIST = 140;
-      const PARTICLE_COUNT = 55;
-
-      function resize() {
-        const dpr = window.devicePixelRatio || 1;
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-        ctx.scale(dpr, dpr);
+      if (canvas) {
+        createHeroScene(canvas);
       }
-
-      function init() {
-        resize();
-        particles = [];
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-          particles.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            vx: (Math.random() - 0.5) * 0.4,
-            vy: (Math.random() - 0.5) * 0.4,
-            size: Math.random() * 1.5 + 0.5,
-          });
-        }
-      }
-
-      function animate() {
-        ctx.clearRect(0, 0, width, height);
-
-        const isDark = document.documentElement.classList.contains('dark');
-        const lineColor = '69, 208, 193';
-        const lineAlphaMultiplier = isDark ? 0.12 : 0.08;
-        const dotAlpha = isDark ? 0.35 : 0.25;
-
-        particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          if (p.x < 0 || p.x > width) p.vx *= -1;
-          if (p.y < 0 || p.y > height) p.vy *= -1;
-        });
-
-        for (let i = 0; i < particles.length; i++) {
-          for (let j = i + 1; j < particles.length; j++) {
-            const dx = particles[i].x - particles[j].x;
-            const dy = particles[i].y - particles[j].y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < CONNECTION_DIST) {
-              const alpha = lineAlphaMultiplier * (1 - dist / CONNECTION_DIST);
-              ctx.beginPath();
-              ctx.moveTo(particles[i].x, particles[i].y);
-              ctx.lineTo(particles[j].x, particles[j].y);
-              ctx.strokeStyle = `rgba(${lineColor}, ${alpha})`;
-              ctx.lineWidth = 0.6;
-              ctx.stroke();
-            }
-          }
-        }
-
-        particles.forEach(p => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(69, 208, 193, ${dotAlpha})`;
-          ctx.fill();
-        });
-
-        requestAnimationFrame(animate);
-      }
-
-      init();
-      animate();
-      window.addEventListener('resize', () => { resize(); });
     </script>
 
     <Footer />
