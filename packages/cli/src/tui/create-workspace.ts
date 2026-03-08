@@ -171,6 +171,7 @@ function buildGitignore(state: InitState): string {
 }
 
 function buildReadme(state: InitState): string {
+  const editorFlag = state.editor ? ` --editor ${state.editor}` : ''
   return [
     `# ${state.hubName}`,
     '',
@@ -180,7 +181,7 @@ function buildReadme(state: InitState): string {
     '',
     '```bash',
     'hub setup',
-    `hub generate --editor ${state.editor}`,
+    `hub generate${editorFlag}`,
     '```',
     '',
   ].join('\n')

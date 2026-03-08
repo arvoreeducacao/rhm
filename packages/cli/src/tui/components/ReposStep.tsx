@@ -36,7 +36,10 @@ export function ReposStep({ repos: initialRepos, onSubmit }: Props) {
     if (!url.trim()) return
     const name = inferName(url.trim())
     const tech = inferTech(name)
-    setRepos((prev) => [...prev, { url: url.trim(), name, tech }])
+    setRepos((prev) => {
+      if (prev.some((r) => r.url === url.trim())) return prev
+      return [...prev, { url: url.trim(), name, tech }]
+    })
     setInputValue('')
   }
 

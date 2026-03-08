@@ -10,7 +10,7 @@ function createRepo(tech: string, defaults: Repo["commands"]) {
   return (name: string, url: string, overrides?: RepoOverrides): Repo => {
     const merged = { ...defaults, ...overrides?.commands };
     const rest = Object.fromEntries(
-      Object.entries(overrides ?? {}).filter(([k]) => k !== "commands")
+      Object.entries(overrides ?? {}).filter(([key]) => key !== "commands")
     );
     return {
       name,

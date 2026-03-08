@@ -39,7 +39,7 @@ export function boxBottom(width: number): string {
 
 export function boxRow(content: string, width: number): string {
   const visible = stripAnsi(content)
-  const padding = Math.max(0, width - 2 - visible.length)
+  const padding = Math.max(0, width - 3 - visible.length)
   return `${symbols.vertical} ${content}${' '.repeat(padding)}${symbols.vertical}`
 }
 

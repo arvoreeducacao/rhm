@@ -38,41 +38,35 @@ export function createHeroScene(canvas: HTMLCanvasElement) {
       uOpacity: { value: 0.12 },
       uWaveHeight: { value: WAVE_HEIGHT },
     },
-    vertexShader: `
-      uniform float uTime;
-      uniform float uWaveHeight;
-      varying float vHeight;
-      varying float vDist;
-
-      void main() {
-        vec3 pos = position;
-        float dist = length(pos.xz);
-
-        float wave1 = sin(dist * 1.2 - uTime * 0.8) * uWaveHeight;
-        float wave2 = sin(pos.x * 0.8 + uTime * 0.5) * cos(pos.z * 0.6 - uTime * 0.3) * uWaveHeight * 0.5;
-        float wave3 = cos(dist * 0.5 + uTime * 0.2) * uWaveHeight * 0.3;
-
-        pos.y += wave1 + wave2 + wave3;
-
-        vHeight = pos.y;
-        vDist = dist;
-
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 uColor;
-      uniform float uOpacity;
-      varying float vHeight;
-      varying float vDist;
-
-      void main() {
-        float heightGlow = smoothstep(-0.2, 0.6, vHeight);
-        float edgeFade = 1.0 - smoothstep(4.0, 7.5, vDist);
-        float alpha = uOpacity * edgeFade * (0.3 + heightGlow * 0.7);
-        gl_FragColor = vec4(uColor, alpha);
-      }
-    `,
+    vertexShader: [
+      'uniform float uTime;',
+      'uniform float uWaveHeight;',
+      'varying float vHeight;',
+      'varying float vDist;',
+      'void main() {',
+      '  vec3 pos = position;',
+      '  float dist = length(pos.xz);',
+      '  float wave1 = sin(dist * 1.2 - uTime * 0.8) * uWaveHeight;',
+      '  float wave2 = sin(pos.x * 0.8 + uTime * 0.5) * cos(pos.z * 0.6 - uTime * 0.3) * uWaveHeight * 0.5;',
+      '  float wave3 = cos(dist * 0.5 + uTime * 0.2) * uWaveHeight * 0.3;',
+      '  pos.y += wave1 + wave2 + wave3;',
+      '  vHeight = pos.y;',
+      '  vDist = dist;',
+      '  gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);',
+      '}',
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'uniform float uOpacity;',
+      'varying float vHeight;',
+      'varying float vDist;',
+      'void main() {',
+      '  float heightGlow = smoothstep(-0.2, 0.6, vHeight);',
+      '  float edgeFade = 1.0 - smoothstep(4.0, 7.5, vDist);',
+      '  float alpha = uOpacity * edgeFade * (0.3 + heightGlow * 0.7);',
+      '  gl_FragColor = vec4(uColor, alpha);',
+      '}',
+    ].join('\n'),
   });
 
   const planeMesh = new THREE.Mesh(planeGeo, planeMat);
@@ -82,15 +76,13 @@ export function createHeroScene(canvas: HTMLCanvasElement) {
   const floatGroup = new THREE.Group();
   scene.add(floatGroup);
 
-  interface FloatingParticle {
+  const floatingParticles: Array<{
     mesh: THREE.Mesh;
     baseY: number;
     phase: number;
     speed: number;
     floatAmp: number;
-  }
-
-  const floatingParticles: FloatingParticle[] = [];
+  }> = [];
   const particleGeo = new THREE.SphereGeometry(0.03, 8, 8);
 
   for (let i = 0; i < FLOAT_PARTICLES; i++) {
@@ -171,14 +163,14 @@ export function createHeroScene(canvas: HTMLCanvasElement) {
 
     const isDark = document.documentElement.classList.contains('dark');
     planeMat.uniforms.uOpacity.value = isDark ? 0.15 : 0.1;
-    glowSprite.material.opacity = isDark ? 0.07 : 0.04;
+    (glowSprite.material as THREE.SpriteMaterial).opacity = isDark ? 0.07 : 0.04;
 
     renderer.render(scene, camera);
   }
 
   animate();
 
-  return () => {
+  return function cleanup() {
     cancelAnimationFrame(frame);
     window.removeEventListener('resize', resize);
     window.removeEventListener('mousemove', onMouseMove);
@@ -191,9 +183,9 @@ function createGlow(): THREE.Sprite {
   const c = document.createElement('canvas');
   c.width = size;
   c.height = size;
-  const ctx = c.getContext('2d')!;
+  const drawCtx = c.getContext('2d')!;
 
-  const gradient = ctx.createRadialGradient(
+  const gradient = drawCtx.createRadialGradient(
     size / 2, size / 2, 0,
     size / 2, size / 2, size / 2
   );
@@ -202,8 +194,8 @@ function createGlow(): THREE.Sprite {
   gradient.addColorStop(0.6, 'rgba(69, 208, 193, 0.02)');
   gradient.addColorStop(1, 'rgba(69, 208, 193, 0)');
 
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
+  drawCtx.fillStyle = gradient;
+  drawCtx.fillRect(0, 0, size, size);
 
   const texture = new THREE.CanvasTexture(c);
   const material = new THREE.SpriteMaterial({

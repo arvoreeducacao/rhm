@@ -193,8 +193,8 @@ async function loadTypeScriptConfig(configPath: string): Promise<HubConfig> {
     const mod = await import(fileUrl);
     return (mod.default ?? mod) as HubConfig;
   } catch {
-    const { execSync } = await import("node:child_process");
-    const json = execSync(`npx tsx -e "import c from '${configPath}'; console.log(JSON.stringify(c))"`, {
+    const { execFileSync } = await import("node:child_process");
+    const json = execFileSync("npx", ["tsx", "-e", `import c from '${configPath}'; console.log(JSON.stringify(c))`], {
       encoding: "utf-8",
       cwd: configPath.replace(/\/hub\.config\.ts$/, ""),
       stdio: ["pipe", "pipe", "pipe"],

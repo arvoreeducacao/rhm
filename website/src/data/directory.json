@@ -281,7 +281,7 @@
     "installCmd": "hub skills add obra/superpowers/brainstorming",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/brainstorming/SKILL.md",
     "contentPreview": "# Brainstorming Ideas Into Designs\n\n## Overview\n\nHelp turn ideas into fully formed designs and specs through natural collaborative dialogue.\n\nStart by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.\n\n<HARD-GATE>\nDo NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.\n</HARD-GATE>\n\n## Anti-Pattern: \"This Is Too Simple To Need A Design\"\n\nEvery project goes through this process. A todo list, a single-function utility, a config change — all of them. \"Simple\" projects are where unex\n..."
   },
@@ -294,7 +294,7 @@
     "installCmd": "hub skills add obra/superpowers/dispatching-parallel-agents",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/dispatching-parallel-agents/SKILL.md",
     "contentPreview": "# Dispatching Parallel Agents\n\n## Overview\n\nWhen you have multiple unrelated failures (different test files, different subsystems, different bugs), investigating them sequentially wastes time. Each investigation is independent and can happen in parallel.\n\n**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently.\n\n## When to Use\n\n```dot\ndigraph when_to_use {\n    \"Multiple failures?\" [shape=diamond];\n    \"Are they independent?\" [shape=diamond];\n    \"Single agent investigates all\" [shape=box];\n    \"One agent per problem domain\" [shape=box];\n    \"Can they work in parallel?\" [shape=diamond];\n    \"Sequential agents\" [shape=box];\n    \"Parallel dispatch\" [shape=box];\n\n    \"Multiple failures?\" -> \"Are they independent?\" [label=\"yes\"];\n    \"Are they independe\n..."
   },
@@ -307,7 +307,7 @@
     "installCmd": "hub skills add obra/superpowers/executing-plans",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/executing-plans/SKILL.md",
     "contentPreview": "# Executing Plans\n\n## Overview\n\nLoad plan, review critically, execute tasks in batches, report for review between batches.\n\n**Core principle:** Batch execution with checkpoints for architect review.\n\n**Announce at start:** \"I'm using the executing-plans skill to implement this plan.\"\n\n## The Process\n\n### Step 1: Load and Review Plan\n1. Read plan file\n2. Review critically - identify any questions or concerns about the plan\n3. If concerns: Raise them with your human partner before starting\n4. If no concerns: Create TodoWrite and proceed\n\n### Step 2: Execute Batch\n**Default: First 3 tasks**\n\nFor each task:\n1. Mark as in_progress\n2. Follow each step exactly (plan has bite-sized steps)\n3. Run verifications as specified\n4. Mark as completed\n\n### Step 3: Report\nWhen batch complete:\n- Show what wa\n..."
   },
@@ -320,7 +320,7 @@
     "installCmd": "hub skills add obra/superpowers/finishing-a-development-branch",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/finishing-a-development-branch/SKILL.md",
     "contentPreview": "# Finishing a Development Branch\n\n## Overview\n\nGuide completion of development work by presenting clear options and handling chosen workflow.\n\n**Core principle:** Verify tests → Present options → Execute choice → Clean up.\n\n**Announce at start:** \"I'm using the finishing-a-development-branch skill to complete this work.\"\n\n## The Process\n\n### Step 1: Verify Tests\n\n**Before presenting options, verify tests pass:**\n\n```bash\n# Run project's test suite\nnpm test / cargo test / pytest / go test ./...\n```\n\n**If tests fail:**\n```\nTests failing (<N> failures). Must fix before completing:\n\n[Show failures]\n\nCannot proceed with merge/PR until tests pass.\n```\n\nStop. Don't proceed to Step 2.\n\n**If tests pass:** Continue to Step 2.\n\n### Step 2: Determine Base Branch\n\n```bash\n# Try common base branches\ngit\n..."
   },
@@ -333,7 +333,7 @@
     "installCmd": "hub skills add obra/superpowers/receiving-code-review",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/receiving-code-review/SKILL.md",
     "contentPreview": "# Code Review Reception\n\n## Overview\n\nCode review requires technical evaluation, not emotional performance.\n\n**Core principle:** Verify before implementing. Ask before assuming. Technical correctness over social comfort.\n\n## The Response Pattern\n\n```\nWHEN receiving code review feedback:\n\n1. READ: Complete feedback without reacting\n2. UNDERSTAND: Restate requirement in own words (or ask)\n3. VERIFY: Check against codebase reality\n4. EVALUATE: Technically sound for THIS codebase?\n5. RESPOND: Technical acknowledgment or reasoned pushback\n6. IMPLEMENT: One item at a time, test each\n```\n\n## Forbidden Responses\n\n**NEVER:**\n- \"You're absolutely right!\" (explicit CLAUDE.md violation)\n- \"Great point!\" / \"Excellent feedback!\" (performative)\n- \"Let me implement that now\" (before verification)\n\n**INSTE\n..."
   },
@@ -346,7 +346,7 @@
     "installCmd": "hub skills add obra/superpowers/requesting-code-review",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/requesting-code-review/SKILL.md",
     "contentPreview": "# Requesting Code Review\n\nDispatch superpowers:code-reviewer subagent to catch issues before they cascade.\n\n**Core principle:** Review early, review often.\n\n## When to Request Review\n\n**Mandatory:**\n- After each task in subagent-driven development\n- After completing major feature\n- Before merge to main\n\n**Optional but valuable:**\n- When stuck (fresh perspective)\n- Before refactoring (baseline check)\n- After fixing complex bug\n\n## How to Request\n\n**1. Get git SHAs:**\n```bash\nBASE_SHA=$(git rev-parse HEAD~1)  # or origin/main\nHEAD_SHA=$(git rev-parse HEAD)\n```\n\n**2. Dispatch code-reviewer subagent:**\n\nUse Task tool with superpowers:code-reviewer type, fill template at `code-reviewer.md`\n\n**Placeholders:**\n- `{WHAT_WAS_IMPLEMENTED}` - What you just built\n- `{PLAN_OR_REQUIREMENTS}` - What it s\n..."
   },
@@ -359,7 +359,7 @@
     "installCmd": "hub skills add obra/superpowers/subagent-driven-development",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md",
     "contentPreview": "# Subagent-Driven Development\n\nExecute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.\n\n**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration\n\n## When to Use\n\n```dot\ndigraph when_to_use {\n    \"Have implementation plan?\" [shape=diamond];\n    \"Tasks mostly independent?\" [shape=diamond];\n    \"Stay in this session?\" [shape=diamond];\n    \"subagent-driven-development\" [shape=box];\n    \"executing-plans\" [shape=box];\n    \"Manual execution or brainstorm first\" [shape=box];\n\n    \"Have implementation plan?\" -> \"Tasks mostly independent?\" [label=\"yes\"];\n    \"Have implementation plan?\" -> \"Manual execution or brainstorm first\" [label=\"no\"];\n    \"Tasks mostly\n..."
   },
@@ -372,7 +372,7 @@
     "installCmd": "hub skills add obra/superpowers/systematic-debugging",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/systematic-debugging/SKILL.md",
     "contentPreview": "# Systematic Debugging\n\n## Overview\n\nRandom fixes waste time and create new bugs. Quick patches mask underlying issues.\n\n**Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.\n\n**Violating the letter of this process is violating the spirit of debugging.**\n\n## The Iron Law\n\n```\nNO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST\n```\n\nIf you haven't completed Phase 1, you cannot propose fixes.\n\n## When to Use\n\nUse for ANY technical issue:\n- Test failures\n- Bugs in production\n- Unexpected behavior\n- Performance problems\n- Build failures\n- Integration issues\n\n**Use this ESPECIALLY when:**\n- Under time pressure (emergencies make guessing tempting)\n- \"Just one quick fix\" seems obvious\n- You've already tried multiple fixes\n- Previous fix didn't work\n- You don't\n..."
   },
@@ -385,7 +385,7 @@
     "installCmd": "hub skills add obra/superpowers/test-driven-development",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/test-driven-development/SKILL.md",
     "contentPreview": "# Test-Driven Development (TDD)\n\n## Overview\n\nWrite the test first. Watch it fail. Write minimal code to pass.\n\n**Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.\n\n**Violating the letter of the rules is violating the spirit of the rules.**\n\n## When to Use\n\n**Always:**\n- New features\n- Bug fixes\n- Refactoring\n- Behavior changes\n\n**Exceptions (ask your human partner):**\n- Throwaway prototypes\n- Generated code\n- Configuration files\n\nThinking \"skip TDD just this once\"? Stop. That's rationalization.\n\n## The Iron Law\n\n```\nNO PRODUCTION CODE WITHOUT A FAILING TEST FIRST\n```\n\nWrite code before the test? Delete it. Start over.\n\n**No exceptions:**\n- Don't keep it as \"reference\"\n- Don't \"adapt\" it while writing tests\n- Don't look at it\n- Delete means de\n..."
   },
@@ -398,7 +398,7 @@
     "installCmd": "hub skills add obra/superpowers/using-git-worktrees",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/using-git-worktrees/SKILL.md",
     "contentPreview": "# Using Git Worktrees\n\n## Overview\n\nGit worktrees create isolated workspaces sharing the same repository, allowing work on multiple branches simultaneously without switching.\n\n**Core principle:** Systematic directory selection + safety verification = reliable isolation.\n\n**Announce at start:** \"I'm using the using-git-worktrees skill to set up an isolated workspace.\"\n\n## Directory Selection Process\n\nFollow this priority order:\n\n### 1. Check Existing Directories\n\n```bash\n# Check in priority order\nls -d .worktrees 2>/dev/null     # Preferred (hidden)\nls -d worktrees 2>/dev/null      # Alternative\n```\n\n**If found:** Use that directory. If both exist, `.worktrees` wins.\n\n### 2. Check CLAUDE.md\n\n```bash\ngrep -i \"worktree.*director\" CLAUDE.md 2>/dev/null\n```\n\n**If preference specified:** Use it \n..."
   },
@@ -411,7 +411,7 @@
     "installCmd": "hub skills add obra/superpowers/using-superpowers",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/using-superpowers/SKILL.md",
     "contentPreview": "<EXTREMELY-IMPORTANT>\nIf you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.\n\nIF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.\n\nThis is not negotiable. This is not optional. You cannot rationalize your way out of this.\n</EXTREMELY-IMPORTANT>\n\n## How to Access Skills\n\n**In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.\n\n**In other environments:** Check your platform's documentation for how skills are loaded.\n\n# Using Skills\n\n## The Rule\n\n**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to\n..."
   },
@@ -424,7 +424,7 @@
     "installCmd": "hub skills add obra/superpowers/verification-before-completion",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/verification-before-completion/SKILL.md",
     "contentPreview": "# Verification Before Completion\n\n## Overview\n\nClaiming work is complete without verification is dishonesty, not efficiency.\n\n**Core principle:** Evidence before claims, always.\n\n**Violating the letter of this rule is violating the spirit of this rule.**\n\n## The Iron Law\n\n```\nNO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE\n```\n\nIf you haven't run the verification command in this message, you cannot claim it passes.\n\n## The Gate Function\n\n```\nBEFORE claiming any status or expressing satisfaction:\n\n1. IDENTIFY: What command proves this claim?\n2. RUN: Execute the FULL command (fresh, complete)\n3. READ: Full output, check exit code, count failures\n4. VERIFY: Does output confirm the claim?\n   - If NO: State actual status with evidence\n   - If YES: State claim WITH evidence\n5. ONLY THEN\n..."
   },
@@ -437,7 +437,7 @@
     "installCmd": "hub skills add obra/superpowers/writing-plans",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md",
     "contentPreview": "# Writing Plans\n\n## Overview\n\nWrite comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.\n\nAssume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.\n\n**Announce at start:** \"I'm using the writing-plans skill to create the implementation plan.\"\n\n**Context:** This should be run in a dedicated worktree (created by brainstorming skill).\n\n**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`\n\n## Bite-Sized Task Granularity\n\n\n..."
   },
@@ -450,7 +450,7 @@
     "installCmd": "hub skills add obra/superpowers/writing-skills",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/skills/writing-skills/SKILL.md",
     "contentPreview": "# Writing Skills\n\n## Overview\n\n**Writing skills IS Test-Driven Development applied to process documentation.**\n\n**Personal skills live in agent-specific directories (`~/.claude/skills` for Claude Code, `~/.agents/skills/` for Codex)** \n\nYou write test cases (pressure scenarios with subagents), watch them fail (baseline behavior), write the skill (documentation), watch tests pass (agents comply), and refactor (close loopholes).\n\n**Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.\n\n**REQUIRED BACKGROUND:** You MUST understand superpowers:test-driven-development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.\n\n**Official guidance:** For Anthro\n..."
   },
@@ -463,7 +463,7 @@
     "installCmd": "hub agents add obra/superpowers",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/agents/code-reviewer.md",
     "contentPreview": "You are a Senior Code Reviewer with expertise in software architecture, design patterns, and best practices. Your role is to review completed project steps against original plans and ensure code quality standards are met.\n\nWhen reviewing completed work, you will:\n\n1. **Plan Alignment Analysis**:\n   - Compare the implementation against the original planning document or step description\n   - Identify any deviations from the planned approach, architecture, or requirements\n   - Assess whether deviations are justified improvements or problematic departures\n   - Verify that all planned functionality has been implemented\n\n2. **Code Quality Assessment**:\n   - Review code for adherence to established patterns and conventions\n   - Check for proper error handling, type safety, and defensive programmi\n..."
   },
@@ -476,7 +476,7 @@
     "installCmd": "hub hooks add obra/superpowers",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/hooks/session-start",
     "contentPreview": "#!/usr/bin/env bash\n# SessionStart hook for superpowers plugin\n\nset -euo pipefail\n\n# Determine plugin root directory\nSCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]:-$0}\")\" && pwd)\"\nPLUGIN_ROOT=\"$(cd \"${SCRIPT_DIR}/..\" && pwd)\"\n\n# Check if legacy skills directory exists and build warning\nwarning_message=\"\"\nlegacy_skills_dir=\"${HOME}/.config/superpowers/skills\"\nif [ -d \"$legacy_skills_dir\" ]; then\n    warning_message=\"\\n\\n<important-reminder>IN YOUR FIRST REPLY AFTER SEEING THIS MESSAGE YOU MUST TELL THE USER:⚠️ **WARNING:** Superpowers now uses Claude Code's skills system. Custom skills in ~/.config/superpowers/skills will not be read. Move custom skills to ~/.claude/skills instead. To make this message go away, remove ~/.config/superpowers/skills</important-reminder>\"\nfi\n\n# Read using-super\n..."
   },
@@ -489,7 +489,7 @@
     "installCmd": "hub commands add obra/superpowers",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/commands/brainstorm.md",
     "contentPreview": "Invoke the superpowers:brainstorming skill and follow it exactly as presented to you"
   },
@@ -502,7 +502,7 @@
     "installCmd": "hub commands add obra/superpowers",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/commands/execute-plan.md",
     "contentPreview": "Invoke the superpowers:executing-plans skill and follow it exactly as presented to you"
   },
@@ -515,7 +515,7 @@
     "installCmd": "hub commands add obra/superpowers",
     "verified": true,
     "fromRegistry": false,
-    "stars": 73380,
+    "stars": 73381,
     "sourceUrl": "https://github.com/obra/superpowers/blob/main/commands/write-plan.md",
     "contentPreview": "Invoke the superpowers:writing-plans skill and follow it exactly as presented to you"
   },

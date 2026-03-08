@@ -20,7 +20,7 @@ export const addRepoCommand = new Command("add-repo")
 
     if (format === "typescript") {
       console.log(chalk.yellow("add-repo is not supported with hub.config.ts — edit the file directly."));
-      return;
+      process.exit(1);
     }
 
     const content = await readFile(configPath, "utf-8");

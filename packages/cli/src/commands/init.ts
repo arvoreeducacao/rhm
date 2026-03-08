@@ -22,7 +22,6 @@ export const initCommand = new Command('init')
       process.stdout.write(SHOW_CURSOR + EXIT_ALT_SCREEN)
     }
 
-    process.on('exit', cleanup)
     process.on('SIGINT', () => {
       cleanup()
       process.exit(0)

@@ -212,9 +212,9 @@ async function findUnsyncedAssets(hubDir: string): Promise<UnsyncedAsset[]> {
     }
   }
 
-  const hubYamlPath = join(hubDir, "hub.yaml");
-  if (existsSync(hubYamlPath)) {
-    const hubContent = await readFile(hubYamlPath, "utf-8");
+  const { path: activeConfigPath, format: configFormat } = resolveConfigPath(hubDir);
+  if (configFormat === "yaml" && existsSync(activeConfigPath)) {
+    const hubContent = await readFile(activeConfigPath, "utf-8");
     const hubConfig = parse(hubContent) as HubConfig;
     const hubMcpNames = new Set((hubConfig.mcps || []).map((m) => m.name));
 
@@ -397,7 +397,7 @@ export const scanCommand = new Command("scan")
           const newEntries = toAdd.map(buildRepoYaml).join("\n");
           const updatedContent = before + newEntries + "\n" + after;
 
-          await import("node:fs/promises").then((fs) => fs.writeFile(configPath, updatedContent, "utf-8"));
+          await writeFile(configPath, updatedContent, "utf-8");
           console.log(chalk.green(`Added ${toAdd.length} repo(s) to hub.yaml.`));
           hasChanges = true;
         }

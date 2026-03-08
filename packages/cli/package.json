@@ -40,6 +40,9 @@
     "react": "^19.2.4",
     "yaml": "^2.7.0"
   },
+  "optionalDependencies": {
+    "tsx": "^4.0.0"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.0.0",
