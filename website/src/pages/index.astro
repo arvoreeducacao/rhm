@@ -132,15 +132,18 @@ import Footer from '../components/Footer.astro';
           Think of it like a <span class="text-gray-600 font-medium dark:text-gray-300">docker-compose for AI development</span>. Instead of defining containers, you define your repositories, your tools, and your development workflow. The AI follows it automatically.
         </p>
 
-        <div class="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 overflow-hidden dark:border-gray-800 dark:bg-gray-900/50">
+        <div class="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 overflow-hidden dark:border-gray-800 dark:bg-gray-900/50" id="config-tabs">
           <div class="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
             <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
             <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
             <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
-            <span class="ml-2 text-[11px] text-gray-300 font-mono dark:text-gray-600">hub.yaml</span>
+            <div class="ml-2 flex gap-1">
+              <button data-tab="yaml" class="config-tab config-tab-active px-2.5 py-0.5 rounded text-[11px] font-mono tracking-wide transition-colors">hub.yaml</button>
+              <button data-tab="ts" class="config-tab px-2.5 py-0.5 rounded text-[11px] font-mono tracking-wide transition-colors">hub.config.ts</button>
+            </div>
           </div>
-          <pre class="p-4 sm:p-6 text-[12px] sm:text-[13px] leading-relaxed font-mono text-gray-400 overflow-x-auto dark:text-gray-500"><code><span class="text-gray-300 dark:text-gray-600"># Which repositories your AI can work on</span>
-<span class="text-brand-600 dark:text-brand-400">repos</span>:
+          <div data-panel="yaml">
+            <pre class="p-4 sm:p-6 text-[12px] sm:text-[13px] leading-relaxed font-mono text-gray-400 overflow-x-auto dark:text-gray-500"><code><span class="text-brand-600 dark:text-brand-400">repos</span>:
   - <span class="text-gray-600 dark:text-gray-300">name: api</span>
     <span class="text-gray-600 dark:text-gray-300">url: git@github.com:company/api.git</span>
     <span class="text-gray-600 dark:text-gray-300">tech: nestjs</span>
@@ -148,24 +151,49 @@ import Footer from '../components/Footer.astro';
     <span class="text-gray-600 dark:text-gray-300">url: git@github.com:company/frontend.git</span>
     <span class="text-gray-600 dark:text-gray-300">tech: nextjs</span>
 
-<span class="text-gray-300 dark:text-gray-600"># Tools the AI can use (databases, monitoring, browser testing...)</span>
 <span class="text-brand-600 dark:text-brand-400">mcps</span>:
   - <span class="text-gray-600 dark:text-gray-300">name: postgresql</span>
   - <span class="text-gray-600 dark:text-gray-300">name: playwright</span>
   - <span class="text-gray-600 dark:text-gray-300">name: datadog</span>
 
-<span class="text-gray-300 dark:text-gray-600"># The step-by-step workflow the AI follows</span>
 <span class="text-brand-600 dark:text-brand-400">workflow</span>:
   <span class="text-brand-600 dark:text-brand-400">pipeline</span>:
-    - <span class="text-gray-600 dark:text-gray-300">step: refinement</span>    <span class="text-gray-300 dark:text-gray-600"># Understand requirements</span>
-    - <span class="text-gray-600 dark:text-gray-300">step: coding</span>        <span class="text-gray-300 dark:text-gray-600"># Write the code</span>
-    - <span class="text-gray-600 dark:text-gray-300">step: review</span>        <span class="text-gray-300 dark:text-gray-600"># Review against requirements</span>
-    - <span class="text-gray-600 dark:text-gray-300">step: qa</span>            <span class="text-gray-300 dark:text-gray-600"># Run tests</span>
-    - <span class="text-gray-600 dark:text-gray-300">step: deliver</span>       <span class="text-gray-300 dark:text-gray-600"># Create PRs, notify Slack</span></code></pre>
+    - <span class="text-gray-600 dark:text-gray-300">step: refinement</span>
+    - <span class="text-gray-600 dark:text-gray-300">step: coding</span>
+    - <span class="text-gray-600 dark:text-gray-300">step: review</span>
+    - <span class="text-gray-600 dark:text-gray-300">step: qa</span>
+    - <span class="text-gray-600 dark:text-gray-300">step: deliver</span></code></pre>
+          </div>
+          <div data-panel="ts" class="hidden">
+            <pre class="p-4 sm:p-6 text-[12px] sm:text-[13px] leading-relaxed font-mono text-gray-400 overflow-x-auto dark:text-gray-500"><code set:html={`<span class="text-purple-400 dark:text-purple-300">import</span> <span class="text-gray-600 dark:text-gray-300">{ defineConfig, repo, mcp }</span> <span class="text-purple-400 dark:text-purple-300">from</span> <span class="text-brand-600 dark:text-brand-400">"@arvoretech/hub/config"</span>;
+
+<span class="text-purple-400 dark:text-purple-300">export default</span> <span class="text-gray-600 dark:text-gray-300">defineConfig</span>({
+  <span class="text-brand-600 dark:text-brand-400">repos</span>: [
+    <span class="text-gray-600 dark:text-gray-300">repo.nestjs</span>(<span class="text-brand-600 dark:text-brand-400">"api"</span>, <span class="text-brand-600 dark:text-brand-400">"git@github.com:company/api.git"</span>),
+    <span class="text-gray-600 dark:text-gray-300">repo.nextjs</span>(<span class="text-brand-600 dark:text-brand-400">"frontend"</span>, <span class="text-brand-600 dark:text-brand-400">"git@github.com:company/frontend.git"</span>),
+  ],
+
+  <span class="text-brand-600 dark:text-brand-400">mcps</span>: [
+    <span class="text-gray-600 dark:text-gray-300">mcp.postgresql</span>(<span class="text-brand-600 dark:text-brand-400">"main-db"</span>),
+    <span class="text-gray-600 dark:text-gray-300">mcp.playwright</span>(),
+    <span class="text-gray-600 dark:text-gray-300">mcp.datadog</span>(),
+  ],
+
+  <span class="text-brand-600 dark:text-brand-400">workflow</span>: {
+    <span class="text-brand-600 dark:text-brand-400">pipeline</span>: [
+      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"refinement"</span> },
+      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"coding"</span> },
+      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"review"</span> },
+      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"qa"</span> },
+      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"deliver"</span> },
+    ],
+  },
+});`} /></pre>
+          </div>
         </div>
 
         <p class="mt-6 text-center text-xs text-gray-300 font-mono tracking-wide dark:text-gray-600">
-          One file. One CLI command. Your AI knows the rest.
+          One config file. One CLI command. Your AI knows the rest.
         </p>
       </div>
     </section>
@@ -201,13 +229,13 @@ import Footer from '../components/Footer.astro';
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
           <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
             <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">1</div>
-            <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">You write hub.yaml</p>
-            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Declare your repos, tools, and workflow. Takes 5 minutes.</p>
+            <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">You write your config</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Declare your repos, tools, and workflow in YAML or TypeScript. Takes 5 minutes.</p>
           </div>
           <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
             <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">2</div>
             <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">Run the CLI</p>
-            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500"><code class="text-[11px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 dark:bg-gray-800 dark:border-gray-700">hub generate</code> reads the YAML and creates instructions your editor understands.</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500"><code class="text-[11px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 dark:bg-gray-800 dark:border-gray-700">hub generate</code> reads your config and creates instructions your editor understands.</p>
           </div>
           <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
             <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">3</div>
@@ -339,7 +367,6 @@ import Footer from '../components/Footer.astro';
 
         <div class="mt-8 rounded-xl border border-gray-100 bg-gray-50/50 p-4 max-w-md mx-auto overflow-hidden dark:border-gray-800 dark:bg-gray-900/50">
           <pre class="text-left text-[12px] sm:text-[13px] font-mono text-gray-500 leading-relaxed overflow-x-auto dark:text-gray-400"><code><span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub init my-project
-<span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub add-repo git@github.com:co/api.git
 <span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub setup
 <span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub generate --editor cursor
 <span class="text-brand-600 dark:text-brand-400">Done! Open in Cursor and start building.</span></code></pre>
@@ -357,84 +384,36 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <script>
-      const canvas = document.getElementById('mesh') as HTMLCanvasElement;
-      const ctx = canvas.getContext('2d')!;
-      let width = 0;
-      let height = 0;
-      let particles: { x: number; y: number; vx: number; vy: number; size: number }[] = [];
-      const CONNECTION_DIST = 140;
-      const PARTICLE_COUNT = 55;
+      import { createHeroScene } from '../components/HeroScene';
 
-      function resize() {
-        const dpr = window.devicePixelRatio || 1;
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-        ctx.scale(dpr, dpr);
+      const el = document.getElementById('mesh');
+      if (el) {
+        const dispose = createHeroScene(el as HTMLCanvasElement);
+        document.addEventListener('astro:before-swap', () => dispose(), { once: true });
       }
+    </script>
 
-      function init() {
-        resize();
-        particles = [];
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-          particles.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            vx: (Math.random() - 0.5) * 0.4,
-            vy: (Math.random() - 0.5) * 0.4,
-            size: Math.random() * 1.5 + 0.5,
+    <script is:inline>
+      (function() {
+        const container = document.getElementById('config-tabs');
+        if (!container) return;
+
+        const tabs = container.querySelectorAll('.config-tab');
+        const panels = container.querySelectorAll('[data-panel]');
+
+        tabs.forEach(function(tab) {
+          tab.addEventListener('click', function() {
+            var target = tab.getAttribute('data-tab');
+
+            tabs.forEach(function(t) { t.classList.remove('config-tab-active'); });
+            tab.classList.add('config-tab-active');
+
+            panels.forEach(function(p) {
+              p.classList.toggle('hidden', p.getAttribute('data-panel') !== target);
+            });
           });
-        }
-      }
-
-      function animate() {
-        ctx.clearRect(0, 0, width, height);
-
-        const isDark = document.documentElement.classList.contains('dark');
-        const lineColor = '69, 208, 193';
-        const lineAlphaMultiplier = isDark ? 0.12 : 0.08;
-        const dotAlpha = isDark ? 0.35 : 0.25;
-
-        particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          if (p.x < 0 || p.x > width) p.vx *= -1;
-          if (p.y < 0 || p.y > height) p.vy *= -1;
         });
-
-        for (let i = 0; i < particles.length; i++) {
-          for (let j = i + 1; j < particles.length; j++) {
-            const dx = particles[i].x - particles[j].x;
-            const dy = particles[i].y - particles[j].y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < CONNECTION_DIST) {
-              const alpha = lineAlphaMultiplier * (1 - dist / CONNECTION_DIST);
-              ctx.beginPath();
-              ctx.moveTo(particles[i].x, particles[i].y);
-              ctx.lineTo(particles[j].x, particles[j].y);
-              ctx.strokeStyle = `rgba(${lineColor}, ${alpha})`;
-              ctx.lineWidth = 0.6;
-              ctx.stroke();
-            }
-          }
-        }
-
-        particles.forEach(p => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(69, 208, 193, ${dotAlpha})`;
-          ctx.fill();
-        });
-
-        requestAnimationFrame(animate);
-      }
-
-      init();
-      animate();
-      window.addEventListener('resize', () => { resize(); });
+      })();
     </script>
 
     <Footer />

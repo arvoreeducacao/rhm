@@ -15,6 +15,46 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.10.0",
+    date: "2025-07-07",
+    title: "Interactive TUI & TypeScript Config",
+    slug: "0-10-0",
+    summary:
+      "hub init is now a full interactive TUI built with ink — a multi-step wizard with registry integration, tech stack detection, and MCP selection. Plus TypeScript config support with type-safe helpers for repos, MCPs, and services.",
+    changes: [
+      {
+        type: "feat",
+        title: "Interactive TUI",
+        description:
+          "hub init launches a polished terminal UI with 11 steps: welcome, name, editor, repos, agents, skills, MCPs, config format, summary, creating, and done. Agents and skills are fetched from the hub directory registry, with smart pre-selection based on your tech stack.",
+      },
+      {
+        type: "feat",
+        title: "TypeScript Config",
+        description:
+          "Define your hub config in hub.config.ts with full type safety. The defineConfig wrapper provides autocompletion, and composable helpers (repo.nestjs, mcp.postgresql, service.postgres, etc.) set sensible defaults for each framework and tool.",
+      },
+      {
+        type: "feat",
+        title: "Config Helpers",
+        description:
+          "Type-safe helpers for 7 repo frameworks, 17 MCP servers (all arvore-mcp-servers packages plus Playwright and Context7), and 8 Docker service types. Each helper pre-fills the correct package names, default commands, ports, and images.",
+      },
+      {
+        type: "feat",
+        title: "Directory Registry Integration",
+        description:
+          "The TUI fetches agents and skills from hub.arvore.com.br/directory.json at runtime. Skills matching your repo tech stack are automatically recommended. Falls back to built-in defaults when offline.",
+      },
+      {
+        type: "feat",
+        title: "Three.js Hero Animation",
+        description:
+          "The website landing page now uses a Three.js particle animation for the hero section, replacing the previous inline canvas implementation.",
+      },
+    ],
+  },
+  {
     version: "0.9.0",
     date: "2025-06-20",
     title: "Remote Sources & Design System",

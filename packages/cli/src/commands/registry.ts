@@ -61,7 +61,7 @@ export async function listRegistryDir(
   return (await res.json()) as GitHubContentEntry[];
 }
 
-async function listRegistrySkills(repo: string): Promise<{ name: string; description: string }[]> {
+export async function listRegistrySkills(repo: string): Promise<{ name: string; description: string }[]> {
   const items = await listRegistryDir(repo, "skills");
   const skills: { name: string; description: string }[] = [];
 
@@ -86,7 +86,7 @@ async function listRegistrySkills(repo: string): Promise<{ name: string; descrip
   return skills;
 }
 
-async function listRegistryAgents(repo: string): Promise<{ name: string; description: string }[]> {
+export async function listRegistryAgents(repo: string): Promise<{ name: string; description: string }[]> {
   const items = await listRegistryDir(repo, "agents");
   const agents: { name: string; description: string }[] = [];
 

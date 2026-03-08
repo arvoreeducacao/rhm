@@ -8,6 +8,8 @@ The `repos` section declares all repositories in your workspace. Each repo keeps
 
 ## Schema
 
+### YAML
+
 ```yaml
 repos:
   - name: api
@@ -26,6 +28,25 @@ repos:
     tools:
       node: "22.18.0"
 ```
+
+### TypeScript
+
+With `hub.config.ts`, use the type-safe repo helpers that pre-fill commands for each framework:
+
+```typescript
+import { defineConfig, repo } from "@arvoretech/hub/config";
+
+export default defineConfig({
+  repos: [
+    repo.nestjs("api", "git@github.com:company/api.git"),
+    repo.nextjs("frontend", "git@github.com:company/frontend.git"),
+    repo.elixir("backend", "git@github.com:company/backend.git"),
+    repo.custom("docs", "git@github.com:company/docs.git", { tech: "astro" }),
+  ],
+});
+```
+
+Available helpers: `repo.nestjs()`, `repo.nextjs()`, `repo.react()`, `repo.elixir()`, `repo.go()`, `repo.python()`, `repo.custom()`. All accept an optional overrides object for commands, skills, env_file, etc. See [Configuration](/docs/configuration#typescript-config-hubconfigts) for details.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|

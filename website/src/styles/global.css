@@ -128,6 +128,42 @@
     color: var(--shiki-dark) !important;
     background-color: var(--shiki-dark-bg) !important;
   }
+
+  .config-tab {
+    color: #9ca3af;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .config-tab:hover {
+    color: #6b7280;
+  }
+
+  .config-tab-active {
+    color: #45D0C1;
+    background: rgba(69, 208, 193, 0.08);
+  }
+
+  .config-tab-active:hover {
+    color: #45D0C1;
+  }
+
+  html.dark .config-tab {
+    color: #4b5563;
+  }
+
+  html.dark .config-tab:hover {
+    color: #6b7280;
+  }
+
+  html.dark .config-tab-active {
+    color: #45D0C1;
+    background: rgba(69, 208, 193, 0.1);
+  }
+
+  html.dark .config-tab-active:hover {
+    color: #45D0C1;
+  }
 }
 
 @keyframes line-travel {

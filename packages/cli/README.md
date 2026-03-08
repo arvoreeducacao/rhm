@@ -36,9 +36,9 @@ One CLI command generates the config your editor needs. Done.
 
 ## What is this, actually?
 
-### It's a YAML file
+### It's a config file
 
-Everything starts with `hub.yaml`. Here's a minimal example:
+Everything starts with a config file — either `hub.yaml` or `hub.config.ts`. Here's a minimal YAML example:
 
 ```yaml
 name: my-company
@@ -64,6 +64,34 @@ workflow:
     - step: deliver
       actions: [create-pr, notify-slack]
 ```
+
+And the same thing in TypeScript with type-safe helpers:
+
+```typescript
+import { defineConfig, repo, mcp } from "@arvoretech/hub/config";
+
+export default defineConfig({
+  name: "my-company",
+  repos: [
+    repo.nestjs("api", "git@github.com:company/api.git"),
+    repo.nextjs("frontend", "git@github.com:company/frontend.git"),
+  ],
+  mcps: [
+    mcp.postgresql("main-db"),
+    mcp.playwright(),
+  ],
+  workflow: {
+    pipeline: [
+      { step: "refinement", agent: "refinement" },
+      { step: "coding", agents: ["coding-backend", "coding-frontend"] },
+      { step: "review", agent: "code-reviewer" },
+      { step: "deliver", actions: ["create-pr", "notify-slack"] },
+    ],
+  },
+});
+```
+
+The CLI auto-detects which format you're using (`hub.config.ts` takes priority over `hub.yaml`).
 
 ### It becomes editor instructions
 
@@ -116,13 +144,21 @@ Examples:
 
 ```bash
 npx @arvoretech/hub init my-hub
+```
+
+This launches an interactive TUI that walks you through:
+1. Naming your workspace
+2. Choosing your AI editor (Cursor, Kiro, Claude Code, OpenCode)
+3. Adding repositories with tech stack detection
+4. Selecting agents and skills from the registry
+5. Picking MCP servers for tool access
+6. Choosing config format (YAML or TypeScript)
+
+Once done:
+
+```bash
 cd my-hub
-
-npx @arvoretech/hub add-repo git@github.com:company/api.git --tech nestjs
-npx @arvoretech/hub add-repo git@github.com:company/frontend.git --tech nextjs
-
 npx @arvoretech/hub setup
-
 npx @arvoretech/hub generate --editor cursor
 ```
 

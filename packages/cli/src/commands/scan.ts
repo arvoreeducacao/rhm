@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { parse } from "yaml";
 import chalk from "chalk";
 import inquirer from "inquirer";
-import type { HubConfig } from "../core/hub-config.js";
+import { resolveConfigPath, loadHubConfig, type HubConfig } from "../core/hub-config.js";
 
 const EDITOR_DIRS = [".kiro", ".cursor", ".opencode", ".claude"];
 
@@ -212,9 +212,9 @@ async function findUnsyncedAssets(hubDir: string): Promise<UnsyncedAsset[]> {
     }
   }
 
-  const hubYamlPath = join(hubDir, "hub.yaml");
-  if (existsSync(hubYamlPath)) {
-    const hubContent = await readFile(hubYamlPath, "utf-8");
+  const { path: activeConfigPath, format: configFormat } = resolveConfigPath(hubDir);
+  if (configFormat === "yaml" && existsSync(activeConfigPath)) {
+    const hubContent = await readFile(activeConfigPath, "utf-8");
     const hubConfig = parse(hubContent) as HubConfig;
     const hubMcpNames = new Set((hubConfig.mcps || []).map((m) => m.name));
 
@@ -304,20 +304,20 @@ async function syncAssets(hubDir: string, assets: UnsyncedAsset[]): Promise<void
 }
 
 export const scanCommand = new Command("scan")
-  .description("Detect git repositories not registered in hub.yaml")
+  .description("Detect git repositories not registered in hub config")
   .option("-y, --yes", "Auto-add all found repos without prompting")
   .option("--check", "Check for unsynced assets without prompting (exit code 1 if found)")
   .action(async (opts: { yes?: boolean; check?: boolean }) => {
     const hubDir = process.cwd();
-    const configPath = join(hubDir, "hub.yaml");
+    const { path: configPath, format } = resolveConfigPath(hubDir);
 
     if (!existsSync(configPath)) {
-      console.log(chalk.red("No hub.yaml found in current directory."));
+      const configFile = format === "typescript" ? "hub.config.ts" : "hub.yaml";
+      console.log(chalk.red(`No ${configFile} found in current directory.`));
       process.exit(1);
     }
 
-    const content = await readFile(configPath, "utf-8");
-    const config = parse(content) as HubConfig;
+    const config = await loadHubConfig(hubDir);
 
     if (opts.check) {
       const unregistered = await findUnregisteredRepos(hubDir, config);
@@ -344,7 +344,7 @@ export const scanCommand = new Command("scan")
     const unregistered = await findUnregisteredRepos(hubDir, config);
 
     if (unregistered.length === 0) {
-      console.log(chalk.green("All repositories are registered in hub.yaml."));
+      console.log(chalk.green("All repositories are registered in hub config."));
     } else {
       console.log(chalk.yellow(`Found ${unregistered.length} unregistered repo(s):\n`));
 
@@ -361,36 +361,46 @@ export const scanCommand = new Command("scan")
       }
       console.log();
 
-      let toAdd = repoDetails;
+      if (format === "typescript") {
+        console.log(chalk.yellow("  Auto-adding repos is not supported with hub.config.ts — edit the file directly."));
+        console.log(chalk.dim("  Suggested entries:\n"));
+        for (const r of repoDetails) {
+          const helper = r.tech ? `repo.${r.tech}` : "repo.custom";
+          console.log(chalk.dim(`    ${helper}("${r.name}", "${r.url}"),`));
+        }
+        console.log();
+      } else {
+        let toAdd = repoDetails;
 
-      if (!opts.yes) {
-        const { selected } = await inquirer.prompt<{ selected: string[] }>([
-          {
-            type: "checkbox",
-            name: "selected",
-            message: "Select repos to add to hub.yaml:",
-            choices: repoDetails.map((r) => ({
-              name: `${r.name}${r.tech ? ` (${r.tech})` : ""}`,
-              value: r.name,
-              checked: true,
-            })),
-          },
-        ]);
-        toAdd = repoDetails.filter((r) => selected.includes(r.name));
-      }
+        if (!opts.yes) {
+          const { selected } = await inquirer.prompt<{ selected: string[] }>([
+            {
+              type: "checkbox",
+              name: "selected",
+              message: "Select repos to add to hub.yaml:",
+              choices: repoDetails.map((r) => ({
+                name: `${r.name}${r.tech ? ` (${r.tech})` : ""}`,
+                value: r.name,
+                checked: true,
+              })),
+            },
+          ]);
+          toAdd = repoDetails.filter((r) => selected.includes(r.name));
+        }
 
-      if (toAdd.length > 0) {
-        const originalContent = await readFile(configPath, "utf-8");
-        const insertAt = findReposInsertionPoint(originalContent);
-        const before = originalContent.slice(0, insertAt);
-        const after = originalContent.slice(insertAt);
+        if (toAdd.length > 0) {
+          const originalContent = await readFile(configPath, "utf-8");
+          const insertAt = findReposInsertionPoint(originalContent);
+          const before = originalContent.slice(0, insertAt);
+          const after = originalContent.slice(insertAt);
 
-        const newEntries = toAdd.map(buildRepoYaml).join("\n");
-        const updatedContent = before + newEntries + "\n" + after;
+          const newEntries = toAdd.map(buildRepoYaml).join("\n");
+          const updatedContent = before + newEntries + "\n" + after;
 
-        await import("node:fs/promises").then((fs) => fs.writeFile(configPath, updatedContent, "utf-8"));
-        console.log(chalk.green(`Added ${toAdd.length} repo(s) to hub.yaml.`));
-        hasChanges = true;
+          await writeFile(configPath, updatedContent, "utf-8");
+          console.log(chalk.green(`Added ${toAdd.length} repo(s) to hub.yaml.`));
+          hasChanges = true;
+        }
       }
     }
 

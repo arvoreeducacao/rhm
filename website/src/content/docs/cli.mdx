@@ -10,13 +10,21 @@ Install globally with `npm i -g @arvoretech/hub`, then run commands as `hub <com
 
 ### `hub init [name]`
 
-Create a new hub workspace:
+Create a new hub workspace with an interactive TUI:
 
 ```bash
 hub init my-hub
 ```
 
-Creates a directory with `hub.yaml`, `.gitignore`, `.cursorignore`, and `README.md`.
+Launches a multi-step wizard that guides you through:
+1. Naming your workspace
+2. Choosing your AI editor (Cursor, Kiro, Claude Code, OpenCode)
+3. Adding repositories with tech stack detection
+4. Selecting agents and skills from the [directory registry](https://hub.arvore.com.br)
+5. Picking MCP servers for infrastructure access
+6. Choosing config format (YAML or TypeScript)
+
+Creates a directory with the config file (`hub.yaml` or `hub.config.ts`), `.gitignore`, `README.md`, and installs selected agents and skills from the registry.
 
 ### `hub setup`
 
@@ -47,7 +55,7 @@ Checks: git, docker, node (required), pnpm, mise, gh, aws (recommended), plus an
 
 ### `hub generate`
 
-Generate editor configuration files from `hub.yaml`:
+Generate editor configuration files from your config (`hub.yaml` or `hub.config.ts`):
 
 ```bash
 hub generate --editor cursor       # Cursor IDE (default)

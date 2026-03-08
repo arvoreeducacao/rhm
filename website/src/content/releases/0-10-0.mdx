@@ -1,0 +1,171 @@
+---
+title: "v0.10.0 — Interactive TUI & TypeScript Config"
+version: "0.10.0"
+date: "2025-07-07"
+description: "A full interactive TUI for hub init, TypeScript config support with type-safe helpers, and a new Three.js hero animation."
+---
+
+The init experience got a complete overhaul. Instead of a few CLI prompts, `hub init` now launches a full interactive TUI built with [ink](https://github.com/vadimdemedes/ink) — a multi-step wizard that walks you through every decision. And if YAML isn't your thing, you can now define your hub config in TypeScript with composable, type-safe helpers.
+
+## Interactive TUI for `hub init`
+
+The old `hub init` was a handful of `inquirer` prompts. The new one is a proper terminal UI with 11 steps, live feedback, and a polished flow:
+
+```
+Welcome → Name → Editor → Repos → Agents → Skills → MCPs → Format → Summary → Creating → Done
+```
+
+Each step renders a dedicated screen that clears the terminal for a clean experience. Here's what changed:
+
+**Repos step** lets you add multiple repositories with URL and tech stack detection. Type a GitHub URL, pick the tech (nestjs, nextjs, react, elixir, go, python), and it builds the list interactively.
+
+**Agents and Skills** are fetched from the [hub directory](https://hub.arvore.com.br/directory.json) at runtime. You see the full registry of available agents and skills with descriptions, and skills that match your repo tech stack are pre-selected with a ★ marker. If the registry is unreachable, sensible defaults kick in.
+
+**MCPs step** shows all 14 available MCP servers from `arvore-mcp-servers` — databases, monitoring, feature flags, email, browser testing, and more.
+
+**Format step** is new — you choose between YAML and TypeScript for your hub config (more on that below).
+
+**Summary** shows everything you picked before creating. You can go back to change the format or confirm to proceed.
+
+**Creating** runs each setup task with a spinner and checkmarks as they complete — creating directories, writing config, installing agents and skills from the registry.
+
+The TUI is built with ink and React, using custom components for each step type: `WelcomeStep`, `NameStep`, `SelectStep`, `MultiSelectStep`, `ReposStep`, `SummaryStep`, `CreatingStep`, and `DoneStep`.
+
+---
+
+## TypeScript Config (`hub.config.ts`)
+
+You can now define your hub configuration in TypeScript instead of YAML. The CLI auto-detects `hub.config.ts` in your workspace root and loads it via dynamic import (with `tsx` as fallback for environments without native TS support).
+
+### `defineConfig`
+
+Wrap your config in `defineConfig` for type checking and autocompletion:
+
+```typescript
+import { defineConfig, repo, mcp, service } from "@arvoretech/hub/config";
+
+export default defineConfig({
+  name: "my-company",
+
+  repos: [
+    repo.nestjs("api", "git@github.com:company/api.git"),
+    repo.nextjs("frontend", "git@github.com:company/frontend.git"),
+    repo.elixir("backend", "git@github.com:company/backend.git"),
+  ],
+
+  mcps: [
+    mcp.postgresql("main-db"),
+    mcp.datadog(),
+    mcp.playwright(),
+    mcp.memory(),
+  ],
+
+  services: [
+    service.postgres("db"),
+    service.redis("cache"),
+  ],
+
+  workflow: {
+    pipeline: [
+      { step: "refinement", agent: "refinement" },
+      { step: "coding", agents: ["coding-backend", "coding-frontend"] },
+      { step: "review", agent: "code-reviewer" },
+      { step: "deliver", actions: ["create-pr", "notify-slack"] },
+    ],
+  },
+});
+```
+
+### Repo helpers
+
+Each helper sets the tech stack and default commands for that framework:
+
+| Helper | Tech | Default commands |
+|--------|------|-----------------|
+| `repo.nestjs()` | nestjs | pnpm install/dev/build/test/lint |
+| `repo.nextjs()` | nextjs | pnpm install/dev/build/test/lint |
+| `repo.react()` | react | pnpm install/dev/build/test/lint |
+| `repo.elixir()` | elixir | mix deps.get/phx.server/test/credo |
+| `repo.go()` | go | go mod download/build/test, golangci-lint |
+| `repo.python()` | python | pip install, manage.py runserver, pytest, ruff |
+| `repo.custom()` | any | No defaults, fully manual |
+
+All helpers accept an optional overrides object to customize commands, skills, env_file, and other fields.
+
+### MCP helpers
+
+Pre-configured helpers for every MCP server in `arvore-mcp-servers`, plus community servers:
+
+| Helper | Package |
+|--------|---------|
+| `mcp.postgresql()` | `@arvoretech/postgresql-mcp` |
+| `mcp.mysql()` | `@arvoretech/mysql-mcp` |
+| `mcp.clickhouse()` | `@arvoretech/clickhouse-mcp` |
+| `mcp.datadog()` | `@arvoretech/datadog-mcp` |
+| `mcp.memory()` | `@arvoretech/memory-mcp` |
+| `mcp.sendgrid()` | `@arvoretech/sendgrid-mcp` |
+| `mcp.launchdarkly()` | `@arvoretech/launchdarkly-mcp` |
+| `mcp.tempmail()` | `@arvoretech/tempmail-mcp` |
+| `mcp.awsSecretsManager()` | `@arvoretech/aws-secrets-manager-mcp` |
+| `mcp.npmRegistry()` | `@arvoretech/npm-registry-mcp` |
+| `mcp.runtimeLens()` | `runtime-lens` |
+| `mcp.meetTranscriptions()` | `@arvoretech/meet-transcriptions-mcp` |
+| `mcp.googleChat()` | `@arvoretech/google-chat-mcp` |
+| `mcp.playwright()` | `@playwright/mcp` |
+| `mcp.context7()` | `@upstash/context7-mcp` |
+| `mcp.proxy()` | `@arvoretech/mcp-proxy` |
+| `mcp.custom()` | Any package |
+
+### Service helpers
+
+Docker Compose services with sensible defaults:
+
+| Helper | Image | Default port |
+|--------|-------|-------------|
+| `service.mysql()` | mysql:8 | 3306 |
+| `service.postgres()` | postgres:16 | 5432 |
+| `service.redis()` | redis:7 | 6379 |
+| `service.mongo()` | mongo:7 | 27017 |
+| `service.rabbitmq()` | rabbitmq:3-management | 5672 |
+| `service.elasticsearch()` | elasticsearch:8.12.0 | 9200 |
+| `service.clickhouse()` | clickhouse/clickhouse-server:24 | 8123 |
+| `service.custom()` | Any image | Manual |
+
+### Config resolution
+
+The CLI checks for config files in this order:
+1. `hub.config.ts` (TypeScript)
+2. `hub.yaml` (YAML)
+
+Both formats support the same schema. The cache system includes both files in its inputs hash, so changes to either trigger regeneration.
+
+### Scan command
+
+When using TypeScript config, `hub scan` detects new repos in the workspace and shows the suggested `repo.*()` helper call instead of auto-modifying the file:
+
+```
+Found new repo: payments (nestjs)
+  → Add to hub.config.ts: repo.nestjs("payments", "git@github.com:company/payments.git")
+```
+
+---
+
+## Website: Three.js Hero
+
+The landing page hero section now uses a Three.js particle animation (`HeroScene.ts`) instead of the previous inline canvas implementation. Smoother, more performant, and easier to maintain.
+
+---
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.10.0 generate
+```
+
+Or if you have it installed globally:
+
+```bash
+hub generate
+```
+
+Existing `hub.yaml` configs work without changes. TypeScript config is opt-in — create a `hub.config.ts` and the CLI picks it up automatically.

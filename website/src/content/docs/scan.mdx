@@ -4,7 +4,7 @@ description: Auto-detect unregistered repositories and unsynced assets in your w
 order: 3
 ---
 
-As your workspace grows, new repos get cloned but not always added to `hub.yaml`. Skills, agents, and steering files get created inside editor-specific folders but never promoted to the canonical `skills/`, `agents/`, or `steering/` directories. MCP servers get added directly to editor configs without being declared in `hub.yaml`. The `hub scan` command finds all of them for you.
+As your workspace grows, new repos get cloned but not always added to your config file. Skills, agents, and steering files get created inside editor-specific folders but never promoted to the canonical `skills/`, `agents/`, or `steering/` directories. MCP servers get added directly to editor configs without being declared in your hub config. The `hub scan` command finds all of them for you.
 
 ## What it does
 
@@ -12,11 +12,12 @@ As your workspace grows, new repos get cloned but not always added to `hub.yaml`
 
 ### 1. Unregistered repositories
 
-Walks the workspace root looking for directories that contain a `.git` folder but aren't listed in `hub.yaml`. For each one it:
+Walks the workspace root looking for directories that contain a `.git` folder but aren't listed in your config. For each one it:
 
 1. Detects the tech stack by checking for framework-specific files (`mix.exs` → Elixir, `nest-cli.json` → NestJS, `next.config.*` → Next.js, etc.)
 2. Reads the git remote URL
-3. Offers to add them to `hub.yaml`
+3. For YAML configs: offers to add them to `hub.yaml`
+4. For TypeScript configs: shows the suggested `repo.*()` helper call to add manually
 
 ### 2. Unsynced assets
 
@@ -30,7 +31,7 @@ This ensures that assets created in one editor are available to all editors afte
 
 ### 3. Unsynced MCP servers
 
-Scans editor-specific MCP config files for servers not declared in `hub.yaml`:
+Scans editor-specific MCP config files for servers not declared in your hub config:
 
 | Editor | Config file | Key |
 |--------|------------|-----|
@@ -39,7 +40,7 @@ Scans editor-specific MCP config files for servers not declared in `hub.yaml`:
 | Claude Code | `.mcp.json` | `mcpServers` |
 | OpenCode | `opencode.json` | `mcp` |
 
-MCP servers found in editor configs but missing from `hub.yaml` are reported so you can add them manually (since MCPs require `package`, `url`, or `image` fields that can't be inferred).
+MCP servers found in editor configs but missing from your hub config are reported so you can add them manually (since MCPs require `package`, `url`, or `image` fields that can't be inferred).
 
 ## Usage
 
@@ -105,9 +106,16 @@ Run hub generate to update editor configs.
 
 ### Repository scanning
 
-The scan preserves your existing `hub.yaml` formatting. Instead of parsing and re-serializing the YAML (which would lose comments and ordering), it finds the end of the `repos:` array and inserts new entries as raw text.
+For YAML configs, the scan preserves your existing `hub.yaml` formatting. Instead of parsing and re-serializing the YAML (which would lose comments and ordering), it finds the end of the `repos:` array and inserts new entries as raw text.
 
-Each added repo gets the minimal fields:
+For TypeScript configs (`hub.config.ts`), the scan cannot auto-modify the file. Instead, it prints the suggested `repo.*()` helper call for each detected repo:
+
+```
+Found new repo: payments (nestjs)
+  → Add to hub.config.ts: repo.nestjs("payments", "git@github.com:company/payments.git")
+```
+
+Each added repo (YAML) gets the minimal fields:
 
 ```yaml
   - name: notifications-service

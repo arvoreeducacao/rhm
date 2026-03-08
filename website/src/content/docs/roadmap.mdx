@@ -7,7 +7,8 @@ order: 20
 ## What Works Today
 
 - **Core concept** — The gitignore/cursorignore pattern for cross-repo AI context
-- **hub.yaml schema** — Repos, commands, tools, services, env profiles, MCPs, integrations, workflow pipeline
+- **Config formats** — `hub.yaml` (YAML) and `hub.config.ts` (TypeScript with type-safe helpers via `defineConfig`, `repo`, `mcp`, `service`)
+- **Interactive TUI** — `hub init` launches a multi-step wizard with editor selection, repo setup, agent/skill selection from the directory registry, MCP picking, and config format choice
 - **CLI commands** — `init`, `add-repo`, `setup`, `generate`, `env`, `services`, `tools`, `skills`, `registry`, `pull`, `status`, `exec`, `worktree`, `doctor`
 - **Generator targets** — Cursor (`.cursor/rules/`, `.cursor/agents/`, `.cursor/mcp.json`), Claude Code (`CLAUDE.md`), Kiro (`.kiro/steering/`, `.kiro/settings/mcp.json`), OpenCode (`opencode.json`, `.opencode/`), AGENTS.md
 - **Agent templates** — 8 agents (orchestrator, refinement, coding-backend, coding-frontend, code-reviewer, qa-backend, qa-frontend, debugger)
