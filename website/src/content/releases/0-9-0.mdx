@@ -1,0 +1,208 @@
+---
+title: "v0.9.0 — Remote Sources & Design System"
+version: "0.9.0"
+date: "2025-06-20"
+description: "Skills from Notion, design system config, MCP instructions, and auto-generated .env.example."
+---
+
+This release introduces two major features that change how teams share knowledge with their AI agents: **remote sources** for pulling content from external tools, and a **design system config** that gives the AI structured context about your visual language.
+
+## Remote Sources
+
+Until now, every skill and steering file had to live inside your workspace. If your team maintained coding standards in Notion, architecture decisions in a wiki, or onboarding guides on a docs site — you had to manually copy that content into your repo.
+
+Remote sources fix this. You declare external content in `hub.yaml`, and `hub generate` fetches it automatically:
+
+```yaml
+remote_sources:
+  - name: api-conventions
+    type: steering
+    notion_page: https://www.notion.so/your-org/API-Conventions-abc123def456
+
+  - name: onboarding-guide
+    type: skill
+    url: https://your-docs.com/onboarding.md
+    triggers: [onboarding, new developer, setup]
+
+  - name: architecture-decisions
+    type: steering
+    path: ./docs/architecture.md
+```
+
+### Three source types
+
+**Notion pages** are fetched via the Notion API and converted to markdown. The converter handles all block types — paragraphs, headings, lists, code blocks, tables, toggles, images, bookmarks, callouts, and dividers. Nested blocks (like items inside a toggle) are recursively fetched and indented. You just need a `NOTION_API_KEY` env var and to share the page with your integration.
+
+**URLs** fetch raw content from any endpoint. A 30-second timeout prevents `hub generate` from hanging on unreachable servers. This is useful for docs hosted on static sites, GitHub raw URLs, or internal documentation platforms.
+
+**Local paths** read files from the filesystem. A path traversal guard validates that the resolved path stays within the workspace, preventing accidental reads of files outside the project boundary.
+
+### How it works during generate
+
+1. Each remote source is fetched from its origin
+2. Skills get written to `{editor}/skills/{name}/SKILL.md` with proper front-matter (name, description, triggers)
+3. Steering files get written to the editor's rules/steering directory
+4. If a source has `instructions`, that text is prepended to the content
+5. Failed fetches log a warning but don't block the rest of generation
+
+### Configuration reference
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | Identifier used as the filename |
+| `type` | Yes | `skill` or `steering` |
+| `notion_page` | No | Notion page URL or raw page ID |
+| `url` | No | URL to fetch content from |
+| `path` | No | Local file path (relative to hub root) |
+| `instructions` | No | Text prepended to the fetched content |
+| `triggers` | No | Keywords for skill activation (skills only) |
+
+---
+
+## Design System Config
+
+AI agents often produce UI that doesn't match your design system — wrong colors, wrong components, wrong spacing. The usual fix is to paste design guidelines into every prompt, or hope the agent reads the right skill.
+
+The new `design` section in `hub.yaml` makes this declarative:
+
+```yaml
+design:
+  skills:
+    - bonsai-design-system
+  libraries:
+    - name: shadcn/ui
+      mcp: context7
+      url: https://ui.shadcn.com
+    - name: Tailwind CSS
+      url: https://tailwindcss.com/docs
+  icons: "custom (./src/components/icons)"
+  instructions: |
+    Always use Bonsai design tokens for colors, spacing, and typography.
+    Prefer composition over custom CSS. Use shadcn/ui primitives when available.
+```
+
+### What gets generated
+
+The orchestrator prompt now includes a structured **Design System** section:
+
+```markdown
+## Design System
+
+Always use Bonsai design tokens for colors, spacing, and typography.
+Prefer composition over custom CSS. Use shadcn/ui primitives when available.
+
+### Design Skills
+
+The following skills contain design guidelines and should be consulted when working on UI:
+- `bonsai-design-system`
+
+### UI Libraries
+
+- **shadcn/ui** — docs via `context7` MCP, [docs](https://ui.shadcn.com)
+- **Tailwind CSS** — [docs](https://tailwindcss.com/docs)
+
+### Icons
+
+Icon library: **custom (./src/components/icons)**. Always use this library for icons.
+```
+
+This means every AI agent in your workspace — regardless of which editor you use — gets the same design context without you repeating it in prompts.
+
+### Combining with remote sources
+
+The real power comes from combining both features. Keep your design guidelines in Notion, fetch them as a skill, and reference that skill in the design config:
+
+```yaml
+remote_sources:
+  - name: bonsai-design-system
+    type: skill
+    notion_page: https://www.notion.so/your-org/Bonsai-abc123
+    triggers: [design, ui, components, colors, typography]
+
+design:
+  skills:
+    - bonsai-design-system
+  libraries:
+    - name: shadcn/ui
+      mcp: context7
+  icons: lucide
+```
+
+Every `hub generate` pulls the latest design docs from Notion and wires them into the orchestrator. Your design team updates Notion, your AI agents get the changes on the next generate.
+
+---
+
+## MCP Description & Instructions
+
+MCP configs now support two new fields:
+
+```yaml
+mcps:
+  - name: arvore-mysql
+    package: "@anthropic/mysql-mcp"
+    description: "Read-only access to the main Arvore MySQL database"
+    instructions: |
+      Use to explore the legacy Arvore database schema and query data.
+      Prefer describe_table before writing queries to understand column types.
+      Always use LIMIT when querying large tables.
+```
+
+**`description`** appears next to the MCP name in the orchestrator's MCP listing, so the AI knows what each server does at a glance.
+
+**`instructions`** are injected as a dedicated section per MCP in the orchestrator prompt. This is where you put usage guidelines — preferred patterns, safety rules, or context about what the server connects to.
+
+Previously, this kind of guidance had to go in the workflow prompt or a steering file. Now it lives right next to the MCP definition where it belongs.
+
+---
+
+## Auto-generate .env.example
+
+Running `hub generate` now scans all MCP `env` fields and produces a `.env.example` file listing every required environment variable:
+
+```bash
+# Auto-generated by hub generate
+# MCP: arvore-mysql
+MYSQL_HOST=
+MYSQL_PORT=
+MYSQL_USER=
+MYSQL_PASSWORD=
+MYSQL_DATABASE=
+
+# MCP: slack
+SLACK_MCP_XOXP_TOKEN=
+
+# MCP: datadog
+DATADOG_API_KEY=
+DATADOG_APP_KEY=
+DATADOG_SITE=
+```
+
+New team members can copy this to `.env` and fill in their values without reading through `hub.yaml` to figure out which secrets are needed.
+
+---
+
+## Bug Fixes
+
+**Path traversal guard** — Remote sources with `path` now validate that the resolved path doesn't escape the workspace. `resolve()` + `relative()` check prevents `../../etc/passwd` style paths.
+
+**Fetch timeout** — URL sources use `AbortSignal.timeout(30_000)` so `hub generate` doesn't hang on unreachable endpoints.
+
+**Schema validation** — Fixed `anyOf` validation in the JSON schema for `RemoteSource` and `DesignLibrary` types, restoring proper autocompletion and validation in editors that support JSON Schema.
+
+**Notion toggle blocks** — Fixed missing closing `</details>` tag for Notion toggle blocks that have no children.
+
+---
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.9.0 generate
+```
+
+Or if you have it installed globally:
+
+```bash
+hub generate
+```
+
+New `hub.yaml` fields are optional — existing configs work without changes.

@@ -1,0 +1,229 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { releases } from "../data/releases";
+
+const typeConfig = {
+  feat: {
+    label: "Feature",
+    bg: "bg-brand-50 dark:bg-brand-950/40",
+    text: "text-brand-700 dark:text-brand-300",
+    border: "border-brand-200 dark:border-brand-800",
+  },
+  fix: {
+    label: "Fix",
+    bg: "bg-amber-50 dark:bg-amber-950/40",
+    text: "text-amber-700 dark:text-amber-300",
+    border: "border-amber-200 dark:border-amber-800",
+  },
+  refactor: {
+    label: "Refactor",
+    bg: "bg-violet-50 dark:bg-violet-950/40",
+    text: "text-violet-700 dark:text-violet-300",
+    border: "border-violet-200 dark:border-violet-800",
+  },
+  chore: {
+    label: "Chore",
+    bg: "bg-gray-50 dark:bg-gray-800/40",
+    text: "text-gray-600 dark:text-gray-400",
+    border: "border-gray-200 dark:border-gray-700",
+  },
+};
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+const latestVersion = releases[0];
+---
+
+<BaseLayout
+  title="Releases"
+  description="Changelog and release history for Repo Hub CLI."
+>
+  <div class="mx-auto max-w-3xl px-6 pt-32 pb-24">
+    <div class="text-center mb-16">
+      <p
+        class="text-[11px] font-mono tracking-wider uppercase text-gray-300 mb-4 dark:text-gray-600"
+      >
+        Changelog
+      </p>
+      <h1
+        class="text-3xl sm:text-4xl font-black tracking-tight text-gray-900 dark:text-gray-50"
+      >
+        Releases
+      </h1>
+      <p
+        class="mt-4 text-sm text-gray-400 max-w-md mx-auto leading-relaxed dark:text-gray-500"
+      >
+        Every version of Repo Hub CLI, from the first commit to the latest
+        feature.
+      </p>
+      <div
+        class="mt-6 inline-flex items-center gap-2 rounded-full border border-gray-200/80 bg-white/60 px-4 py-1.5 text-xs text-gray-500 backdrop-blur-sm font-mono tracking-wide dark:border-gray-700/80 dark:bg-gray-900/60 dark:text-gray-400"
+      >
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+        Latest: v{latestVersion.version}
+      </div>
+    </div>
+
+    <div class="relative">
+      <div
+        class="absolute left-[19px] top-2 bottom-0 w-px bg-gray-100 dark:bg-gray-800"
+      >
+      </div>
+
+      {
+        releases.map((release, index) => (
+          <div
+            class="relative pl-12 pb-14 last:pb-0 group"
+            id={`v${release.version}`}
+          >
+            <div
+              class={`absolute left-[12px] top-1.5 h-[15px] w-[15px] rounded-full border-2 transition-colors ${index === 0 ? "border-brand-500 bg-brand-500 shadow-lg shadow-brand-500/30" : "border-gray-200 bg-white group-hover:border-brand-400 group-hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-900 dark:group-hover:border-brand-500 dark:group-hover:bg-brand-950/50"}`}
+            />
+
+            <div class="rounded-xl border border-gray-100 bg-white p-6 transition-all hover:border-gray-200 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900/50 dark:hover:border-gray-700">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
+                <div class="flex items-center gap-3">
+                  <span class="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    v{release.version}
+                  </span>
+                  {index === 0 && (
+                    <span class="rounded-full bg-brand-500 px-2.5 py-0.5 text-[10px] font-semibold text-white tracking-wide uppercase">
+                      Latest
+                    </span>
+                  )}
+                </div>
+                <time class="text-xs text-gray-400 font-mono dark:text-gray-500">
+                  {formatDate(release.date)}
+                </time>
+              </div>
+
+              <h2 class="text-lg font-semibold text-gray-900 mt-1 dark:text-gray-100">
+                {release.title}
+              </h2>
+
+              <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">
+                {release.summary}
+              </p>
+
+              <div class="mt-4 space-y-2.5">
+                {release.changes.map((change) => {
+                  const config = typeConfig[change.type];
+                  return (
+                    <div class="flex items-start gap-2.5">
+                      <span
+                        class={`mt-0.5 shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${config.bg} ${config.text} ${config.border}`}
+                      >
+                        {config.label}
+                      </span>
+                      <div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {change.title}
+                        </span>
+                        <span class="text-sm text-gray-400 dark:text-gray-500">
+                          {" "}
+                          — {change.description}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-gray-50 dark:border-gray-800">
+                <a
+                  href={`/releases/${release.slug}`}
+                  class="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors dark:text-brand-400 dark:hover:text-brand-300"
+                >
+                  Read full release notes
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <div
+      class="mt-16 rounded-xl border border-gray-100 bg-gray-50/50 p-6 text-center dark:border-gray-800 dark:bg-gray-900/50"
+    >
+      <p class="text-sm text-gray-400 dark:text-gray-500">
+        Install the latest version:
+      </p>
+      <div
+        class="mt-3 inline-flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-mono text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+      >
+        <span class="text-gray-300 dark:text-gray-600 select-none">$</span>
+        <code>npx @arvoretech/hub@latest</code>
+        <button
+          id="copy-install"
+          class="ml-1 text-gray-300 hover:text-brand-500 transition-colors dark:text-gray-600 dark:hover:text-brand-400"
+          aria-label="Copy to clipboard"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+            />
+          </svg>
+        </button>
+      </div>
+      <div class="mt-4 flex items-center justify-center gap-4">
+        <a
+          href="https://github.com/arvoreeducacao/rhm/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-xs text-gray-400 hover:text-brand-600 transition-colors font-mono dark:text-gray-500 dark:hover:text-brand-400"
+        >
+          View on GitHub &rarr;
+        </a>
+        <a
+          href="https://www.npmjs.com/package/@arvoretech/hub"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-xs text-gray-400 hover:text-brand-600 transition-colors font-mono dark:text-gray-500 dark:hover:text-brand-400"
+        >
+          View on npm &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("copy-install")?.addEventListener("click", () => {
+      navigator.clipboard.writeText("npx @arvoretech/hub@latest");
+      const btn = document.getElementById("copy-install");
+      if (btn) {
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>`;
+        setTimeout(() => {
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>`;
+        }, 2000);
+      }
+    });
+  </script>
+</BaseLayout>

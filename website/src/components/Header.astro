@@ -1,12 +1,61 @@
 ---
 import Search from './Search.astro';
 
-const navItems = [
-  { label: 'Docs', href: '/docs/getting-started' },
-  { label: 'Directory', href: '/directory' },
-  { label: 'Roadmap', href: '/docs/roadmap' },
-  { label: 'Careers', href: '/careers' },
-  { label: 'Blog', href: 'https://arvore-blog.vercel.app/pt' },
+const docsItems = [
+  {
+    title: 'Getting Started',
+    items: [
+      { label: 'Introduction', href: '/docs/getting-started', description: 'Quick setup guide' },
+      { label: 'Configuration', href: '/docs/configuration', description: 'Configure your workspace' },
+      { label: 'CLI Reference', href: '/docs/cli', description: 'Command line interface' },
+    ],
+  },
+  {
+    title: 'Core Concepts',
+    items: [
+      { label: 'Agent Orchestration', href: '/docs/agents', description: 'Multi-agent pipelines' },
+      { label: 'Skills', href: '/docs/skills', description: 'Reusable agent capabilities' },
+      { label: 'MCPs', href: '/docs/mcps', description: 'Model Context Protocol' },
+      { label: 'Memory', href: '/docs/memory', description: 'Persistent team knowledge' },
+      { label: 'Hooks', href: '/docs/hooks', description: 'Event-driven automation' },
+    ],
+  },
+  {
+    title: 'Configuration',
+    items: [
+      { label: 'Repositories', href: '/docs/repos', description: 'Multi-repo management' },
+      { label: 'Workflow', href: '/docs/workflow', description: 'Pipeline definitions' },
+      { label: 'Environment', href: '/docs/environment', description: 'Env vars and secrets' },
+      { label: 'Integrations', href: '/docs/integrations', description: 'Third-party services' },
+    ],
+  },
+];
+
+const resourcesItems = [
+  {
+    title: 'Explore',
+    items: [
+      { label: 'Directory', href: '/directory', description: 'Browse skills, MCPs and more' },
+      { label: 'Registry', href: '/docs/registry', description: 'Package registry' },
+      { label: 'Remote Sources', href: '/docs/remote-sources', description: 'Share across teams' },
+    ],
+  },
+  {
+    title: 'Project',
+    items: [
+      { label: 'Releases', href: '/releases', description: 'Changelog and versions' },
+      { label: 'Roadmap', href: '/docs/roadmap', description: 'What\'s coming next' },
+      { label: 'Blog', href: 'https://arvore-blog.vercel.app/pt', description: 'Articles and updates', external: true },
+    ],
+  },
+  {
+    title: 'About',
+    items: [
+      { label: 'Philosophy', href: '/docs/philosophy', description: 'Why we built this' },
+      { label: 'Best Practices', href: '/docs/best-practices', description: 'Recommended patterns' },
+      { label: 'Careers', href: '/careers', description: 'Join the team' },
+    ],
+  },
 ];
 ---
 
@@ -17,50 +66,117 @@ const navItems = [
       <span>Repo Hub</span>
     </a>
 
-    <nav class="hidden items-center gap-6 md:flex">
-      {navItems.map(item => (
-        <a href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined} class="text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
-          {item.label}
+    <nav class="hidden items-center gap-1 md:flex">
+      <div class="nav-dropdown relative" data-dropdown="docs">
+        <button class="nav-trigger flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+          Docs
+          <svg class="h-3.5 w-3.5 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <div class="dropdown-panel invisible absolute left-1/2 top-full pt-3 opacity-0 transition-all duration-200 -translate-x-1/2">
+          <div class="w-[640px] rounded-xl border border-gray-200/80 bg-white p-5 shadow-xl shadow-gray-200/50 dark:border-gray-700/80 dark:bg-gray-900 dark:shadow-black/30">
+            <div class="grid grid-cols-3 gap-5">
+              {docsItems.map(section => (
+                <div>
+                  <p class="mb-2.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{section.title}</p>
+                  <div class="space-y-0.5">
+                    {section.items.map(item => (
+                      <a href={item.href} class="group/item block rounded-lg px-2.5 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60">
+                        <span class="block text-sm font-medium text-gray-700 group-hover/item:text-gray-900 dark:text-gray-300 dark:group-hover/item:text-gray-100">{item.label}</span>
+                        <span class="block text-xs text-gray-400 dark:text-gray-500">{item.description}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div class="mt-4 border-t border-gray-100 pt-3 dark:border-gray-800">
+              <a href="/docs/getting-started" class="flex items-center gap-1.5 text-xs font-medium text-brand-600 transition-colors hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
+                View all docs
+                <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" /></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-dropdown relative" data-dropdown="resources">
+        <button class="nav-trigger flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+          Resources
+          <svg class="h-3.5 w-3.5 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <div class="dropdown-panel invisible absolute left-1/2 top-full pt-3 opacity-0 transition-all duration-200 -translate-x-1/2">
+          <div class="w-[540px] rounded-xl border border-gray-200/80 bg-white p-5 shadow-xl shadow-gray-200/50 dark:border-gray-700/80 dark:bg-gray-900 dark:shadow-black/30">
+            <div class="grid grid-cols-3 gap-5">
+              {resourcesItems.map(section => (
+                <div>
+                  <p class="mb-2.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{section.title}</p>
+                  <div class="space-y-0.5">
+                    {section.items.map(item => (
+                      <a href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'noopener noreferrer' : undefined} class="group/item block rounded-lg px-2.5 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60">
+                        <span class="flex items-center gap-1 text-sm font-medium text-gray-700 group-hover/item:text-gray-900 dark:text-gray-300 dark:group-hover/item:text-gray-100">
+                          {item.label}
+                          {item.external && (
+                            <svg class="h-3 w-3 text-gray-300 dark:text-gray-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm4.943-.067a.75.75 0 01.673-.418h5.384a.75.75 0 01.75.75v5.384a.75.75 0 01-1.28.53l-1.72-1.72-4.47 4.47a.75.75 0 01-1.06-1.06l4.47-4.47-1.72-1.72a.75.75 0 01-.025-1.146z" clip-rule="evenodd" /></svg>
+                          )}
+                        </span>
+                        <span class="block text-xs text-gray-400 dark:text-gray-500">{item.description}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <a href="/directory" class="rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+        Directory
+      </a>
+
+      <div class="ml-2 flex items-center gap-2">
+        <Search />
+        <button
+          id="theme-toggle"
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+          aria-label="Toggle dark mode"
+        >
+          <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="hidden h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="hidden h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
+        <a
+          href="https://github.com/arvoreeducacao/rhm"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
         </a>
-      ))}
-      <Search />
-      <button
-        id="theme-toggle"
-        class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-        aria-label="Toggle dark mode"
-      >
-        <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="hidden h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5" />
-          <line x1="12" y1="1" x2="12" y2="3" />
-          <line x1="12" y1="21" x2="12" y2="23" />
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-          <line x1="1" y1="12" x2="3" y2="12" />
-          <line x1="21" y1="12" x2="23" y2="12" />
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-        </svg>
-        <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="hidden h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      </button>
-      <a
-        href="https://github.com/arvoreeducacao/rhm"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-      >
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-        </svg>
-        GitHub
-      </a>
-      <a
-        href="/docs/getting-started"
-        class="rounded-full bg-brand-600 px-5 py-2 text-sm font-medium text-white transition-all hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-600/20"
-      >
-        Get Started
-      </a>
+        <a
+          href="/docs/getting-started"
+          class="rounded-full bg-brand-600 px-5 py-2 text-sm font-medium text-white transition-all hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-600/20"
+        >
+          Get Started
+        </a>
+      </div>
     </nav>
 
     <div class="flex items-center gap-2 md:hidden">
@@ -93,11 +209,23 @@ const navItems = [
   </div>
 
   <div id="mobile-menu" class="hidden border-t border-gray-100 bg-white px-6 py-4 md:hidden dark:border-gray-800 dark:bg-gray-950">
-    {navItems.map(item => (
-      <a href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined} class="block py-2 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">{item.label}</a>
-    ))}
-    <a href="https://github.com/arvoreeducacao/rhm" target="_blank" class="block py-2 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">GitHub</a>
-    <a href="/docs/getting-started" class="mt-2 block rounded-full bg-brand-600 px-5 py-2 text-center text-sm font-medium text-white">Get Started</a>
+    <div class="space-y-4">
+      <div>
+        <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Docs</p>
+        {docsItems.flatMap(s => s.items).map(item => (
+          <a href={item.href} class="block py-1.5 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">{item.label}</a>
+        ))}
+      </div>
+      <div>
+        <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Resources</p>
+        {resourcesItems.flatMap(s => s.items).map(item => (
+          <a href={item.href} target={item.external ? '_blank' : undefined} class="block py-1.5 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">{item.label}</a>
+        ))}
+      </div>
+      <a href="/directory" class="block py-1.5 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">Directory</a>
+      <a href="https://github.com/arvoreeducacao/rhm" target="_blank" class="block py-1.5 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">GitHub</a>
+      <a href="/docs/getting-started" class="mt-2 block rounded-full bg-brand-600 px-5 py-2 text-center text-sm font-medium text-white">Get Started</a>
+    </div>
   </div>
 </header>
 
@@ -124,5 +252,61 @@ const navItems = [
   document.getElementById('theme-toggle-mobile')?.addEventListener('click', toggleTheme);
   document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
     document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+
+  document.querySelectorAll('.nav-dropdown').forEach(dropdown => {
+    const trigger = dropdown.querySelector('.nav-trigger');
+    const panel = dropdown.querySelector('.dropdown-panel');
+    const chevron = trigger?.querySelector('svg');
+    let timeout: ReturnType<typeof setTimeout>;
+
+    function show() {
+      clearTimeout(timeout);
+      document.querySelectorAll('.nav-dropdown').forEach(other => {
+        if (other !== dropdown) {
+          const otherPanel = other.querySelector('.dropdown-panel');
+          const otherChevron = other.querySelector('.nav-trigger svg');
+          otherPanel?.classList.add('invisible', 'opacity-0');
+          otherPanel?.classList.remove('visible', 'opacity-100');
+          otherChevron?.classList.remove('rotate-180');
+        }
+      });
+      panel?.classList.remove('invisible', 'opacity-0');
+      panel?.classList.add('visible', 'opacity-100');
+      chevron?.classList.add('rotate-180');
+    }
+
+    function hide() {
+      timeout = setTimeout(() => {
+        panel?.classList.add('invisible', 'opacity-0');
+        panel?.classList.remove('visible', 'opacity-100');
+        chevron?.classList.remove('rotate-180');
+      }, 150);
+    }
+
+    dropdown.addEventListener('mouseenter', show);
+    dropdown.addEventListener('mouseleave', hide);
+
+    trigger?.addEventListener('focus', show);
+    trigger?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (panel?.classList.contains('invisible')) {
+        show();
+      } else {
+        hide();
+      }
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.dropdown-panel').forEach(panel => {
+        panel.classList.add('invisible', 'opacity-0');
+        panel.classList.remove('visible', 'opacity-100');
+      });
+      document.querySelectorAll('.nav-trigger svg').forEach(chevron => {
+        chevron.classList.remove('rotate-180');
+      });
+    }
   });
 </script>
