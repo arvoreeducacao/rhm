@@ -57,6 +57,8 @@ If you need multiple database connections, you can declare the same MCP server m
 
 ## Configuration
 
+### YAML
+
 Declare MCPs in your `hub.yaml`:
 
 ```yaml
@@ -87,6 +89,27 @@ mcps:
     env:
       API_KEY: "${env:CUSTOM_TOOL_API_KEY}"
 ```
+
+### TypeScript
+
+With `hub.config.ts`, use the type-safe MCP helpers:
+
+```typescript
+import { defineConfig, mcp } from "@arvoretech/hub/config";
+
+export default defineConfig({
+  mcps: [
+    mcp.postgresql("main-db", { env: { PG_HOST: "localhost", PG_DATABASE: "myapp" } }),
+    mcp.datadog(),
+    mcp.playwright(),
+    mcp.memory(),
+    mcp.launchdarkly(),
+    mcp.custom("linear", { url: "https://mcp.linear.app/sse" }),
+  ],
+});
+```
+
+Each helper pre-fills the correct `package` name. See [Configuration](/docs/configuration#typescript-config-hubconfigts) for the full list of MCP helpers.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|

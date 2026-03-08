@@ -8,6 +8,8 @@ The `services` section declares infrastructure services (databases, caches, sear
 
 ## Schema
 
+### YAML
+
 ```yaml
 services:
   - name: mysql
@@ -26,6 +28,27 @@ services:
   - name: redis
     image: redis:7-alpine
     port: 6379
+```
+
+### TypeScript
+
+With `hub.config.ts`, use the type-safe service helpers that pre-fill images and default ports:
+
+```typescript
+import { defineConfig, service } from "@arvoretech/hub/config";
+
+export default defineConfig({
+  services: [
+    service.mysql("mysql", { env: { MYSQL_ROOT_PASSWORD: "root", MYSQL_DATABASE: "myapp" } }),
+    service.postgres("db"),
+    service.redis("cache"),
+    service.elasticsearch("search"),
+    service.custom("qdrant", "qdrant/qdrant:latest", { port: 6333 }),
+  ],
+});
+```
+
+Available helpers: `service.mysql()`, `service.postgres()`, `service.redis()`, `service.mongo()`, `service.rabbitmq()`, `service.elasticsearch()`, `service.clickhouse()`, `service.custom()`. See [Configuration](/docs/configuration#typescript-config-hubconfigts) for details.
 
   - name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0

@@ -137,7 +137,7 @@ import Footer from '../components/Footer.astro';
             <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
             <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
             <span class="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
-            <span class="ml-2 text-[11px] text-gray-300 font-mono dark:text-gray-600">hub.yaml</span>
+            <span class="ml-2 text-[11px] text-gray-300 font-mono dark:text-gray-600">hub.yaml / hub.config.ts</span>
           </div>
           <pre class="p-4 sm:p-6 text-[12px] sm:text-[13px] leading-relaxed font-mono text-gray-400 overflow-x-auto dark:text-gray-500"><code><span class="text-gray-300 dark:text-gray-600"># Which repositories your AI can work on</span>
 <span class="text-brand-600 dark:text-brand-400">repos</span>:
@@ -165,7 +165,7 @@ import Footer from '../components/Footer.astro';
         </div>
 
         <p class="mt-6 text-center text-xs text-gray-300 font-mono tracking-wide dark:text-gray-600">
-          One file. One CLI command. Your AI knows the rest.
+          One config file. One CLI command. Your AI knows the rest.
         </p>
       </div>
     </section>
@@ -201,13 +201,13 @@ import Footer from '../components/Footer.astro';
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
           <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
             <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">1</div>
-            <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">You write hub.yaml</p>
-            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Declare your repos, tools, and workflow. Takes 5 minutes.</p>
+            <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">You write your config</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Declare your repos, tools, and workflow in YAML or TypeScript. Takes 5 minutes.</p>
           </div>
           <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
             <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">2</div>
             <p class="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">Run the CLI</p>
-            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500"><code class="text-[11px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 dark:bg-gray-800 dark:border-gray-700">hub generate</code> reads the YAML and creates instructions your editor understands.</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500"><code class="text-[11px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 dark:bg-gray-800 dark:border-gray-700">hub generate</code> reads your config and creates instructions your editor understands.</p>
           </div>
           <div class="rounded-xl border border-gray-100 p-6 dark:border-gray-800">
             <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-900 text-white text-sm font-bold dark:bg-gray-100 dark:text-gray-900">3</div>
@@ -339,7 +339,6 @@ import Footer from '../components/Footer.astro';
 
         <div class="mt-8 rounded-xl border border-gray-100 bg-gray-50/50 p-4 max-w-md mx-auto overflow-hidden dark:border-gray-800 dark:bg-gray-900/50">
           <pre class="text-left text-[12px] sm:text-[13px] font-mono text-gray-500 leading-relaxed overflow-x-auto dark:text-gray-400"><code><span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub init my-project
-<span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub add-repo git@github.com:co/api.git
 <span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub setup
 <span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub generate --editor cursor
 <span class="text-brand-600 dark:text-brand-400">Done! Open in Cursor and start building.</span></code></pre>

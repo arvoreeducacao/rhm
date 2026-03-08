@@ -27,16 +27,20 @@ hub init my-hub
 cd my-hub
 ```
 
-This creates a new directory with a `hub.yaml` configuration file. The file includes a schema reference that enables autocomplete, validation, and hover docs in your editor automatically (see [Configuration](/docs/configuration#editor-support-autocomplete--validation) for details).
+This launches an interactive TUI that walks you through naming your workspace, choosing your AI editor, adding repositories, selecting agents and skills from the [directory registry](https://hub.arvore.com.br), picking MCP servers, and choosing your config format (YAML or TypeScript).
 
-### 2. Add your repositories
+At the end, you'll have a fully configured workspace with your chosen config file (`hub.yaml` or `hub.config.ts`), agents, skills, and a `.gitignore`. See [Configuration](/docs/configuration) for details on both formats.
+
+### 2. (Optional) Add more repositories
+
+If you didn't add all repos during init, you can add them later:
 
 ```bash
 hub add-repo git@github.com:company/api.git --tech nestjs
 hub add-repo git@github.com:company/frontend.git --tech nextjs
 ```
 
-Each repository is declared in `hub.yaml` with its tech stack, commands, and environment configuration.
+Each repository is declared in your config file with its tech stack, commands, and environment configuration.
 
 ### 3. Set up the workspace
 
@@ -55,7 +59,7 @@ hub generate --editor claude-code  # or
 hub generate --editor opencode
 ```
 
-This reads `hub.yaml` and produces editor-specific files:
+This reads your config file (`hub.yaml` or `hub.config.ts`) and produces editor-specific files:
 
 - **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/rules/<steering>.mdc`, `.cursor/agents/*.md`, `.cursor/skills/hub-docs/`, `.cursor/mcp.json`, `.gitignore` + `.cursorignore`
 - **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/<steering>.md`, `.kiro/agents/`, `.kiro/skills/hub-docs/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
@@ -88,7 +92,7 @@ Your AI sees all repos as one workspace. Each repo keeps its own git history. Ze
 
 When you run `hub generate --editor cursor`, the CLI:
 
-1. Reads your `hub.yaml` declaring the full pipeline
+1. Reads your config file (`hub.yaml` or `hub.config.ts`) declaring the full pipeline
 2. Generates an orchestrator rule with workflow instructions
 3. Copies steering files from `steering/` to the editor's native format
 4. Creates agent definitions for each pipeline step
@@ -100,7 +104,7 @@ When you run `hub generate --editor cursor`, the CLI:
 
 ## Next Steps
 
-- [Configuration](/docs/configuration) — Learn the full `hub.yaml` schema
+- [Configuration](/docs/configuration) — Learn the full config schema (YAML and TypeScript)
 - [Agent Orchestration](/docs/agents) — Understand how agents collaborate
 - [Skills](/docs/skills) — Package domain knowledge for agents
 - [MCPs](/docs/mcps) — Connect AI to your infrastructure

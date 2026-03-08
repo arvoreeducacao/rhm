@@ -8,7 +8,7 @@ Repo Hub's agent system transforms your AI editor into a full development team. 
 
 ## How It Works
 
-When you run `hub generate`, the CLI produces agent definitions from your `hub.yaml` workflow. The orchestrator agent reads the pipeline and delegates to sub-agents in order.
+When you run `hub generate`, the CLI produces agent definitions from your config file (`hub.yaml` or `hub.config.ts`). The orchestrator agent reads the pipeline and delegates to sub-agents in order.
 
 ```
 Developer: "Implement user profile editing"
@@ -177,7 +177,7 @@ hub agents remove debugger --global
 
 ## Pipeline Configuration
 
-Pipelines are defined in `hub.yaml` under the `workflow` key:
+Pipelines are defined in your config under the `workflow` key:
 
 ```yaml
 workflow:
