@@ -4,15 +4,72 @@ description: Overview of the hub.yaml schema.
 order: 2
 ---
 
-The `hub.yaml` file is the single source of truth for your multi-repo workspace. It declares everything — repositories, tools, services, environments, MCPs, integrations, and the development workflow.
+Your hub configuration is the single source of truth for your multi-repo workspace. It declares everything — repositories, tools, services, environments, MCPs, integrations, and the development workflow.
 
-## Editor Support (Autocomplete & Validation)
+Repo Hub supports two config formats:
+
+| Format | File | Best for |
+|--------|------|----------|
+| YAML | `hub.yaml` | Simple, declarative configs |
+| TypeScript | `hub.config.ts` | Composable, type-safe configs with helpers |
+
+The CLI auto-detects which file exists (TypeScript takes priority). Both formats support the same schema.
+
+## TypeScript Config (`hub.config.ts`)
+
+Wrap your config in `defineConfig` for full type checking and autocompletion:
+
+```typescript
+import { defineConfig, repo, mcp, service } from "@arvoretech/hub/config";
+
+export default defineConfig({
+  name: "my-company",
+
+  repos: [
+    repo.nestjs("api", "git@github.com:company/api.git"),
+    repo.nextjs("frontend", "git@github.com:company/frontend.git"),
+    repo.elixir("backend", "git@github.com:company/backend.git"),
+  ],
+
+  mcps: [
+    mcp.postgresql("main-db"),
+    mcp.datadog(),
+    mcp.playwright(),
+  ],
+
+  services: [
+    service.postgres("db"),
+    service.redis("cache"),
+  ],
+
+  workflow: {
+    pipeline: [
+      { step: "refinement", agent: "refinement" },
+      { step: "coding", agents: ["coding-backend", "coding-frontend"] },
+      { step: "review", agent: "code-reviewer" },
+      { step: "deliver", actions: ["create-pr", "notify-slack"] },
+    ],
+  },
+});
+```
+
+### Available helpers
+
+**Repo helpers**: `repo.nestjs()`, `repo.nextjs()`, `repo.react()`, `repo.elixir()`, `repo.go()`, `repo.python()`, `repo.custom()`
+
+**MCP helpers**: `mcp.postgresql()`, `mcp.mysql()`, `mcp.clickhouse()`, `mcp.datadog()`, `mcp.memory()`, `mcp.sendgrid()`, `mcp.launchdarkly()`, `mcp.tempmail()`, `mcp.awsSecretsManager()`, `mcp.npmRegistry()`, `mcp.runtimeLens()`, `mcp.meetTranscriptions()`, `mcp.googleChat()`, `mcp.playwright()`, `mcp.context7()`, `mcp.proxy()`, `mcp.custom()`
+
+**Service helpers**: `service.mysql()`, `service.postgres()`, `service.redis()`, `service.mongo()`, `service.rabbitmq()`, `service.elasticsearch()`, `service.clickhouse()`, `service.custom()`
+
+Each helper sets sensible defaults (commands, packages, ports, images) that you can override.
+
+## YAML Config (`hub.yaml`)
+
+### Editor Support (Autocomplete & Validation)
 
 Repo Hub provides a [JSON Schema](https://json-schema.org/) for `hub.yaml` that enables autocomplete, inline validation, hover documentation, and error highlighting in any editor with YAML language server support.
 
-### How it works
-
-When you run `hub init`, the generated `hub.yaml` includes a schema comment at the top:
+When you run `hub init` and choose YAML, the generated `hub.yaml` includes a schema comment at the top:
 
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/arvoreeducacao/rhm/main/schemas/hub.schema.json

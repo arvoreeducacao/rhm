@@ -16,6 +16,30 @@ const REPO_HELPER_MAP: Record<string, string> = {
   python: 'repo.python',
 }
 
+interface McpHelperInfo {
+  helper: string
+  hasNameArg: boolean
+}
+
+const MCP_HELPER_MAP: Record<string, McpHelperInfo> = {
+  postgresql: { helper: 'mcp.postgresql', hasNameArg: true },
+  mysql: { helper: 'mcp.mysql', hasNameArg: true },
+  clickhouse: { helper: 'mcp.clickhouse', hasNameArg: true },
+  datadog: { helper: 'mcp.datadog', hasNameArg: false },
+  memory: { helper: 'mcp.memory', hasNameArg: false },
+  sendgrid: { helper: 'mcp.sendgrid', hasNameArg: false },
+  launchdarkly: { helper: 'mcp.launchdarkly', hasNameArg: false },
+  tempmail: { helper: 'mcp.tempmail', hasNameArg: false },
+  'aws-secrets-manager': { helper: 'mcp.awsSecretsManager', hasNameArg: false },
+  'npm-registry': { helper: 'mcp.npmRegistry', hasNameArg: false },
+  'runtime-lens': { helper: 'mcp.runtimeLens', hasNameArg: false },
+  'meet-transcriptions': { helper: 'mcp.meetTranscriptions', hasNameArg: false },
+  'google-chat': { helper: 'mcp.googleChat', hasNameArg: false },
+  playwright: { helper: 'mcp.playwright', hasNameArg: false },
+  context7: { helper: 'mcp.context7', hasNameArg: false },
+  'mcp-proxy': { helper: 'mcp.proxy', hasNameArg: true },
+}
+
 function buildTypeScriptConfig(state: InitState): string {
   const lines: string[] = []
   lines.push('import { defineConfig, repo, mcp } from "@arvoretech/hub/config";')
@@ -39,7 +63,12 @@ function buildTypeScriptConfig(state: InitState): string {
   if (state.mcps.length > 0) {
     lines.push('  mcps: [')
     for (const name of state.mcps) {
-      lines.push(`    mcp.custom("${name}"),`)
+      const info = MCP_HELPER_MAP[name]
+      if (info) {
+        lines.push(`    ${info.helper}(${info.hasNameArg ? `"${name}"` : ''}),`)
+      } else {
+        lines.push(`    mcp.custom("${name}"),`)
+      }
     }
     lines.push('  ],')
     lines.push('')
