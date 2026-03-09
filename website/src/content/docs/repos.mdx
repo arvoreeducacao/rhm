@@ -46,14 +46,14 @@ export default defineConfig({
 });
 ```
 
-Available helpers: `repo.nestjs()`, `repo.nextjs()`, `repo.react()`, `repo.elixir()`, `repo.go()`, `repo.python()`, `repo.custom()`. All accept an optional overrides object for commands, skills, env_file, etc. See [Configuration](/docs/configuration#typescript-config-hubconfigts) for details.
+Available helpers: `repo.nestjs()`, `repo.nextjs()`, `repo.react()`, `repo.reactNative()`, `repo.elixir()`, `repo.go()`, `repo.python()`, `repo.custom()`. All accept an optional overrides object for commands, skills, env_file, etc. See [Configuration](/docs/configuration#typescript-config-hubconfigts) for details.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | Yes | Unique identifier for the repo |
 | `path` | string | Yes | Local path relative to hub root |
 | `url` | string | Yes | Git clone URL |
-| `tech` | string | No | Technology stack (nestjs, nextjs, elixir, react, etc.) |
+| `tech` | string | No | Technology stack (nestjs, nextjs, elixir, react, react-native, etc.) |
 | `description` | string | No | Human-readable description |
 | `display_name` | string | No | Custom label shown in the `.code-workspace` file. Defaults to `name (Tech)` |
 | `env_file` | string | No | Path to environment file relative to repo root |
