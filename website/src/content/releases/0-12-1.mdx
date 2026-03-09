@@ -1,0 +1,25 @@
+---
+title: "v0.12.1 — Security fix for runtime-lens MCP"
+version: "0.12.1"
+date: "2026-03-09"
+description: "Fix runtime-lens MCP helper to use the correct scoped package name."
+---
+
+The `mcp.runtimeLens()` helper was resolving to the unscoped `runtime-lens` npm package instead of the correct `@arvoretech/runtime-lens-mcp`. This could cause `npx` to install an unrelated or potentially malicious package from the public npm registry.
+
+## What changed
+
+- `mcp.runtimeLens()` now resolves to `@arvoretech/runtime-lens-mcp`
+- Updated MCP docs table to reflect the correct package name
+
+## Who is affected
+
+Any workspace using `mcp.runtimeLens()` in their `hub.config.ts`. After upgrading, run `hub generate` to regenerate your MCP config files with the correct package reference.
+
+---
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.12.1 generate
+```
