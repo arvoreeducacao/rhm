@@ -184,7 +184,7 @@ export const mcp = {
   runtimeLens(overrides?: MCPOverrides): MCPConfig {
     return {
       name: "runtime-lens",
-      package: "runtime-lens",
+      package: "@arvoretech/runtime-lens-mcp",
       ...overrides,
       env: { ...overrides?.env },
     };
