@@ -18,7 +18,7 @@ function inferTech(name: string): string | undefined {
   const lower = name.toLowerCase()
   if (lower.includes('api') || lower.includes('backend')) return 'nestjs'
   if (lower.includes('frontend') || lower.includes('web') || lower.includes('next')) return 'nextjs'
-  if (lower.includes('mobile') || lower.includes('app')) return 'react'
+  if (lower.includes('mobile') || lower.includes('app')) return 'react-native'
   return undefined
 }
 

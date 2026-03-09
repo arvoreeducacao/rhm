@@ -11,6 +11,7 @@ const REPO_HELPER_MAP: Record<string, string> = {
   nestjs: 'repo.nestjs',
   nextjs: 'repo.nextjs',
   react: 'repo.react',
+  'react-native': 'repo.reactNative',
   elixir: 'repo.elixir',
   go: 'repo.go',
   python: 'repo.python',
