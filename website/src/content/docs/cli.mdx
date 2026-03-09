@@ -43,6 +43,23 @@ hub setup --skip-tools
 | `--skip-install` | Skip dependency installation |
 | `--skip-tools` | Skip tool installation via mise |
 
+### `hub clone`
+
+Clone all repositories defined in your config without running the full setup:
+
+```bash
+hub clone
+hub clone --ssh      # Force SSH clone
+hub clone --https    # Force HTTPS clone via gh CLI
+```
+
+| Flag | Description |
+|------|-------------|
+| `--ssh` | Force SSH clone (default if SSH is available) |
+| `--https` | Force HTTPS clone via gh CLI |
+
+Skips repos that already exist locally. Useful when you only need the code without services, tools, or dependency installation.
+
 ### `hub doctor`
 
 Check required dependencies and tool versions:

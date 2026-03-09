@@ -1,0 +1,36 @@
+---
+title: "v0.12.0 — hub clone"
+version: "0.12.0"
+date: "2026-03-09"
+description: "New hub clone command for cloning all repositories without running full setup."
+---
+
+Sometimes you just need the code. `hub clone` gives you exactly that — clone every repository in your config without starting services, installing tools, or running dependency installation.
+
+## `hub clone`
+
+```bash
+hub clone             # Clone all repos (auto-detects SSH vs HTTPS)
+hub clone --ssh       # Force SSH clone
+hub clone --https     # Force HTTPS clone via gh CLI
+```
+
+The command reads your `hub.yaml` or `hub.config.ts`, iterates over all declared repositories, and clones them to their configured paths. Repos that already exist locally are skipped.
+
+Authentication is handled automatically:
+- If SSH access to GitHub is available, it uses `git clone` with the SSH URL
+- If SSH fails but `gh` CLI is authenticated, it falls back to `gh repo clone`
+- Use `--ssh` or `--https` to force a specific method
+
+This is useful when:
+- You want to browse the code without a full dev environment
+- You're setting up a CI pipeline that only needs the source
+- You want to clone first and run `hub setup` later with specific flags
+
+---
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.12.0 generate
+```

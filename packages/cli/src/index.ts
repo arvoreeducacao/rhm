@@ -20,6 +20,7 @@ import { memoryCommand } from "./commands/memory.js";
 import { updateCommand } from "./commands/update.js";
 import { directoryCommand } from "./commands/directory.js";
 import { scanCommand } from "./commands/scan.js";
+import { cloneCommand } from "./commands/clone.js";
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -60,5 +61,6 @@ program.addCommand(memoryCommand);
 program.addCommand(updateCommand);
 program.addCommand(directoryCommand);
 program.addCommand(scanCommand);
+program.addCommand(cloneCommand);
 
 program.parse();
