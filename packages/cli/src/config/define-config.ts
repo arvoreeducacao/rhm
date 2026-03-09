@@ -48,6 +48,14 @@ export const repo = {
     lint: "pnpm lint",
   }),
 
+  reactNative: createRepo("react-native", {
+    install: "pnpm install",
+    dev: "pnpm start",
+    build: "pnpm build",
+    test: "pnpm test",
+    lint: "pnpm lint",
+  }),
+
   elixir: createRepo("elixir", {
     install: "mix deps.get",
     dev: "mix phx.server",

@@ -164,7 +164,7 @@
           "type": "string",
           "description": "Primary technology stack",
           "enum": [
-            "nestjs", "nextjs", "react", "elixir", "phoenix",
+            "nestjs", "nextjs", "react", "react-native", "elixir", "phoenix",
             "django", "fastapi", "rails", "spring", "go",
             "vue", "svelte", "angular", "express", "koa"
           ]

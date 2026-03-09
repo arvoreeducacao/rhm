@@ -40,6 +40,7 @@ function detectTech(repoDir: string): string | undefined {
   if (existsSync(join(repoDir, "go.mod"))) return "go";
   if (existsSync(join(repoDir, "Gemfile"))) return "rails";
   if (existsSync(join(repoDir, "manage.py"))) return "django";
+  if (existsSync(join(repoDir, "app.json")) || existsSync(join(repoDir, "app.config.js")) || existsSync(join(repoDir, "app.config.ts"))) return "react-native";
   if (existsSync(join(repoDir, "package.json"))) return "react";
   return undefined;
 }
