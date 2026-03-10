@@ -1,8 +1,6 @@
 import { streamText, convertToModelMessages } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 import { getCollection } from 'astro:content';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 
 export const prerender = false;
 
@@ -16,19 +14,13 @@ async function getDocsContent(): Promise<string> {
   if (cachedDocsContent) return cachedDocsContent;
 
   const docs = await getCollection('docs');
-  const docsDir = path.join(process.cwd(), 'src', 'content', 'docs');
 
-  const parts: string[] = [];
-  for (const doc of docs) {
-    const filePath = path.join(docsDir, `${doc.slug}.mdx`);
-    try {
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      const content = raw.replace(/^---[\s\S]*?---\s*/, '').trim();
-      parts.push(`# ${doc.data.title}\n\n${content}`);
-    } catch {
-      continue;
-    }
-  }
+  const parts: string[] = docs
+    .filter((doc) => doc.body)
+    .map((doc) => {
+      const content = doc.body!.replace(/^---[\s\S]*?---\s*/, '').trim();
+      return `# ${doc.data.title}\n\n${content}`;
+    });
 
   cachedDocsContent = parts.join('\n\n---\n\n');
   return cachedDocsContent;
