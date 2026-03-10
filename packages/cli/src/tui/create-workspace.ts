@@ -38,6 +38,7 @@ const MCP_HELPER_MAP: Record<string, McpHelperInfo> = {
   'google-chat': { helper: 'mcp.googleChat', hasNameArg: false },
   playwright: { helper: 'mcp.playwright', hasNameArg: false },
   context7: { helper: 'mcp.context7', hasNameArg: false },
+  'agent-teams-lead': { helper: 'mcp.agentTeamsLead', hasNameArg: false },
   'mcp-proxy': { helper: 'mcp.proxy', hasNameArg: true },
 }
 

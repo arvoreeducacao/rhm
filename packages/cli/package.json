@@ -1,6 +1,6 @@
 {
   "name": "@arvoretech/hub",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "CLI for managing AI-aware multi-repository workspaces",
   "main": "dist/index.js",
   "type": "module",
