@@ -49,6 +49,22 @@ export const releases: Release[] = [
     ],
   },
   {
+    version: "0.12.1",
+    date: "2026-03-09",
+    title: "Security fix for runtime-lens MCP",
+    slug: "0-12-1",
+    summary:
+      "Fix runtimeLens helper to use the correct scoped package @arvoretech/runtime-lens-mcp instead of the unscoped runtime-lens.",
+    changes: [
+      {
+        type: "fix",
+        title: "Scoped package name for runtime-lens",
+        description:
+          "The mcp.runtimeLens() helper was resolving to the unscoped runtime-lens npm package, which could install an unrelated or malicious package. Updated to use @arvoretech/runtime-lens-mcp.",
+      },
+    ],
+  },
+  {
     version: "0.12.0",
     date: "2026-03-09",
     title: "hub clone",

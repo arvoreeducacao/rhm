@@ -282,7 +282,7 @@ workflow:
 | `@arvoretech/google-chat-mcp` | Manage Google Chat spaces, members, and messages |
 | `@arvoretech/meet-transcriptions-mcp` | Semantic search across meeting transcriptions |
 | `@arvoretech/sendgrid-mcp` | Manage SendGrid dynamic email templates |
-| `runtime-lens` | Runtime inspection with inline values for React, NestJS, and Next.js |
+| `@arvoretech/runtime-lens-mcp` | Runtime inspection with inline values for React, NestJS, and Next.js |
 | `@playwright/mcp` | Control a browser to test your app |
 
 MCPs are maintained at [arvore-mcp-servers](https://github.com/arvoreeducacao/arvore-mcp-servers).
