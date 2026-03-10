@@ -1,6 +1,12 @@
 ---
 import Search from './Search.astro';
 
+interface Props {
+  hideSearch?: boolean;
+}
+
+const { hideSearch = false } = Astro.props;
+
 const docsItems = [
   {
     title: 'Getting Started',
@@ -139,7 +145,7 @@ const resourcesItems = [
       </a>
 
       <div class="ml-2 flex items-center gap-2">
-        <Search />
+        {!hideSearch && <Search />}
         <button
           id="theme-toggle"
           class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"

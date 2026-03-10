@@ -2,9 +2,14 @@ import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import tailwind from '@astrojs/tailwind';
 
+import react from '@astrojs/react';
+import vercel from '@astrojs/vercel';
+
 export default defineConfig({
   site: 'https://hub.arvore.com.br',
-  integrations: [mdx(), tailwind()],
+  output: 'static',
+  adapter: vercel(),
+  integrations: [mdx(), tailwind(), react()],
   markdown: {
     shikiConfig: {
       themes: {

@@ -9,28 +9,28 @@ import Footer from '../components/Footer.astro';
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Describe a feature. Your AI codes it, reviews it, tests it, and opens a pull request. Repo Hub is the config file that makes this possible." />
+    <meta name="description" content="One config file. Your AI handles refinement, coding, review, testing, and PRs — automatically." />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="alternate" type="text/plain" title="LLM-friendly documentation" href="/llms.txt" />
     <link rel="canonical" href={`${(Astro.site?.toString() || Astro.url.origin).replace(/\/$/, '')}/`} />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Repo Hub — Your AI builds the feature. You review the PR." />
-    <meta property="og:description" content="Describe a feature. Your AI codes it, reviews it, tests it, and opens a pull request. Repo Hub is the config file that makes this possible." />
+    <meta property="og:title" content="Repo Hub — One config file. Your AI ships features." />
+    <meta property="og:description" content="Define your repos, tools, and workflow. Your AI coding assistant handles refinement, coding, review, testing, and PRs — automatically." />
     <meta property="og:image" content={`${(Astro.site?.toString() || Astro.url.origin).replace(/\/$/, '')}/og/home.png`} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:url" content={`${(Astro.site?.toString() || Astro.url.origin).replace(/\/$/, '')}/`} />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Repo Hub — Your AI builds the feature. You review the PR." />
-    <meta name="twitter:description" content="Describe a feature. Your AI codes it, reviews it, tests it, and opens a pull request." />
+    <meta name="twitter:title" content="Repo Hub — One config file. Your AI ships features." />
+    <meta name="twitter:description" content="Define your repos, tools, and workflow. Your AI handles refinement, coding, review, testing, and PRs." />
     <meta name="twitter:image" content={`${(Astro.site?.toString() || Astro.url.origin).replace(/\/$/, '')}/og/home.png`} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <title>Repo Hub — Your AI builds the feature. You review the PR.</title>
+    <title>Repo Hub — One config file. Your AI ships features.</title>
     <script is:inline>
       (function() {
         const saved = localStorage.getItem('theme');
@@ -41,12 +41,12 @@ import Footer from '../components/Footer.astro';
     </script>
   </head>
   <body class="bg-white text-gray-600 antialiased transition-colors duration-300 dark:bg-gray-950 dark:text-gray-400">
-    <Header />
+    <Header hideSearch />
 
     <section class="relative pt-36 pb-24 overflow-hidden">
       <canvas id="mesh" class="absolute inset-0 -z-10 h-full w-full"></canvas>
 
-      <div class="absolute inset-0 -z-10 pointer-events-none" style="background: radial-gradient(ellipse 60% 50% at 50% 45%, rgba(69,208,193,0.03) 0%, transparent 70%);"></div>
+      <div class="absolute inset-0 -z-10 pointer-events-none" style="background: radial-gradient(ellipse 60% 50% at 50% 45%, rgba(69,208,193,0.04) 0%, transparent 70%);"></div>
 
       <div class="relative mx-auto max-w-2xl px-6 text-center">
         <div class="inline-flex items-center gap-2 rounded-full border border-gray-200/80 bg-white/60 px-4 py-1.5 text-xs text-gray-400 mb-10 backdrop-blur-sm font-mono tracking-wide dark:border-gray-700/80 dark:bg-gray-900/60 dark:text-gray-500">
@@ -55,25 +55,36 @@ import Footer from '../components/Footer.astro';
         </div>
 
         <h1 class="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-gray-900 leading-[1.1] dark:text-gray-50">
-          You describe the feature.<br/>
-          <span class="text-[#45D0C1]">AI delivers the PR.</span>
+          One config file.<br/>
+          <span class="text-[#45D0C1]">Your AI ships features.</span>
         </h1>
 
         <p class="mt-6 text-base sm:text-lg text-gray-400 max-w-lg mx-auto leading-relaxed font-light dark:text-gray-500">
-          Repo Hub is a <span class="text-gray-600 font-medium dark:text-gray-300">configuration file</span> that teaches your AI coding assistant how your company builds software — which repos to touch, how to test, where to deploy, and who to notify.
+          Define your repos, tools, and workflow. Your AI coding assistant handles refinement, coding, review, testing, and PRs — automatically.
         </p>
 
-        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a href="/docs/getting-started" class="w-full sm:w-auto rounded-full bg-gray-900 px-7 py-3 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/10 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white dark:hover:shadow-gray-100/10">
-            Get Started
-          </a>
-          <a href="/docs/philosophy" class="w-full sm:w-auto rounded-full border border-gray-200 bg-white px-7 py-3 text-sm font-medium text-gray-600 transition-all hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-100">
-            Read our Philosophy
-          </a>
+        <div class="mt-10 flex flex-col items-center gap-4">
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
+            <a href="/docs/getting-started" class="w-full sm:w-auto rounded-full bg-gray-900 px-7 py-3 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/10 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white dark:hover:shadow-gray-100/10">
+              Get Started
+            </a>
+            <div class="relative w-full sm:w-auto">
+              <div class="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50/80 pl-5 pr-2 py-2 font-mono text-sm text-gray-500 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-400">
+                <code class="whitespace-nowrap text-[13px]">npx @arvoretech/hub init</code>
+                <button
+                  id="copy-install"
+                  class="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  aria-label="Copy install command"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <p class="mt-14 text-[11px] text-gray-300 font-mono tracking-wider uppercase dark:text-gray-600">
-          Built by <a href="https://arvore.com.br" target="_blank" class="text-gray-400 hover:text-brand-600 transition-colors dark:text-gray-500 dark:hover:text-brand-400">Arvore</a>
+        <p class="mt-14 text-[11px] text-gray-400 font-mono tracking-wider uppercase relative z-10 dark:text-gray-500">
+          Built by <a href="https://arvore.com.br" target="_blank" class="text-gray-500 hover:text-brand-600 transition-colors dark:text-gray-400 dark:hover:text-brand-400">Arvore</a>
           &nbsp;&middot;&nbsp; 10 engineers &nbsp;&middot;&nbsp; Months &rarr; Weeks
         </p>
       </div>
@@ -91,23 +102,23 @@ import Footer from '../components/Footer.astro';
             <div class="mt-5 space-y-3">
               <div class="flex items-start gap-3">
                 <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">1</span>
-                <p class="text-sm text-gray-400 dark:text-gray-500">The AI asks clarifying questions about the requirements</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500">AI refines the requirements with you</p>
               </div>
               <div class="flex items-start gap-3">
                 <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">2</span>
-                <p class="text-sm text-gray-400 dark:text-gray-500">It writes the backend API <span class="text-gray-500 font-medium dark:text-gray-400">and</span> the frontend UI — in separate repos, in parallel</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500">Writes backend API <span class="text-gray-500 font-medium dark:text-gray-400">and</span> frontend UI across repos, in parallel</p>
               </div>
               <div class="flex items-start gap-3">
                 <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">3</span>
-                <p class="text-sm text-gray-400 dark:text-gray-500">Another AI agent reviews the code against the original requirements</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500">A reviewer agent checks the code against the spec</p>
               </div>
               <div class="flex items-start gap-3">
                 <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">4</span>
-                <p class="text-sm text-gray-400 dark:text-gray-500">Another runs automated tests in a real browser</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500">A QA agent runs automated tests in a real browser</p>
               </div>
               <div class="flex items-start gap-3">
                 <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-600 dark:bg-brand-950/50 dark:text-brand-400">5</span>
-                <p class="text-sm text-gray-400 dark:text-gray-500">PRs are created, your team gets notified on Slack</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500">PRs are opened, Slack gets notified</p>
               </div>
             </div>
             <p class="mt-6 text-sm text-gray-900 font-medium dark:text-gray-100">You review the PR. That's it.</p>
@@ -129,7 +140,7 @@ import Footer from '../components/Footer.astro';
         </h2>
 
         <p class="mt-6 text-sm text-gray-400 text-center max-w-lg mx-auto leading-relaxed dark:text-gray-500">
-          Think of it like a <span class="text-gray-600 font-medium dark:text-gray-300">docker-compose for AI development</span>. Instead of defining containers, you define your repositories, your tools, and your development workflow. The AI follows it automatically.
+          Like <span class="text-gray-600 font-medium dark:text-gray-300">docker-compose for AI development</span>. Define your repositories, tools, and pipeline. The AI follows it end-to-end.
         </p>
 
         <div class="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 overflow-hidden dark:border-gray-800 dark:bg-gray-900/50" id="config-tabs">
@@ -160,9 +171,11 @@ import Footer from '../components/Footer.astro';
   <span class="text-brand-600 dark:text-brand-400">pipeline</span>:
     - <span class="text-gray-600 dark:text-gray-300">step: refinement</span>
     - <span class="text-gray-600 dark:text-gray-300">step: coding</span>
+      <span class="text-gray-600 dark:text-gray-300">parallel: true</span>
     - <span class="text-gray-600 dark:text-gray-300">step: review</span>
     - <span class="text-gray-600 dark:text-gray-300">step: qa</span>
-    - <span class="text-gray-600 dark:text-gray-300">step: deliver</span></code></pre>
+    - <span class="text-gray-600 dark:text-gray-300">step: deliver</span>
+      <span class="text-gray-600 dark:text-gray-300">actions: [create-pr, notify-slack]</span></code></pre>
           </div>
           <div data-panel="ts" class="hidden">
             <pre class="p-4 sm:p-6 text-[12px] sm:text-[13px] leading-relaxed font-mono text-gray-400 overflow-x-auto dark:text-gray-500"><code set:html={`<span class="text-purple-400 dark:text-purple-300">import</span> <span class="text-gray-600 dark:text-gray-300">{ defineConfig, repo, mcp }</span> <span class="text-purple-400 dark:text-purple-300">from</span> <span class="text-brand-600 dark:text-brand-400">"@arvoretech/hub/config"</span>;
@@ -182,10 +195,10 @@ import Footer from '../components/Footer.astro';
   <span class="text-brand-600 dark:text-brand-400">workflow</span>: {
     <span class="text-brand-600 dark:text-brand-400">pipeline</span>: [
       { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"refinement"</span> },
-      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"coding"</span> },
+      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"coding"</span>, <span class="text-gray-600 dark:text-gray-300">parallel</span>: <span class="text-purple-400 dark:text-purple-300">true</span> },
       { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"review"</span> },
       { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"qa"</span> },
-      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"deliver"</span> },
+      { <span class="text-gray-600 dark:text-gray-300">step</span>: <span class="text-brand-600 dark:text-brand-400">"deliver"</span>, <span class="text-gray-600 dark:text-gray-300">actions</span>: [<span class="text-brand-600 dark:text-brand-400">"create-pr"</span>, <span class="text-brand-600 dark:text-brand-400">"notify-slack"</span>] },
     ],
   },
 });`} /></pre>
@@ -205,17 +218,17 @@ import Footer from '../components/Footer.astro';
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-12">
           <div>
             <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">They only see one repo</p>
-            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Your AI edits the frontend but doesn't know the API contract changed yesterday. It writes code against an outdated assumption. You fix it manually.</p>
-            <p class="mt-3 text-xs text-brand-600 font-medium dark:text-brand-400">Repo Hub shows all repos at once.</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">Your AI edits the frontend but doesn't know the API changed. It codes against stale assumptions.</p>
+            <p class="mt-3 text-xs text-brand-600 font-medium dark:text-brand-400">Repo Hub gives AI full context across repos.</p>
           </div>
           <div>
             <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">No process, just prompts</p>
-            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">You prompt &rarr; it codes &rarr; you check &rarr; you prompt again &rarr; it codes more. You're the project manager, reviewer, and QA — all in one.</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">You prompt, it codes, you check, you prompt again. You're the PM, reviewer, and QA — all at once.</p>
             <p class="mt-3 text-xs text-brand-600 font-medium dark:text-brand-400">Repo Hub defines a pipeline it follows.</p>
           </div>
           <div>
             <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Can't use your tools</p>
-            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">It can't check if the production database schema matches what it's coding against. Can't look at Datadog when debugging. You copy-paste everything.</p>
+            <p class="mt-2 text-sm text-gray-400 leading-relaxed dark:text-gray-500">It can't check your database schema or read Datadog logs. You end up copy-pasting context.</p>
             <p class="mt-3 text-xs text-brand-600 font-medium dark:text-brand-400">Repo Hub connects AI to your infra.</p>
           </div>
         </div>
@@ -254,43 +267,20 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <section class="border-t border-gray-100 py-24 dark:border-gray-800">
-      <div class="mx-auto max-w-lg px-6">
-        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 text-center mb-14 dark:text-gray-600">The pipeline</p>
+      <div class="mx-auto max-w-3xl px-6">
+        <p class="text-[11px] font-mono tracking-wider uppercase text-gray-300 text-center mb-4 dark:text-gray-600">The pipeline</p>
 
-        <div class="relative flex justify-between items-start">
-          <div class="absolute top-[11px] left-[8%] right-[8%] h-px bg-gray-100 dark:bg-gray-800">
-            <div class="pipeline-line h-full bg-brand-500/50 origin-left"></div>
-          </div>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 text-center leading-tight mb-4 dark:text-gray-50">
+          One task in. PRs out.
+        </h2>
 
-          <div class="flex-1 flex flex-col items-center" style="--i:0">
-            <div class="pipeline-dot"></div>
-            <span class="pipeline-label">Task</span>
-          </div>
-          <div class="flex-1 flex flex-col items-center" style="--i:1">
-            <div class="pipeline-dot"></div>
-            <span class="pipeline-label">Refine</span>
-          </div>
-          <div class="flex-1 flex flex-col items-center" style="--i:2">
-            <div class="pipeline-dot"></div>
-            <span class="pipeline-label">Code</span>
-          </div>
-          <div class="flex-1 flex flex-col items-center" style="--i:3">
-            <div class="pipeline-dot"></div>
-            <span class="pipeline-label">Review</span>
-          </div>
-          <div class="flex-1 flex flex-col items-center" style="--i:4">
-            <div class="pipeline-dot"></div>
-            <span class="pipeline-label">Test</span>
-          </div>
-          <div class="flex-1 flex flex-col items-center" style="--i:5">
-            <div class="pipeline-dot"></div>
-            <span class="pipeline-label">PR</span>
-          </div>
-        </div>
-
-        <p class="mt-14 text-sm text-gray-400 text-center max-w-sm mx-auto leading-relaxed dark:text-gray-500">
-          Each step is handled by a specialized AI role. Like a team where one person gathers requirements, another codes, another reviews, and another tests.
+        <p class="text-sm text-gray-400 text-center max-w-lg mx-auto leading-relaxed mb-8 dark:text-gray-500">
+          The pipeline splits into parallel agents and converges back. Backend and frontend code in parallel, QA runs both, then delivery fans out to PRs, Slack, and Linear — all at once.
         </p>
+
+        <div class="relative" style="height: 400px;">
+          <canvas id="pipeline-canvas" class="absolute inset-0 w-full h-full"></canvas>
+        </div>
       </div>
     </section>
 
@@ -363,13 +353,13 @@ import Footer from '../components/Footer.astro';
     <section class="border-t border-gray-100 py-24 dark:border-gray-800">
       <div class="mx-auto max-w-2xl px-6 text-center">
         <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-gray-50">Start building.</h2>
-        <p class="mt-4 text-sm text-gray-400 max-w-md mx-auto dark:text-gray-500">One config file. One CLI command. Your AI ships the rest.</p>
+        <p class="mt-4 text-sm text-gray-400 max-w-md mx-auto dark:text-gray-500">One config file. One CLI command. Your AI handles the rest.</p>
 
         <div class="mt-8 rounded-xl border border-gray-100 bg-gray-50/50 p-4 max-w-md mx-auto overflow-hidden dark:border-gray-800 dark:bg-gray-900/50">
           <pre class="text-left text-[12px] sm:text-[13px] font-mono text-gray-500 leading-relaxed overflow-x-auto dark:text-gray-400"><code><span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub init my-project
 <span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub setup
 <span class="text-gray-300 dark:text-gray-600">$</span> npx @arvoretech/hub generate --editor cursor
-<span class="text-brand-600 dark:text-brand-400">Done! Open in Cursor and start building.</span></code></pre>
+<span class="text-brand-600 dark:text-brand-400">Done. Open your editor and start building.</span></code></pre>
         </div>
 
         <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -385,11 +375,29 @@ import Footer from '../components/Footer.astro';
 
     <script>
       import { createHeroScene } from '../components/HeroScene';
+      import { createPipelineScene } from '../components/PipelineScene';
 
       const el = document.getElementById('mesh');
       if (el) {
         const dispose = createHeroScene(el as HTMLCanvasElement);
         document.addEventListener('astro:before-swap', () => dispose(), { once: true });
+      }
+
+      const pipelineEl = document.getElementById('pipeline-canvas');
+      if (pipelineEl) {
+        const disposePipeline = createPipelineScene(pipelineEl as HTMLCanvasElement);
+        document.addEventListener('astro:before-swap', () => disposePipeline(), { once: true });
+      }
+
+      const copyBtn = document.getElementById('copy-install');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          navigator.clipboard.writeText('npx @arvoretech/hub init').then(() => {
+            const original = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = original; }, 2000);
+          });
+        });
       }
     </script>
 
