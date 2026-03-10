@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { ViewTransitions } from 'astro:transitions';
 
 interface Props {
   title: string;
@@ -54,6 +55,7 @@ const fullTitle = `${title} | Repo Hub`;
       rel="stylesheet"
     />
     <title>{fullTitle}</title>
+    <ViewTransitions />
     <script is:inline>
       (function() {
         const saved = localStorage.getItem('theme');
