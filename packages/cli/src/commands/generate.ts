@@ -718,6 +718,46 @@ This workspace has agent teams support via the \`agent-teams-lead\` MCP. You can
 - Always call \`wait_for_team\` after creating tasks to monitor completion`;
 }
 
+function hasAgentTeamsChatMcp(mcps: MCPConfig[] | undefined): boolean {
+  if (!mcps) return false;
+  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
+  const directMatch = mcps.some((m) => m.name === "agent-teams-chat");
+  const upstreamMatch = proxyMcp?.upstreams?.includes("agent-teams-chat") ?? false;
+  return directMatch || upstreamMatch;
+}
+
+function buildAgentTeamsChatSection(mcps: MCPConfig[] | undefined): string {
+  if (!hasAgentTeamsChatMcp(mcps)) return "";
+
+  return `
+## Agent Chat (Cross-Developer Communication)
+
+This workspace has cross-developer agent communication via the \`agent-teams-chat\` MCP. Agents can talk to each other through Slack threads — opening discussions, replying, and reading conversations in a shared team channel.
+
+**When to use agent chat:**
+- Asking another developer's agent for help or context
+- Coordinating cross-team work asynchronously
+- Sharing decisions, blockers, or discoveries with the team
+- Discussing a topic that benefits from multiple perspectives
+
+**How it works:**
+1. Use \`open_thread\` to start a new conversation thread about a topic
+2. Use \`reply_to_thread\` to respond in an existing thread
+3. Use \`read_thread\` to catch up on what others have said
+4. Use \`list_threads\` to see recent conversations in the channel
+5. Use \`find_thread\` to search for threads by topic or content
+
+**Available tools:** \`open_thread\`, \`reply_to_thread\`, \`read_thread\`, \`list_threads\`, \`find_thread\`.
+
+**Message format:** Messages are automatically formatted with the agent's identity using a configurable template (e.g. \`🤖 *João's Agent* — your message here\`).
+
+**Best practices:**
+- Search for existing threads before opening a new one on the same topic
+- Keep messages concise and actionable
+- Use threads to maintain context — avoid top-level messages for replies
+- Read the thread before replying to avoid repeating what others said`;
+}
+
 function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
   if (!mcps || mcps.length === 0) return "";
 
@@ -885,6 +925,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 
   const agentTeamsSectionOpenCode = buildAgentTeamsSection(config.mcps);
   if (agentTeamsSectionOpenCode) sections.push(agentTeamsSectionOpenCode);
+
+  const agentTeamsChatSectionOpenCode = buildAgentTeamsChatSection(config.mcps);
+  if (agentTeamsChatSectionOpenCode) sections.push(agentTeamsChatSectionOpenCode);
 
   sections.push(`
 ## Troubleshooting and Debugging
@@ -1234,6 +1277,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
   const agentTeamsSectionKiro = buildAgentTeamsSection(config.mcps);
   if (agentTeamsSectionKiro) sections.push(agentTeamsSectionKiro);
 
+  const agentTeamsChatSectionKiro = buildAgentTeamsChatSection(config.mcps);
+  if (agentTeamsChatSectionKiro) sections.push(agentTeamsChatSectionKiro);
+
   sections.push(`
 ## Troubleshooting and Debugging
 
@@ -1458,6 +1504,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 
   const agentTeamsSectionCursor = buildAgentTeamsSection(config.mcps);
   if (agentTeamsSectionCursor) sections.push(agentTeamsSectionCursor);
+
+  const agentTeamsChatSectionCursor = buildAgentTeamsChatSection(config.mcps);
+  if (agentTeamsChatSectionCursor) sections.push(agentTeamsChatSectionCursor);
 
   sections.push(`
 ## Troubleshooting and Debugging
