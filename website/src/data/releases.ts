@@ -15,6 +15,40 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.13.0",
+    date: "2026-03-10",
+    title: "Agent Teams",
+    slug: "0-13-0",
+    summary:
+      "Inspired by Anthropic's Claude Code agent teams, now available across every editor. Spawn multiple AI teammates that work in parallel, share a task list, and message each other directly.",
+    changes: [
+      {
+        type: "feat",
+        title: "Agent Teams",
+        description:
+          "Your orchestrator can now act as a team lead, spawning multiple AI teammates that work in parallel on different tasks and communicate with each other through a shared mailbox. Built as an editor-agnostic MCP layer that works with Kiro, Cursor, Claude Code, and OpenCode.",
+      },
+      {
+        type: "feat",
+        title: "Automatic Orchestrator Instructions",
+        description:
+          "When agent-teams-lead MCP is detected in your config, hub generate injects a full Agent Teams section into the orchestrator prompt with tool docs, workflow guidance, and best practices.",
+      },
+      {
+        type: "feat",
+        title: "Task Coordination & File Locking",
+        description:
+          "Tasks support dependencies and exclusive file paths to prevent conflicts. Atomic mkdir-based file locking ensures safe parallel work when multiple teammates try to claim the same task.",
+      },
+      {
+        type: "feat",
+        title: "Inter-agent Messaging",
+        description:
+          "Teammates communicate through a shared mailbox with typed messages (info, question, answer, blocker, decision). Direct messages, broadcasts, and lead messages are all supported.",
+      },
+    ],
+  },
+  {
     version: "0.12.0",
     date: "2026-03-09",
     title: "hub clone",

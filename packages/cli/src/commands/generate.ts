@@ -677,6 +677,47 @@ ${body.trim()}
 `;
 }
 
+function hasAgentTeamsLeadMcp(mcps: MCPConfig[] | undefined): boolean {
+  if (!mcps) return false;
+  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
+  const directMatch = mcps.some((m) => m.name === "agent-teams-lead");
+  const upstreamMatch = proxyMcp?.upstreams?.includes("agent-teams-lead") ?? false;
+  return directMatch || upstreamMatch;
+}
+
+function buildAgentTeamsSection(mcps: MCPConfig[] | undefined): string {
+  if (!hasAgentTeamsLeadMcp(mcps)) return "";
+
+  return `
+## Agent Teams
+
+This workspace has agent teams support via the \`agent-teams-lead\` MCP. You can act as a team lead, spawning multiple AI teammates that work in parallel on different tasks.
+
+**When to use agent teams** instead of sub-agents:
+- Tasks that benefit from parallel exploration (research, review, debugging)
+- Cross-layer work (frontend + backend + tests simultaneously)
+- Work where teammates need to communicate and coordinate with each other
+
+**How it works:**
+1. Use \`spawn_team\` to create a team with an objective and list of teammates (each referencing an agent file)
+2. Use \`create_task\` to add tasks to the shared task list (tasks can have dependencies and exclusive file paths)
+3. Teammates automatically claim pending tasks, do the work, and mark them complete
+4. Use \`send_message\` to communicate with teammates (or broadcast to all)
+5. Use \`wait_for_team\` to block until all tasks are resolved or teammates finish
+6. Use \`team_status\` to check progress, task states, and unread messages
+7. Use \`read_artifact\` to read outputs published by teammates
+
+**Available tools:** \`spawn_team\`, \`add_teammate\`, \`remove_teammate\`, \`create_task\`, \`team_status\`, \`send_message\`, \`wait_for_team\`, \`read_artifact\`.
+
+**Best practices:**
+- Create tasks IMMEDIATELY after spawning the team (teammates start looking for tasks right away)
+- Use \`exclusive_paths\` on tasks to prevent file conflicts between teammates
+- Use \`depends_on\` to chain tasks that must run in order
+- Keep 2-3 tasks per teammate for good throughput
+- Send a broadcast message after creating tasks to notify teammates
+- Always call \`wait_for_team\` after creating tasks to monitor completion`;
+}
+
 function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
   if (!mcps || mcps.length === 0) return "";
 
@@ -841,6 +882,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 
   const designSectionOpenCode = buildDesignSection(config);
   if (designSectionOpenCode) sections.push(designSectionOpenCode);
+
+  const agentTeamsSectionOpenCode = buildAgentTeamsSection(config.mcps);
+  if (agentTeamsSectionOpenCode) sections.push(agentTeamsSectionOpenCode);
 
   sections.push(`
 ## Troubleshooting and Debugging
@@ -1187,6 +1231,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
   const designSectionKiro = buildDesignSection(config);
   if (designSectionKiro) sections.push(designSectionKiro);
 
+  const agentTeamsSectionKiro = buildAgentTeamsSection(config.mcps);
+  if (agentTeamsSectionKiro) sections.push(agentTeamsSectionKiro);
+
   sections.push(`
 ## Troubleshooting and Debugging
 
@@ -1408,6 +1455,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 
   const designSectionCursor = buildDesignSection(config);
   if (designSectionCursor) sections.push(designSectionCursor);
+
+  const agentTeamsSectionCursor = buildAgentTeamsSection(config.mcps);
+  if (agentTeamsSectionCursor) sections.push(agentTeamsSectionCursor);
 
   sections.push(`
 ## Troubleshooting and Debugging

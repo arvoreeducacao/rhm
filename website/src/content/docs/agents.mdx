@@ -37,6 +37,8 @@ Developer: "PR is ready, tested, and notified"
 
 **The editor is the runtime.** There is no daemon or separate process. The orchestrator agent follows the pipeline by calling sub-agents through your AI editor's agent mode.
 
+For tasks that benefit from parallel exploration and inter-agent communication, see [Agent Teams](/docs/agent-teams) — a coordination layer where multiple independent sessions share a task list and message each other directly.
+
 > **Kiro note:** When generating for Kiro, agent definitions are placed in `.kiro/agents/` as sub-agent files with frontmatter (`name`, `description`, `tools`). The orchestrator delegates to each agent following the pipeline, just like Cursor and Claude Code.
 
 > **OpenCode note:** OpenCode has native support for sub-agents via `@mention` and the Task tool. When generating for OpenCode, agents are placed in `.opencode/agents/` as markdown files with `mode: subagent` frontmatter. The orchestrator references agents using `@agent-name` syntax, matching OpenCode's native invocation model.

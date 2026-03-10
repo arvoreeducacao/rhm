@@ -69,5 +69,39 @@ const fullTitle = `${title} | Repo Hub`;
       <slot />
     </main>
     <Footer />
+    <div id="img-lightbox" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out" role="dialog" aria-modal="true" aria-label="Image preview">
+      <img id="img-lightbox-src" class="max-h-[90vh] max-w-[90vw] rounded-xl shadow-2xl bg-white dark:bg-gray-900" alt="" />
+    </div>
+    <script is:inline>
+      (function() {
+        var overlay = document.getElementById('img-lightbox');
+        var lightboxImg = document.getElementById('img-lightbox-src');
+        if (!overlay || !lightboxImg) return;
+
+        document.querySelectorAll('article img, .prose img').forEach(function(img) {
+          img.style.cursor = 'zoom-in';
+          img.addEventListener('click', function() {
+            lightboxImg.src = img.src;
+            lightboxImg.alt = img.alt || '';
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+          });
+        });
+
+        overlay.addEventListener('click', function() {
+          overlay.classList.add('hidden');
+          overlay.classList.remove('flex');
+          lightboxImg.src = '';
+        });
+
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            lightboxImg.src = '';
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
