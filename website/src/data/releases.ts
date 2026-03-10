@@ -15,6 +15,40 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.13.1",
+    date: "2026-03-10",
+    title: "Agent Chat",
+    slug: "0-13-1",
+    summary:
+      "Cross-developer agent communication via Slack threads. Your agent can now talk to agents from other developers on the team — opening threads, replying, and checking for new messages proactively.",
+    changes: [
+      {
+        type: "feat",
+        title: "Agent Chat MCP",
+        description:
+          "New agent-teams-chat MCP that connects agents to a shared Slack channel. Agents post with their owner's identity and communicate through threads. Five tools: open_thread, reply_to_thread, read_thread, list_threads, find_thread.",
+      },
+      {
+        type: "feat",
+        title: "Proactive Message Checking",
+        description:
+          "The orchestrator actively monitors for responses after sending messages. It polls threads periodically and checks recent threads for relevant context when starting new tasks.",
+      },
+      {
+        type: "feat",
+        title: "Configurable Message Format",
+        description:
+          "Messages use handlebars-style templates (e.g. 🤖 *{{identity}}'s Agent* — {{message}}). Customizable via the MESSAGE_TEMPLATE environment variable.",
+      },
+      {
+        type: "feat",
+        title: "Automatic Orchestrator Instructions",
+        description:
+          "When agent-teams-chat MCP is detected in your config, hub generate injects an Agent Chat section into the orchestrator prompt with tool docs, proactive polling behavior, and best practices.",
+      },
+    ],
+  },
+  {
     version: "0.13.0",
     date: "2026-03-10",
     title: "Agent Teams",

@@ -718,6 +718,53 @@ This workspace has agent teams support via the \`agent-teams-lead\` MCP. You can
 - Always call \`wait_for_team\` after creating tasks to monitor completion`;
 }
 
+function hasAgentTeamsChatMcp(mcps: MCPConfig[] | undefined): boolean {
+  if (!mcps) return false;
+  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
+  const directMatch = mcps.some((m) => m.name === "agent-teams-chat");
+  const upstreamMatch = proxyMcp?.upstreams?.includes("agent-teams-chat") ?? false;
+  return directMatch || upstreamMatch;
+}
+
+function buildAgentTeamsChatSection(mcps: MCPConfig[] | undefined): string {
+  if (!hasAgentTeamsChatMcp(mcps)) return "";
+
+  return `
+## Agent Chat (Cross-Developer Communication)
+
+You can communicate with agents from other developers on the team via the \`agent-teams-chat\` MCP. This is NOT the same as agent teams (which coordinates teammates within your own session). Agent chat lets you talk to agents running in other people's workspaces through Slack threads.
+
+**When to use agent chat:**
+- You need context or help from another developer's agent (e.g. "Hey, João's agent — what was the decision on the auth migration?")
+- Coordinating cross-developer work asynchronously (e.g. "I'm changing the API contract, heads up")
+- Sharing decisions, blockers, or discoveries that affect the whole team
+- Asking questions that another developer's agent might already know the answer to
+
+**How it works:**
+1. Use \`open_thread\` to start a new conversation thread about a topic
+2. Use \`reply_to_thread\` to respond in an existing thread
+3. Use \`read_thread\` to catch up on what others have said
+4. Use \`list_threads\` to see recent conversations in the channel
+5. Use \`find_thread\` to search for threads by topic or content
+
+**Available tools:** \`open_thread\`, \`reply_to_thread\`, \`read_thread\`, \`list_threads\`, \`find_thread\`.
+
+**Message format:** Messages are automatically formatted with your identity (e.g. \`🤖 *João's Agent* — your message here\`). Other agents' messages will show their owner's name.
+
+**IMPORTANT — Proactive message checking:**
+- When you open or reply to a thread, periodically check for new replies using \`read_thread\` with the \`since\` parameter set to the last message timestamp you saw
+- After sending a message that expects a response, wait a reasonable time (30-60 seconds) then check for replies
+- At the start of a task, use \`list_threads\` to check if there are recent threads relevant to your current work
+- If you're waiting on another agent's input, poll the thread every 30-60 seconds until you get a response or a reasonable timeout (5 minutes)
+
+**Best practices:**
+- Search for existing threads before opening a new one on the same topic
+- Keep messages concise and actionable
+- Use threads to maintain context — avoid top-level messages for replies
+- Read the thread before replying to avoid repeating what others said
+- When starting a task that touches shared code, check recent threads for relevant context`;
+}
+
 function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
   if (!mcps || mcps.length === 0) return "";
 
@@ -885,6 +932,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 
   const agentTeamsSectionOpenCode = buildAgentTeamsSection(config.mcps);
   if (agentTeamsSectionOpenCode) sections.push(agentTeamsSectionOpenCode);
+
+  const agentTeamsChatSectionOpenCode = buildAgentTeamsChatSection(config.mcps);
+  if (agentTeamsChatSectionOpenCode) sections.push(agentTeamsChatSectionOpenCode);
 
   sections.push(`
 ## Troubleshooting and Debugging
@@ -1234,6 +1284,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
   const agentTeamsSectionKiro = buildAgentTeamsSection(config.mcps);
   if (agentTeamsSectionKiro) sections.push(agentTeamsSectionKiro);
 
+  const agentTeamsChatSectionKiro = buildAgentTeamsChatSection(config.mcps);
+  if (agentTeamsChatSectionKiro) sections.push(agentTeamsChatSectionKiro);
+
   sections.push(`
 ## Troubleshooting and Debugging
 
@@ -1458,6 +1511,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 
   const agentTeamsSectionCursor = buildAgentTeamsSection(config.mcps);
   if (agentTeamsSectionCursor) sections.push(agentTeamsSectionCursor);
+
+  const agentTeamsChatSectionCursor = buildAgentTeamsChatSection(config.mcps);
+  if (agentTeamsChatSectionCursor) sections.push(agentTeamsChatSectionCursor);
 
   sections.push(`
 ## Troubleshooting and Debugging

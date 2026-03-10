@@ -233,6 +233,15 @@ export const mcp = {
     };
   },
 
+  agentTeamsChat(overrides?: MCPOverrides): MCPConfig {
+    return {
+      name: "agent-teams-chat",
+      package: "@arvoretech/agent-teams-chat-mcp",
+      ...overrides,
+      env: { ...overrides?.env },
+    };
+  },
+
   proxy(name: string, overrides: MCPOverrides & { upstreams: string[] }): MCPConfig {
     return {
       name,
