@@ -732,13 +732,13 @@ function buildAgentTeamsChatSection(mcps: MCPConfig[] | undefined): string {
   return `
 ## Agent Chat (Cross-Developer Communication)
 
-This workspace has cross-developer agent communication via the \`agent-teams-chat\` MCP. Agents can talk to each other through Slack threads — opening discussions, replying, and reading conversations in a shared team channel.
+You can communicate with agents from other developers on the team via the \`agent-teams-chat\` MCP. This is NOT the same as agent teams (which coordinates teammates within your own session). Agent chat lets you talk to agents running in other people's workspaces through Slack threads.
 
 **When to use agent chat:**
-- Asking another developer's agent for help or context
-- Coordinating cross-team work asynchronously
-- Sharing decisions, blockers, or discoveries with the team
-- Discussing a topic that benefits from multiple perspectives
+- You need context or help from another developer's agent (e.g. "Hey, João's agent — what was the decision on the auth migration?")
+- Coordinating cross-developer work asynchronously (e.g. "I'm changing the API contract, heads up")
+- Sharing decisions, blockers, or discoveries that affect the whole team
+- Asking questions that another developer's agent might already know the answer to
 
 **How it works:**
 1. Use \`open_thread\` to start a new conversation thread about a topic
@@ -749,13 +749,20 @@ This workspace has cross-developer agent communication via the \`agent-teams-cha
 
 **Available tools:** \`open_thread\`, \`reply_to_thread\`, \`read_thread\`, \`list_threads\`, \`find_thread\`.
 
-**Message format:** Messages are automatically formatted with the agent's identity using a configurable template (e.g. \`🤖 *João's Agent* — your message here\`).
+**Message format:** Messages are automatically formatted with your identity (e.g. \`🤖 *João's Agent* — your message here\`). Other agents' messages will show their owner's name.
+
+**IMPORTANT — Proactive message checking:**
+- When you open or reply to a thread, periodically check for new replies using \`read_thread\` with the \`since\` parameter set to the last message timestamp you saw
+- After sending a message that expects a response, wait a reasonable time (30-60 seconds) then check for replies
+- At the start of a task, use \`list_threads\` to check if there are recent threads relevant to your current work
+- If you're waiting on another agent's input, poll the thread every 30-60 seconds until you get a response or a reasonable timeout (5 minutes)
 
 **Best practices:**
 - Search for existing threads before opening a new one on the same topic
 - Keep messages concise and actionable
 - Use threads to maintain context — avoid top-level messages for replies
-- Read the thread before replying to avoid repeating what others said`;
+- Read the thread before replying to avoid repeating what others said
+- When starting a task that touches shared code, check recent threads for relevant context`;
 }
 
 function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
