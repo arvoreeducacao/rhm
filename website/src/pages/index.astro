@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { ViewTransitions } from 'astro:transitions';
 ---
 
 <!doctype html>
@@ -31,6 +32,7 @@ import Footer from '../components/Footer.astro';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <title>Repo Hub — One config file. Your AI ships features.</title>
+    <ViewTransitions />
     <script is:inline>
       (function() {
         const saved = localStorage.getItem('theme');
@@ -377,28 +379,33 @@ import Footer from '../components/Footer.astro';
       import { createHeroScene } from '../components/HeroScene';
       import { createPipelineScene } from '../components/PipelineScene';
 
-      const el = document.getElementById('mesh');
-      if (el) {
-        const dispose = createHeroScene(el as HTMLCanvasElement);
-        document.addEventListener('astro:before-swap', () => dispose(), { once: true });
-      }
+      function initScenes() {
+        const el = document.getElementById('mesh');
+        if (el) {
+          const dispose = createHeroScene(el as HTMLCanvasElement);
+          document.addEventListener('astro:before-swap', () => dispose(), { once: true });
+        }
 
-      const pipelineEl = document.getElementById('pipeline-canvas');
-      if (pipelineEl) {
-        const disposePipeline = createPipelineScene(pipelineEl as HTMLCanvasElement);
-        document.addEventListener('astro:before-swap', () => disposePipeline(), { once: true });
-      }
+        const pipelineEl = document.getElementById('pipeline-canvas');
+        if (pipelineEl) {
+          const disposePipeline = createPipelineScene(pipelineEl as HTMLCanvasElement);
+          document.addEventListener('astro:before-swap', () => disposePipeline(), { once: true });
+        }
 
-      const copyBtn = document.getElementById('copy-install');
-      if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-          navigator.clipboard.writeText('npx @arvoretech/hub init').then(() => {
-            const original = copyBtn.textContent;
-            copyBtn.textContent = 'Copied!';
-            setTimeout(() => { copyBtn.textContent = original; }, 2000);
+        const copyBtn = document.getElementById('copy-install');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText('npx @arvoretech/hub init').then(() => {
+              const original = copyBtn.textContent;
+              copyBtn.textContent = 'Copied!';
+              setTimeout(() => { copyBtn.textContent = original; }, 2000);
+            });
           });
-        });
+        }
       }
+
+      initScenes();
+      document.addEventListener('astro:after-swap', initScenes);
     </script>
 
     <script is:inline>
