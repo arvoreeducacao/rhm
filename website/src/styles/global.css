@@ -118,6 +118,20 @@
     color: #4b5563;
   }
 
+  .pipeline-3d-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #d1d5db;
+    animation: label-activate-3d 6s ease-out infinite;
+    animation-delay: calc(var(--i) * 1.05s);
+  }
+
+  html.dark .pipeline-3d-label {
+    color: #4b5563;
+  }
+
   .pipeline-line {
     animation: line-travel 8s ease-out infinite;
     transform-origin: left center;
@@ -164,6 +178,11 @@
   html.dark .config-tab-active:hover {
     color: #45D0C1;
   }
+
+  .ask-ai-markdown .hljs {
+    background: transparent !important;
+    padding: 0 !important;
+  }
 }
 
 @keyframes line-travel {
@@ -188,4 +207,12 @@
   18% { color: #45D0C1; }
   24% { color: #d1d5db; }
   100% { color: #d1d5db; }
+}
+
+@keyframes label-activate-3d {
+  0%, 2% { color: #d1d5db; }
+  5% { color: #45D0C1; text-shadow: 0 0 8px rgba(69,208,193,0.4); }
+  18% { color: #45D0C1; text-shadow: 0 0 8px rgba(69,208,193,0.3); }
+  24% { color: #d1d5db; text-shadow: none; }
+  100% { color: #d1d5db; text-shadow: none; }
 }

@@ -4,3 +4,5 @@ coverage
 .astro
 package-lock.json
 test-hub
+.env
+.vercel

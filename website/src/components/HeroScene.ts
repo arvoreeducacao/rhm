@@ -1,11 +1,10 @@
 import * as THREE from 'three';
 
 const BRAND = new THREE.Color(0x45d0c1);
-const GRID_SIZE = 80;
-const GRID_SPACING = 0.18;
-const WAVE_SPEED = 0.4;
-const WAVE_HEIGHT = 0.35;
-const FLOAT_PARTICLES = 40;
+const GRID_SIZE = 100;
+const GRID_SPACING = 0.16;
+const WAVE_SPEED = 0.25;
+const WAVE_HEIGHT = 0.15;
 
 export function createHeroScene(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({
@@ -16,9 +15,9 @@ export function createHeroScene(canvas: HTMLCanvasElement) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
-  camera.position.set(0, 6, 14);
-  camera.lookAt(0, 0, 0);
+  const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+  camera.position.set(0, 8, 18);
+  camera.lookAt(0, -1, 0);
 
   const planeGeo = new THREE.PlaneGeometry(
     GRID_SIZE * GRID_SPACING,
@@ -35,7 +34,7 @@ export function createHeroScene(canvas: HTMLCanvasElement) {
     uniforms: {
       uTime: { value: 0 },
       uColor: { value: BRAND },
-      uOpacity: { value: 0.12 },
+      uOpacity: { value: 0.08 },
       uWaveHeight: { value: WAVE_HEIGHT },
     },
     vertexShader: [
@@ -46,9 +45,9 @@ export function createHeroScene(canvas: HTMLCanvasElement) {
       'void main() {',
       '  vec3 pos = position;',
       '  float dist = length(pos.xz);',
-      '  float wave1 = sin(dist * 1.2 - uTime * 0.8) * uWaveHeight;',
-      '  float wave2 = sin(pos.x * 0.8 + uTime * 0.5) * cos(pos.z * 0.6 - uTime * 0.3) * uWaveHeight * 0.5;',
-      '  float wave3 = cos(dist * 0.5 + uTime * 0.2) * uWaveHeight * 0.3;',
+      '  float wave1 = sin(dist * 0.6 - uTime * 0.5) * uWaveHeight;',
+      '  float wave2 = sin(pos.x * 0.4 + uTime * 0.3) * cos(pos.z * 0.3 - uTime * 0.15) * uWaveHeight * 0.5;',
+      '  float wave3 = cos(dist * 0.25 + uTime * 0.1) * uWaveHeight * 0.3;',
       '  pos.y += wave1 + wave2 + wave3;',
       '  vHeight = pos.y;',
       '  vDist = dist;',
@@ -61,60 +60,20 @@ export function createHeroScene(canvas: HTMLCanvasElement) {
       'varying float vHeight;',
       'varying float vDist;',
       'void main() {',
-      '  float heightGlow = smoothstep(-0.2, 0.6, vHeight);',
-      '  float edgeFade = 1.0 - smoothstep(4.0, 7.5, vDist);',
-      '  float alpha = uOpacity * edgeFade * (0.3 + heightGlow * 0.7);',
+      '  float heightGlow = smoothstep(-0.2, 0.4, vHeight);',
+      '  float edgeFade = 1.0 - smoothstep(4.0, 8.0, vDist);',
+      '  float alpha = uOpacity * edgeFade * (0.4 + heightGlow * 0.6);',
       '  gl_FragColor = vec4(uColor, alpha);',
       '}',
     ].join('\n'),
   });
 
   const planeMesh = new THREE.Mesh(planeGeo, planeMat);
-  planeMesh.position.y = -2;
+  planeMesh.position.y = -3.5;
   scene.add(planeMesh);
 
-  const floatGroup = new THREE.Group();
-  scene.add(floatGroup);
-
-  const floatingParticles: Array<{
-    mesh: THREE.Mesh;
-    baseY: number;
-    phase: number;
-    speed: number;
-    floatAmp: number;
-  }> = [];
-  const particleGeo = new THREE.SphereGeometry(0.03, 8, 8);
-
-  for (let i = 0; i < FLOAT_PARTICLES; i++) {
-    const mat = new THREE.MeshBasicMaterial({
-      color: BRAND,
-      transparent: true,
-      opacity: 0.15 + Math.random() * 0.35,
-    });
-
-    const mesh = new THREE.Mesh(particleGeo, mat);
-    const spread = 6;
-    mesh.position.set(
-      (Math.random() - 0.5) * spread * 2,
-      Math.random() * 4 - 1,
-      (Math.random() - 0.5) * spread
-    );
-
-    const scale = 0.5 + Math.random() * 1.5;
-    mesh.scale.setScalar(scale);
-
-    floatGroup.add(mesh);
-    floatingParticles.push({
-      mesh,
-      baseY: mesh.position.y,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.3 + Math.random() * 0.5,
-      floatAmp: 0.3 + Math.random() * 0.5,
-    });
-  }
-
   const glowSprite = createGlow();
-  glowSprite.position.set(0, -0.5, 0);
+  glowSprite.position.set(0, -2, 0);
   scene.add(glowSprite);
 
   let targetMX = 0;
@@ -153,17 +112,13 @@ export function createHeroScene(canvas: HTMLCanvasElement) {
 
     planeMat.uniforms.uTime.value = time * WAVE_SPEED;
 
-    camera.position.x = smoothMX * 1.5;
-    camera.position.y = 6 + smoothMY * 0.5;
-    camera.lookAt(0, 0, 0);
-
-    for (const p of floatingParticles) {
-      p.mesh.position.y = p.baseY + Math.sin(time * p.speed + p.phase) * p.floatAmp;
-    }
+    camera.position.x = smoothMX * 0.8;
+    camera.position.y = 8 + smoothMY * 0.3;
+    camera.lookAt(0, -1, 0);
 
     const isDark = document.documentElement.classList.contains('dark');
-    planeMat.uniforms.uOpacity.value = isDark ? 0.15 : 0.1;
-    (glowSprite.material as THREE.SpriteMaterial).opacity = isDark ? 0.07 : 0.04;
+    planeMat.uniforms.uOpacity.value = isDark ? 0.1 : 0.07;
+    (glowSprite.material as THREE.SpriteMaterial).opacity = isDark ? 0.06 : 0.03;
 
     renderer.render(scene, camera);
   }
@@ -189,8 +144,8 @@ function createGlow(): THREE.Sprite {
     size / 2, size / 2, 0,
     size / 2, size / 2, size / 2
   );
-  gradient.addColorStop(0, 'rgba(69, 208, 193, 0.4)');
-  gradient.addColorStop(0.3, 'rgba(69, 208, 193, 0.1)');
+  gradient.addColorStop(0, 'rgba(69, 208, 193, 0.3)');
+  gradient.addColorStop(0.3, 'rgba(69, 208, 193, 0.08)');
   gradient.addColorStop(0.6, 'rgba(69, 208, 193, 0.02)');
   gradient.addColorStop(1, 'rgba(69, 208, 193, 0)');
 
@@ -201,7 +156,7 @@ function createGlow(): THREE.Sprite {
   const material = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,
-    opacity: 0.04,
+    opacity: 0.03,
     blending: THREE.AdditiveBlending,
   });
 
