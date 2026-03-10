@@ -58,5 +58,6 @@ export const AVAILABLE_MCPS: RegistryItem[] = [
   { name: 'meet-transcriptions', description: 'Semantic search across meeting transcriptions' },
   { name: 'google-chat', description: 'Google Chat spaces, members, and messages' },
   { name: 'tempmail', description: 'Temporary email for testing' },
+  { name: 'agent-teams-lead', description: 'Spawn AI teammate teams that work in parallel on tasks' },
   { name: 'mcp-proxy', description: 'Proxy gateway that reduces token usage via mcp_search/mcp_call' },
 ]

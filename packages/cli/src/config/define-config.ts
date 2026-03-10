@@ -224,6 +224,15 @@ export const mcp = {
     };
   },
 
+  agentTeamsLead(overrides?: MCPOverrides): MCPConfig {
+    return {
+      name: "agent-teams-lead",
+      package: "@arvoretech/agent-teams-lead-mcp",
+      ...overrides,
+      env: { ...overrides?.env },
+    };
+  },
+
   proxy(name: string, overrides: MCPOverrides & { upstreams: string[] }): MCPConfig {
     return {
       name,
