@@ -1,0 +1,25 @@
+---
+title: "v0.13.2 — Gitignore .agent-teams"
+version: "0.13.2"
+date: "2026-03-16"
+description: "The .agent-teams directory is now automatically added to .gitignore when agent-teams-lead MCP is configured."
+---
+
+The `.agent-teams/` directory is created at runtime by the agent-teams-lead MCP and should not be committed. Previously, adding it manually to `.gitignore` would get wiped on `hub generate` because it fell inside the managed block.
+
+## What changed
+
+- `buildGitignoreLines` now conditionally includes `.agent-teams/` when the `agent-teams-lead` MCP is detected in your config
+- Running `hub generate` no longer removes the entry from the managed block
+
+## Who is affected
+
+Any workspace using `agent-teams-lead` MCP. After upgrading, run `hub generate` to get the `.agent-teams/` entry in your `.gitignore`.
+
+---
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.13.2 generate
+```
