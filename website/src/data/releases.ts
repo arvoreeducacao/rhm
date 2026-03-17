@@ -15,6 +15,22 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.13.2",
+    date: "2026-03-16",
+    title: "Gitignore .agent-teams",
+    slug: "0-13-2",
+    summary:
+      "The .agent-teams directory is now automatically added to .gitignore when agent-teams-lead MCP is configured. Previously, manually adding it would get wiped on hub generate.",
+    changes: [
+      {
+        type: "fix",
+        title: "Persist .agent-teams in .gitignore",
+        description:
+          "The buildGitignoreLines function now conditionally includes .agent-teams/ when the agent-teams-lead MCP is detected, so hub generate no longer removes it from the managed block.",
+      },
+    ],
+  },
+  {
     version: "0.13.1",
     date: "2026-03-10",
     title: "Agent Chat",

@@ -2223,6 +2223,14 @@ function buildGitignoreLines(config: HubConfig): string[] {
     );
   }
 
+  if (hasAgentTeamsLeadMcp(config.mcps)) {
+    lines.push(
+      "",
+      "# Agent teams runtime data",
+      ".agent-teams/",
+    );
+  }
+
   return lines;
 }
 
