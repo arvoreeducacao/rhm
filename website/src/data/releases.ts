@@ -15,6 +15,22 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.13.3",
+    date: "2026-03-17",
+    title: "Fix YAML frontmatter in design source skills",
+    slug: "0-13-3",
+    summary:
+      "Design source skills with colons in the description field now generate valid YAML frontmatter. Previously, the unquoted colon in 'Design source: name' caused SKILL.md parsing errors.",
+    changes: [
+      {
+        type: "fix",
+        title: "Quote description in skill frontmatter",
+        description:
+          "The buildSkillContent function in design-sources.ts now wraps the description value in double quotes, preventing YAML parsing failures when the value contains colons.",
+      },
+    ],
+  },
+  {
     version: "0.13.2",
     date: "2026-03-16",
     title: "Gitignore .agent-teams",
