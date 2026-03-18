@@ -1,0 +1,24 @@
+---
+title: "v0.13.3 — Fix YAML frontmatter in design source skills"
+version: "0.13.3"
+date: "2026-03-17"
+description: "Design source skills with colons in the description field now generate valid YAML frontmatter."
+---
+
+When a design source skill had no custom `instructions`, the generated SKILL.md frontmatter contained an unquoted colon in the description (e.g. `description: Design source: bonsai-design-system`), which broke YAML parsing and caused "Invalid SKILL.md frontmatter" errors in Kiro.
+
+## What changed
+
+- `buildSkillContent` in `design-sources.ts` now wraps the `description` value in double quotes, so colons are safely escaped
+
+## Who is affected
+
+Any workspace using remote design sources without custom `instructions`. After upgrading, run `hub generate` to regenerate valid SKILL.md files.
+
+---
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.13.3 generate
+```
