@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { existsSync } from "node:fs";
-import { mkdir, writeFile, readdir, copyFile, readFile, cp } from "node:fs/promises";
+import { mkdir, writeFile, readdir, copyFile, readFile, cp, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
@@ -600,24 +600,33 @@ function buildKiroAgentContent(rawContent: string): string {
 }
 
 
+function stripDollarPrefix(env: Record<string, string>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    result[key] = value.replace(/\$\{env:(\w+)\}/g, "{env:$1}").replace(/\$\{(\w+)\}/g, "{env:$1}");
+  }
+  return result;
+}
+
 function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
+  const env = mcp.env ? stripDollarPrefix(mcp.env) : undefined;
   if (mcp.url) {
     return { type: "remote", url: mcp.url };
   }
   if (mcp.image) {
     const cmd = ["docker", "run", "-i", "--rm"];
-    if (mcp.env) {
-      for (const [key, value] of Object.entries(mcp.env)) {
+    if (env) {
+      for (const [key, value] of Object.entries(env)) {
         cmd.push("-e", `${key}=${value}`);
       }
     }
     cmd.push(mcp.image);
-    return { type: "local", command: cmd, ...(mcp.env && { environment: mcp.env }) };
+    return { type: "local", command: cmd, ...(env && { environment: env }) };
   }
   return {
     type: "local",
     command: ["npx", "-y", mcp.package!],
-    ...(mcp.env && { environment: mcp.env }),
+    ...(env && { environment: env }),
   };
 }
 
@@ -671,6 +680,23 @@ tools:
   write: true
   edit: true
   bash: true
+---
+
+${body.trim()}
+`;
+}
+
+function buildOpenCodePrimaryAgentMarkdown(description: string, body: string): string {
+  return `---
+description: "${description}"
+mode: primary
+tools:
+  write: true
+  edit: true
+  bash: true
+permission:
+  task:
+    "*": allow
 ---
 
 ${body.trim()}
@@ -1066,9 +1092,20 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
   console.log(chalk.green("  Generated .gitignore"));
 
-  const orchestratorRule = buildOpenCodeOrchestratorRule(config);
-  await writeFile(join(opencodeDir, "rules", "orchestrator.md"), orchestratorRule + "\n", "utf-8");
-  console.log(chalk.green("  Generated .opencode/rules/orchestrator.md"));
+  if (config.repos.length > 0) {
+    const ignoreContent = config.repos.map((r) => `!${r.name}`).join("\n") + "\n";
+    await writeFile(join(hubDir, ".ignore"), ignoreContent, "utf-8");
+    console.log(chalk.green("  Generated .ignore"));
+  }
+
+  const orchestratorContent = buildOpenCodeOrchestratorRule(config);
+  const orchestratorAgent = buildOpenCodePrimaryAgentMarkdown(
+    "Development orchestrator. Delegates specialized work to subagents following a structured pipeline: refinement, coding, review, QA, and delivery.",
+    orchestratorContent
+  );
+  await writeFile(join(opencodeDir, "agents", "orchestrator.md"), orchestratorAgent, "utf-8");
+  console.log(chalk.green("  Generated .opencode/agents/orchestrator.md (primary agent)"));
+  await rm(join(opencodeDir, "rules", "orchestrator.md")).catch(() => {});
 
   const hubSteeringDirOC = resolve(hubDir, "steering");
   try {
@@ -1088,6 +1125,7 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
 
   const opencodeConfig: Record<string, unknown> = {
     $schema: "https://opencode.ai/config.json",
+    default_agent: "orchestrator",
   };
 
   if (config.mcps?.length) {
@@ -1118,6 +1156,7 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
     const agentFiles = await readdir(agentsDir);
     const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
     for (const file of mdFiles) {
+      if (file === "orchestrator.md") continue;
       const content = await readFile(join(agentsDir, file), "utf-8");
       const agentName = file.replace(/\.md$/, "");
       const converted = buildOpenCodeAgentMarkdown(agentName, content);
