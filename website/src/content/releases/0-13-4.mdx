@@ -1,0 +1,27 @@
+---
+title: "v0.13.4 — OpenCode orchestrator as primary agent"
+version: "0.13.4"
+date: "2026-03-25"
+description: "The OpenCode orchestrator is now a primary agent with default_agent in opencode.json. Also fixes env var format and generates .ignore files."
+---
+
+The OpenCode generate flow now treats the orchestrator as a primary agent instead of a rule file, matching the arvore-hub pattern. Environment variables in MCP config use the correct `{env:VAR}` format, and a `.ignore` file is generated for repo discovery.
+
+## What changed
+
+- Orchestrator is now written to `.opencode/agents/orchestrator.md` with `mode: primary` and `default_agent: "orchestrator"` in `opencode.json`, instead of `.opencode/rules/orchestrator.md`
+- MCP environment variables use `{env:VAR}` format instead of `${env:VAR}` or `${VAR}`, matching the OpenCode spec
+- `hub generate` now creates a `.ignore` file listing all repo names with `!` prefix
+- Stale `.opencode/rules/orchestrator.md` is cleaned up on regenerate
+
+## Who is affected
+
+Any workspace using OpenCode as their editor. After upgrading, run `hub generate` to regenerate the config.
+
+---
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.13.4 generate
+```
