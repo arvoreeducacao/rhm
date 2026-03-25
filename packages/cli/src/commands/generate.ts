@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { existsSync } from "node:fs";
-import { mkdir, writeFile, readdir, copyFile, readFile, cp } from "node:fs/promises";
+import { mkdir, writeFile, readdir, copyFile, readFile, cp, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
@@ -1099,6 +1099,7 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   );
   await writeFile(join(opencodeDir, "agents", "orchestrator.md"), orchestratorAgent, "utf-8");
   console.log(chalk.green("  Generated .opencode/agents/orchestrator.md (primary agent)"));
+  await rm(join(opencodeDir, "rules", "orchestrator.md")).catch(() => {});
 
   const hubSteeringDirOC = resolve(hubDir, "steering");
   try {
