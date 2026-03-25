@@ -15,6 +15,40 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.13.4",
+    date: "2026-03-25",
+    title: "OpenCode orchestrator as primary agent",
+    slug: "0-13-4",
+    summary:
+      "The OpenCode orchestrator is now generated as a primary agent with default_agent in opencode.json, matching the arvore-hub pattern. Also fixes env var format in MCP config and generates a .ignore file for repo discovery.",
+    changes: [
+      {
+        type: "feat",
+        title: "Orchestrator as primary agent",
+        description:
+          "The orchestrator is now written to .opencode/agents/orchestrator.md with mode: primary and default_agent: orchestrator in opencode.json, instead of being a rule file in .opencode/rules/.",
+      },
+      {
+        type: "feat",
+        title: "Generate .ignore file",
+        description:
+          "hub generate now creates a .ignore file listing all repo names with ! prefix, enabling tools like ripgrep and OpenCode to discover repo directories.",
+      },
+      {
+        type: "fix",
+        title: "OpenCode env var format",
+        description:
+          "MCP environment variables in opencode.json now use the correct {env:VAR} format instead of ${env:VAR} or ${VAR}, matching the OpenCode spec.",
+      },
+      {
+        type: "fix",
+        title: "Clean up stale orchestrator rule",
+        description:
+          "Regenerating now removes the legacy .opencode/rules/orchestrator.md file to prevent conflicts with the new primary agent.",
+      },
+    ],
+  },
+  {
     version: "0.13.3",
     date: "2026-03-17",
     title: "Fix YAML frontmatter in design source skills",
