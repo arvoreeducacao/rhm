@@ -1092,6 +1092,12 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
   console.log(chalk.green("  Generated .gitignore"));
 
+  if (config.repos.length > 0) {
+    const ignoreContent = config.repos.map((r) => `!${r.name}`).join("\n") + "\n";
+    await writeFile(join(hubDir, ".ignore"), ignoreContent, "utf-8");
+    console.log(chalk.green("  Generated .ignore"));
+  }
+
   const orchestratorContent = buildOpenCodeOrchestratorRule(config);
   const orchestratorAgent = buildOpenCodePrimaryAgentMarkdown(
     "Development orchestrator. Delegates specialized work to subagents following a structured pipeline: refinement, coding, review, QA, and delivery.",
