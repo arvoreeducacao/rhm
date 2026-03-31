@@ -20,31 +20,31 @@ export const releases: Release[] = [
     title: "Kanban MCP",
     slug: "0-14-0",
     summary:
-      "Kanban board MCP para gerenciamento de tarefas de agentes com suporte a multi-sessão, busca semântica via LanceDB, e coordenação entre chats paralelos.",
+      "Persistent kanban board MCP for AI agent task management with multi-session coordination, semantic search via LanceDB, and parallel chat visibility.",
     changes: [
       {
         type: "feat",
         title: "Kanban MCP Server",
         description:
-          "Novo @arvoretech/kanban-mcp com 12 tools para CRUD de boards e cards, busca semântica, subtasks, e gerenciamento de sessões.",
+          "New @arvoretech/kanban-mcp with 12 tools for board and card CRUD, semantic search, subtasks, and session management.",
       },
       {
         type: "feat",
-        title: "Multi-sessão",
+        title: "Multi-session",
         description:
-          "Cada chat se identifica com session_id. Tools claim_card e release_card permitem coordenação entre chats paralelos. get_board mostra sessões ativas com duração.",
+          "Each chat identifies with a session_id. claim_card and release_card enable coordination between parallel chats. get_board shows active sessions with duration.",
       },
       {
         type: "feat",
-        title: "Busca semântica",
+        title: "Semantic search",
         description:
-          "search_cards usa LanceDB com embeddings multilíngues para encontrar cards por contexto semântico.",
+          "search_cards uses LanceDB with multilingual embeddings to find cards by semantic context.",
       },
       {
         type: "feat",
         title: "Helper mcp.kanban()",
         description:
-          "Novo helper no RHM CLI para configurar o kanban MCP em hub.config.ts.",
+          "New RHM CLI helper to configure the kanban MCP in hub.config.ts.",
       },
     ],
   },
