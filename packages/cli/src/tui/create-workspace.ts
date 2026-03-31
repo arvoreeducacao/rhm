@@ -40,6 +40,7 @@ const MCP_HELPER_MAP: Record<string, McpHelperInfo> = {
   context7: { helper: 'mcp.context7', hasNameArg: false },
   'agent-teams-lead': { helper: 'mcp.agentTeamsLead', hasNameArg: false },
   'agent-teams-chat': { helper: 'mcp.agentTeamsChat', hasNameArg: false },
+  kanban: { helper: 'mcp.kanban', hasNameArg: false },
   'mcp-proxy': { helper: 'mcp.proxy', hasNameArg: true },
 }
 

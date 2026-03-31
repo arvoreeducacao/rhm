@@ -791,6 +791,52 @@ You can communicate with agents from other developers on the team via the \`agen
 - When starting a task that touches shared code, check recent threads for relevant context`;
 }
 
+function hasKanbanMcp(mcps: MCPConfig[] | undefined): boolean {
+  if (!mcps) return false;
+  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
+  const directMatch = mcps.some((m) => m.name === "kanban" || m.package === "@arvoretech/kanban-mcp");
+  const upstreamMatch = proxyMcp?.upstreams?.includes("kanban") ?? false;
+  return directMatch || upstreamMatch;
+}
+
+function buildKanbanSection(mcps: MCPConfig[] | undefined): string {
+  if (!hasKanbanMcp(mcps)) return "";
+
+  return `
+## Kanban Board
+
+This workspace has a persistent kanban board via the \`kanban\` MCP. Use it to organize work, track progress across sessions, and coordinate with other chats.
+
+**When to use the kanban:**
+- At the start of a task, check the board for existing cards and active sessions
+- Break complex features into cards before starting implementation
+- Claim cards you're working on so other sessions can see
+- Release cards when done (default status: review)
+- Search for related cards before creating duplicates
+
+**Workflow:**
+1. \`list_boards\` / \`get_board\` — See what's on the board and who's working on what
+2. \`create_card\` — Add new tasks to the appropriate column
+3. \`claim_card\` — Mark a card as being worked on by this session
+4. \`move_card\` — Move cards between columns as work progresses
+5. \`release_card\` — Release when done, with status and detail (e.g. "PR #123 created")
+6. \`search_cards\` — Find cards by meaning (semantic search)
+
+**Available tools:** \`list_boards\`, \`create_board\`, \`get_board\`, \`get_card\`, \`create_card\`, \`update_card\`, \`move_card\`, \`claim_card\`, \`release_card\`, \`search_cards\`, \`archive_card\`, \`delete_card\`.
+
+**Multi-session coordination:**
+- Always \`claim_card\` before starting work — other sessions will see it's taken
+- If a card is already claimed, pick another or use \`force: true\` to override stale sessions
+- Use \`get_board\` to see active sessions with duration (helps identify abandoned claims)
+- When finishing, \`release_card\` with a meaningful detail so the next session has context
+
+**Best practices:**
+- Use subtasks (\`parent_card_id\`) to break down large cards
+- Tag cards consistently for easy filtering
+- Set priority to help triage (urgent > high > medium > low)
+- Check the board at the start of every session — don't start from zero`;
+}
+
 function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
   if (!mcps || mcps.length === 0) return "";
 
@@ -961,6 +1007,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 
   const agentTeamsChatSectionOpenCode = buildAgentTeamsChatSection(config.mcps);
   if (agentTeamsChatSectionOpenCode) sections.push(agentTeamsChatSectionOpenCode);
+
+  const kanbanSectionOpenCode = buildKanbanSection(config.mcps);
+  if (kanbanSectionOpenCode) sections.push(kanbanSectionOpenCode);
 
   sections.push(`
 ## Troubleshooting and Debugging
@@ -1326,6 +1375,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
   const agentTeamsChatSectionKiro = buildAgentTeamsChatSection(config.mcps);
   if (agentTeamsChatSectionKiro) sections.push(agentTeamsChatSectionKiro);
 
+  const kanbanSectionKiro = buildKanbanSection(config.mcps);
+  if (kanbanSectionKiro) sections.push(kanbanSectionKiro);
+
   sections.push(`
 ## Troubleshooting and Debugging
 
@@ -1553,6 +1605,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 
   const agentTeamsChatSectionCursor = buildAgentTeamsChatSection(config.mcps);
   if (agentTeamsChatSectionCursor) sections.push(agentTeamsChatSectionCursor);
+
+  const kanbanSectionCursor = buildKanbanSection(config.mcps);
+  if (kanbanSectionCursor) sections.push(kanbanSectionCursor);
 
   sections.push(`
 ## Troubleshooting and Debugging
