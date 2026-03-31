@@ -1,0 +1,125 @@
+---
+title: Kanban
+description: Persistent kanban boards for AI agents — manage tasks across sessions with multi-agent coordination and semantic search.
+order: 8
+---
+
+AI agents lose track of work between sessions. The `@arvoretech/kanban-mcp` gives agents a persistent kanban board with structured task management, multi-session coordination, and semantic search via LanceDB.
+
+When multiple chats are open in parallel, each one can claim cards, see what others are working on, and release cards when done — preventing duplicate work and giving full visibility across sessions.
+
+## Quick Start
+
+Add the kanban MCP to your `hub.config.ts`:
+
+```typescript
+import { defineConfig, mcp } from "@arvoretech/hub";
+
+export default defineConfig({
+  mcps: [
+    mcp.kanban(),
+  ],
+});
+```
+
+Or in `hub.yaml`:
+
+```yaml
+mcps:
+  - name: kanban
+    package: "@arvoretech/kanban-mcp"
+    env:
+      KANBAN_PATH: ./kanban
+```
+
+Run `hub generate` to inject the MCP into your editor config.
+
+## Multi-Session
+
+Each chat identifies itself with a `session_id` when claiming cards. This enables coordination between parallel chats:
+
+1. **Claim** — A chat takes ownership of a card via `claim_card`
+2. **Visibility** — Other chats see who is working on what via `get_board`
+3. **History** — Every action is recorded in the card's `session_log`
+4. **Release** — When done, the chat releases the card via `release_card` with a status
+
+```
+Chat 1: claim_card → works on "Implement login" → release_card (completed)
+Chat 2: get_board → sees "Implement login" is done → picks another card
+```
+
+If a chat closes without releasing, the card stays claimed. Another chat can use `force: true` on `claim_card` to take over.
+
+## Semantic Search
+
+`search_cards` uses LanceDB with multilingual embeddings to find cards by meaning, not just keywords. Queries like "authentication issues" will match cards titled "login flow bug" or "OAuth token refresh".
+
+The default model (`paraphrase-multilingual-MiniLM-L12-v2`) supports Portuguese and English.
+
+## Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_boards` | List all boards with card counts and active sessions |
+| `create_board` | Create a new board with default or custom columns |
+| `get_board` | Get a board with all cards, columns, and session info |
+| `get_card` | Get full card details including subtasks and session log |
+| `create_card` | Create a card in a specific column (supports `parent_card_id` for subtasks) |
+| `update_card` | Update card properties (title, description, priority, tags) |
+| `move_card` | Move a card to another column |
+| `claim_card` | Claim a card for the current session |
+| `release_card` | Release a card with a completion status |
+| `search_cards` | Semantic search across all cards |
+| `archive_card` | Soft-delete a card |
+| `delete_card` | Permanently remove a card |
+
+## Subtasks
+
+Cards can have a `parent_card_id` to create hierarchy. When creating a card, pass `parent_card_id` to make it a subtask. `get_board` shows `subtasks_count` and `subtasks_done` on parent cards. `get_card` lists all subtasks with their column and priority.
+
+## Default Columns
+
+New boards are created with four columns:
+
+| Column | Color |
+|--------|-------|
+| Backlog | `#6b7280` |
+| Todo | `#3b82f6` |
+| In Progress | `#f59e0b` |
+| Done | `#10b981` |
+
+You can override columns when creating a board via `create_board`.
+
+## Usage Examples
+
+### Create a board and add cards
+
+```
+Agent: create_board { name: "Sprint 42", description: "Auth feature sprint" }
+Agent: create_card { board_id: "...", column_id: "todo-id", title: "Implement login", priority: "high" }
+Agent: create_card { board_id: "...", column_id: "todo-id", title: "Write tests", priority: "medium" }
+```
+
+### Claim and work on a card
+
+```
+Agent: claim_card { board_id: "...", card_id: "...", session_id: "kiro-chat-1" }
+Agent: move_card { board_id: "...", card_id: "...", column_id: "in-progress-id" }
+// ... work ...
+Agent: release_card { board_id: "...", card_id: "...", session_id: "kiro-chat-1", status: "completed" }
+Agent: move_card { board_id: "...", card_id: "...", column_id: "done-id" }
+```
+
+### Search for related cards
+
+```
+Agent: search_cards { query: "authentication bug", limit: 5 }
+```
+
+## Configuration Reference
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `KANBAN_PATH` | `./kanban` | Directory for board data and LanceDB index |
+| `KANBAN_EMBEDDING_MODEL` | `Xenova/paraphrase-multilingual-MiniLM-L12-v2` | HuggingFace model for semantic search |
+| `KANBAN_DEFAULT_RELEASE_STATUS` | `review` | Default status when releasing a card without specifying |

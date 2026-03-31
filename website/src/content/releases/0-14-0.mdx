@@ -1,0 +1,42 @@
+---
+title: "v0.14.0 — Kanban MCP"
+version: "0.14.0"
+date: "2026-03-30"
+description: "Persistent kanban boards for AI agents with multi-session coordination, semantic search, subtasks, and 12 MCP tools for task management."
+---
+
+AI agents now have a persistent kanban board. The new `@arvoretech/kanban-mcp` gives agents structured task management that survives across sessions, with multi-chat coordination and semantic search via LanceDB.
+
+## What changed
+
+- New `@arvoretech/kanban-mcp` package with 12 tools: `list_boards`, `create_board`, `get_board`, `get_card`, `create_card`, `update_card`, `move_card`, `claim_card`, `release_card`, `search_cards`, `archive_card`, `delete_card`
+- Multi-session support — each chat identifies with a `session_id`, claims cards, and releases them when done. `get_board` shows active sessions with duration
+- Subtasks — cards support `parent_card_id` for hierarchical task breakdown. `get_card` shows subtasks with status
+- Semantic search via LanceDB with multilingual embeddings — find cards by meaning, not just keywords
+- New `mcp.kanban()` helper in the RHM CLI for easy configuration
+
+## Multi-session coordination
+
+When multiple chats are open in parallel, each one can claim cards to signal ownership. Other chats see who is working on what, preventing duplicate work. Cards track a full session log with timestamps.
+
+## Who is affected
+
+Any workspace using RHM with AI agents. Add `mcp.kanban()` to your `hub.config.ts` and run `hub generate`.
+
+---
+
+## Setup
+
+```typescript
+import { defineConfig, mcp } from "@arvoretech/hub";
+
+export default defineConfig({
+  mcps: [
+    mcp.kanban(),
+  ],
+});
+```
+
+```bash
+npx @arvoretech/hub@0.14.0 generate
+```

@@ -242,6 +242,15 @@ export const mcp = {
     };
   },
 
+  kanban(overrides?: MCPOverrides): MCPConfig {
+    return {
+      name: "kanban",
+      package: "@arvoretech/kanban-mcp",
+      ...overrides,
+      env: { ...overrides?.env },
+    };
+  },
+
   proxy(name: string, overrides: MCPOverrides & { upstreams: string[] }): MCPConfig {
     return {
       name,
