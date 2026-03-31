@@ -15,6 +15,40 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.14.0",
+    date: "2026-03-30",
+    title: "Kanban MCP",
+    slug: "0-14-0",
+    summary:
+      "Kanban board MCP para gerenciamento de tarefas de agentes com suporte a multi-sessão, busca semântica via LanceDB, e coordenação entre chats paralelos.",
+    changes: [
+      {
+        type: "feat",
+        title: "Kanban MCP Server",
+        description:
+          "Novo @arvoretech/kanban-mcp com 12 tools para CRUD de boards e cards, busca semântica, subtasks, e gerenciamento de sessões.",
+      },
+      {
+        type: "feat",
+        title: "Multi-sessão",
+        description:
+          "Cada chat se identifica com session_id. Tools claim_card e release_card permitem coordenação entre chats paralelos. get_board mostra sessões ativas com duração.",
+      },
+      {
+        type: "feat",
+        title: "Busca semântica",
+        description:
+          "search_cards usa LanceDB com embeddings multilíngues para encontrar cards por contexto semântico.",
+      },
+      {
+        type: "feat",
+        title: "Helper mcp.kanban()",
+        description:
+          "Novo helper no RHM CLI para configurar o kanban MCP em hub.config.ts.",
+      },
+    ],
+  },
+  {
     version: "0.13.4",
     date: "2026-03-25",
     title: "OpenCode orchestrator as primary agent",

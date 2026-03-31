@@ -61,4 +61,5 @@ export const AVAILABLE_MCPS: RegistryItem[] = [
   { name: 'agent-teams-lead', description: 'Spawn AI teammate teams that work in parallel on tasks' },
   { name: 'agent-teams-chat', description: 'Cross-developer agent communication via Slack threads' },
   { name: 'mcp-proxy', description: 'Proxy gateway that reduces token usage via mcp_search/mcp_call' },
+  { name: 'kanban', description: 'Kanban board for managing agent tasks across sessions' },
 ]
