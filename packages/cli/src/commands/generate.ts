@@ -325,6 +325,10 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   await writeFile(join(cursorDir, "rules", "orchestrator.mdc"), orchestratorRule, "utf-8");
   console.log(chalk.green("  Generated .cursor/rules/orchestrator.mdc"));
 
+  const cleanedOrchestratorForAgents = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
+  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestratorForAgents + "\n", "utf-8");
+  console.log(chalk.green("  Generated AGENTS.md"));
+
   const hubSteeringDirCursor = resolve(hubDir, "steering");
   try {
     const steeringFiles = await readdir(hubSteeringDirCursor);
@@ -1156,6 +1160,9 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .opencode/agents/orchestrator.md (primary agent)"));
   await rm(join(opencodeDir, "rules", "orchestrator.md")).catch(() => {});
 
+  await writeFile(join(hubDir, "AGENTS.md"), orchestratorContent + "\n", "utf-8");
+  console.log(chalk.green("  Generated AGENTS.md"));
+
   const hubSteeringDirOC = resolve(hubDir, "steering");
   try {
     const steeringFiles = await readdir(hubSteeringDirOC);
@@ -1822,6 +1829,9 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
     .replace(/^---[\s\S]*?---\n/m, "")
     .trim();
 
+  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestrator + "\n", "utf-8");
+  console.log(chalk.green("  Generated AGENTS.md"));
+
   const claudeMdSections: string[] = [];
   claudeMdSections.push(cleanedOrchestrator);
 
@@ -1992,9 +2002,6 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .gitignore"));
 
   const kiroRule = buildKiroOrchestratorRule(config);
-  const kiroOrchestrator = buildKiroSteeringContent(kiroRule, "always", { name: "orchestrator" });
-  await writeFile(join(steeringDir, "orchestrator.md"), kiroOrchestrator, "utf-8");
-  console.log(chalk.green("  Generated .kiro/steering/orchestrator.md"));
 
   await writeFile(join(hubDir, "AGENTS.md"), kiroRule + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
