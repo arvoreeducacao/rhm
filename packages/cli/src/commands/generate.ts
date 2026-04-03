@@ -326,7 +326,9 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .cursor/rules/orchestrator.mdc"));
 
   const cleanedOrchestratorForAgents = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
-  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestratorForAgents + "\n", "utf-8");
+  const skillsSectionCursor = await buildSkillsSection(hubDir, config);
+  const agentsMdCursor = skillsSectionCursor ? cleanedOrchestratorForAgents + "\n" + skillsSectionCursor : cleanedOrchestratorForAgents;
+  await writeFile(join(hubDir, "AGENTS.md"), agentsMdCursor + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
 
   const hubSteeringDirCursor = resolve(hubDir, "steering");
@@ -901,6 +903,71 @@ ${mcp.instructions!.trim()}`);
   return lines.join("\n");
 }
 
+async function buildSkillsSection(hubDir: string, config: HubConfig): Promise<string | null> {
+  const skillsDir = resolve(hubDir, "skills");
+  const skillEntries: { name: string; description: string }[] = [];
+
+  try {
+    const folders = await readdir(skillsDir);
+    for (const folder of folders) {
+      const skillPath = join(skillsDir, folder, "SKILL.md");
+      try {
+        const content = await readFile(skillPath, "utf-8");
+        const fm = parseFrontMatter(content);
+        if (fm?.name) {
+          skillEntries.push({
+            name: fm.name,
+            description: fm.description || "",
+          });
+        }
+      } catch {
+        // skip
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  if (skillEntries.length === 0) return null;
+
+  const repoSkillMap = new Map<string, string[]>();
+  for (const repo of config.repos) {
+    if (repo.skills?.length) {
+      for (const skill of repo.skills) {
+        const repos = repoSkillMap.get(skill) || [];
+        repos.push(repo.path);
+        repoSkillMap.set(skill, repos);
+      }
+    }
+  }
+
+  const parts: string[] = [];
+  parts.push(`
+## Skills
+
+This workspace has skills that provide specialized knowledge for specific domains and repositories.
+Consult the relevant skill before working in an unfamiliar area — they contain patterns, conventions, and project-specific guidance.
+
+| Skill | Description | Repositories |
+|-------|-------------|--------------|`);
+
+  for (const entry of skillEntries) {
+    const repos = repoSkillMap.get(entry.name);
+    const repoCol = repos ? repos.map(r => `\`${r}\``).join(", ") : "—";
+    const desc = entry.description.replace(/\|/g, "\\|").split(".")[0].trim();
+    parts.push(`| \`${entry.name}\` | ${desc} | ${repoCol} |`);
+  }
+
+  parts.push(`
+When to consult a skill:
+- Before writing code in a repository that has an associated skill
+- When making architecture or pattern decisions in a specific domain
+- When unsure about project conventions, libraries, or testing approaches
+- When the user's request touches a domain covered by an available skill`);
+
+  return parts.join("\n");
+}
+
 function buildCoreBehaviorSections(): string[] {
   const sections: string[] = [];
 
@@ -1242,7 +1309,9 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .opencode/agents/orchestrator.md (primary agent)"));
   await rm(join(opencodeDir, "rules", "orchestrator.md")).catch(() => {});
 
-  await writeFile(join(hubDir, "AGENTS.md"), orchestratorContent + "\n", "utf-8");
+  const skillsSectionOC = await buildSkillsSection(hubDir, config);
+  const agentsMdOC = skillsSectionOC ? orchestratorContent + "\n" + skillsSectionOC : orchestratorContent;
+  await writeFile(join(hubDir, "AGENTS.md"), agentsMdOC + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
 
   const hubSteeringDirOC = resolve(hubDir, "steering");
@@ -1915,7 +1984,9 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
     .replace(/^---[\s\S]*?---\n/m, "")
     .trim();
 
-  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestrator + "\n", "utf-8");
+  const skillsSectionClaude = await buildSkillsSection(hubDir, config);
+  const agentsMdClaude = skillsSectionClaude ? cleanedOrchestrator + "\n" + skillsSectionClaude : cleanedOrchestrator;
+  await writeFile(join(hubDir, "AGENTS.md"), agentsMdClaude + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
 
   const claudeMdSections: string[] = [];
@@ -2088,8 +2159,10 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .gitignore"));
 
   const kiroRule = buildKiroOrchestratorRule(config);
+  const skillsSection = await buildSkillsSection(hubDir, config);
+  const kiroRuleWithSkills = skillsSection ? kiroRule + "\n" + skillsSection : kiroRule;
 
-  await writeFile(join(hubDir, "AGENTS.md"), kiroRule + "\n", "utf-8");
+  await writeFile(join(hubDir, "AGENTS.md"), kiroRuleWithSkills + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
 
   const hubSteeringDir = resolve(hubDir, "steering");
