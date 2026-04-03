@@ -15,6 +15,34 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.15.0",
+    date: "2026-04-03",
+    title: "Enhanced orchestrator prompts",
+    slug: "0-15-0",
+    summary:
+      "All editor generators now produce richer orchestrator prompts with core behavior, working style, code change, security, git discipline, and skills listing sections. AGENTS.md is now generated universally across all editors.",
+    changes: [
+      {
+        type: "feat",
+        title: "AGENTS.md for all editors",
+        description:
+          "All editor generators (Cursor, Claude Code, OpenCode, Kiro) now write AGENTS.md at the workspace root. Kiro no longer generates a duplicate .kiro/steering/orchestrator.md.",
+      },
+      {
+        type: "feat",
+        title: "Core behavior sections",
+        description:
+          "Six new shared sections added to all orchestrator prompts: Core Behavior, Working Style, Search/Reading/Investigation, Code Changes, Security/Safety, and Git/Operational Discipline. Based on analysis of Cursor and Claude Code system prompts.",
+      },
+      {
+        type: "feat",
+        title: "Skills listing in orchestrator",
+        description:
+          "The orchestrator prompt now includes a Skills section that lists all available skills with descriptions, associated repositories, and guidance on when to consult them.",
+      },
+    ],
+  },
+  {
     version: "0.14.0",
     date: "2026-03-30",
     title: "Kanban MCP",
