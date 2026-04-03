@@ -966,11 +966,11 @@ When to consult a skill:
 - When the user's request touches a domain covered by an available skill
 
 Additional context sources:
-- Use documentation MCPs (context7, etc.) to check library and framework docs before implementing
+- Use documentation MCPs to check library and framework docs before implementing
 - Use database MCPs to understand schema, query data, and verify state
 - Use package registry MCPs to verify security and versions before installing dependencies
 - Use the repository CLI commands (build, test, lint) to validate changes after implementation
-- Use monitoring MCPs (Datadog, etc.) for production debugging and log analysis`);
+- Use monitoring MCPs for production debugging and log analysis when available`);
 
   return parts.join("\n");
 }
