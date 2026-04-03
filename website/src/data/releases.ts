@@ -15,6 +15,40 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.16.0",
+    date: "2026-04-03",
+    title: "Chat consolidation",
+    slug: "0-16-0",
+    summary:
+      "New hub consolidate command extracts knowledge from chat sessions across Kiro, Claude Code, and OpenCode into team memories — using the editor's own CLI as the LLM engine.",
+    changes: [
+      {
+        type: "feat",
+        title: "hub consolidate",
+        description:
+          "Reads chat history from Kiro, Claude Code, and OpenCode, compacts sessions into a batch, and spawns the editor CLI (kiro-cli, claude, or opencode) to extract decisions, conventions, gotchas, and domain knowledge into ./memories/. Zero extra dependencies — uses the model you already pay for.",
+      },
+      {
+        type: "feat",
+        title: "Cross-editor session collection",
+        description:
+          "Auto-detects chat storage for Kiro (Application Support JSON), Claude Code (~/.claude/projects JSONL), and OpenCode (~/.local/share/opencode session/message/part). Normalizes all formats into a unified structure.",
+      },
+      {
+        type: "feat",
+        title: "Incremental processing",
+        description:
+          "Tracks indexed sessions in .hub/consolidation-state.json. Running hub consolidate twice won't reprocess the same sessions. Use --reset to start fresh.",
+      },
+      {
+        type: "fix",
+        title: "Session ordering",
+        description:
+          "Collectors now sort globally by date before applying the limit, ensuring the most recent sessions are always processed first regardless of which workspace directory they're in.",
+      },
+    ],
+  },
+  {
     version: "0.15.0",
     date: "2026-04-03",
     title: "Enhanced orchestrator prompts",
