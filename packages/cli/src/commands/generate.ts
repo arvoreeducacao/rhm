@@ -2172,6 +2172,8 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   await writeFile(join(hubDir, "AGENTS.md"), kiroRuleWithSkills + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
 
+  await rm(join(steeringDir, "orchestrator.md")).catch(() => {});
+
   const hubSteeringDir = resolve(hubDir, "steering");
   try {
     const steeringFiles = await readdir(hubSteeringDir);
