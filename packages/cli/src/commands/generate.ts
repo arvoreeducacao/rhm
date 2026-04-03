@@ -963,7 +963,14 @@ When to consult a skill:
 - Before writing code in a repository that has an associated skill
 - When making architecture or pattern decisions in a specific domain
 - When unsure about project conventions, libraries, or testing approaches
-- When the user's request touches a domain covered by an available skill`);
+- When the user's request touches a domain covered by an available skill
+
+Additional context sources:
+- Use documentation MCPs (context7, etc.) to check library and framework docs before implementing
+- Use database MCPs to understand schema, query data, and verify state
+- Use package registry MCPs to verify security and versions before installing dependencies
+- Use the repository CLI commands (build, test, lint) to validate changes after implementation
+- Use monitoring MCPs (Datadog, etc.) for production debugging and log analysis`);
 
   return parts.join("\n");
 }
