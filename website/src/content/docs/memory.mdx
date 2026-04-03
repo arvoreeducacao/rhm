@@ -143,3 +143,138 @@ hub memory remove <id>                    # Permanent delete
 | `categories` | string[] | all 5 | Which categories to use |
 | `auto_capture` | boolean | `false` | Auto-extract learnings from tasks |
 | `embedding_model` | string | multilingual MiniLM | HuggingFace model for MCP |
+
+## Consolidation
+
+Chat sessions contain valuable knowledge — decisions, patterns, gotchas, domain insights — that gets lost in history. `hub consolidate` extracts that knowledge automatically.
+
+### How it works
+
+1. Reads chat history from Kiro, Claude Code, and OpenCode
+2. Normalizes messages into a unified format (user/assistant only, no tool calls)
+3. Sorts by most recent, skips already-processed sessions
+4. Writes a compacted batch to `.hub/consolidation/`
+5. Spawns your editor's CLI with a knowledge extraction prompt
+6. The agent reads the batch, checks existing memories for duplicates, and writes new files to `./memories/{category}/`
+7. Marks processed sessions in `.hub/consolidation-state.json`
+
+### Usage
+
+```bash
+hub consolidate                    # Process last 20 sessions
+hub consolidate --last 50          # Last 50
+hub consolidate --since 2026-03-01 # Since a date
+hub consolidate --editor kiro      # Only Kiro sessions
+hub consolidate --cli claude       # Use Claude CLI for extraction
+hub consolidate --dry-run          # Preview without extracting
+hub consolidate --reset            # Reprocess everything
+```
+
+### Supported editors
+
+| Editor | Chat location | Format |
+|--------|--------------|--------|
+| Kiro | `~/Library/Application Support/Kiro/.../workspace-sessions/` | JSON |
+| Claude Code | `~/.claude/projects/` | JSONL |
+| OpenCode | `~/.local/share/opencode/storage/` | JSON |
+
+### No extra dependencies
+
+The command uses the CLI of whatever editor you already have installed (`kiro-cli`, `claude`, or `opencode`). No API keys, no SDK, no external service. Same pattern as `agent-teams-lead` spawning teammates.
+
+### Scheduling consolidation
+
+Run `hub consolidate` automatically on a schedule so memories stay fresh.
+
+#### macOS (launchd)
+
+Create `~/Library/LaunchAgents/com.hub.consolidate.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.hub.consolidate</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /path/to/your/hub && npx @arvoretech/hub consolidate --last 30</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/hub-consolidate.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/hub-consolidate.log</string>
+</dict>
+</plist>
+```
+
+Load it:
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.hub.consolidate.plist
+```
+
+#### Linux (cron)
+
+```bash
+crontab -e
+```
+
+Add a line to run daily at 9am:
+
+```
+0 9 * * * cd /path/to/your/hub && npx @arvoretech/hub consolidate --last 30 >> /tmp/hub-consolidate.log 2>&1
+```
+
+#### Linux (systemd timer)
+
+Create `~/.config/systemd/user/hub-consolidate.service`:
+
+```ini
+[Unit]
+Description=Hub memory consolidation
+
+[Service]
+Type=oneshot
+WorkingDirectory=/path/to/your/hub
+ExecStart=/usr/bin/npx @arvoretech/hub consolidate --last 30
+```
+
+Create `~/.config/systemd/user/hub-consolidate.timer`:
+
+```ini
+[Unit]
+Description=Run hub consolidate daily
+
+[Timer]
+OnCalendar=*-*-* 09:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable it:
+
+```bash
+systemctl --user enable --now hub-consolidate.timer
+```
+
+#### Windows (Task Scheduler)
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "cmd.exe" `
+  -Argument "/c cd /d C:\path\to\your\hub && npx @arvoretech/hub consolidate --last 30"
+$trigger = New-ScheduledTaskTrigger -Daily -At 9am
+Register-ScheduledTask -TaskName "HubConsolidate" -Action $action -Trigger $trigger
+```
