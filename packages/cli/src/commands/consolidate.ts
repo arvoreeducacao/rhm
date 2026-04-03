@@ -1,9 +1,10 @@
 import { Command } from "commander";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile, stat } from "node:fs/promises";
-import { join, basename } from "node:path";
+import { join } from "node:path";
 import { homedir } from "node:os";
 import { spawn } from "node:child_process";
+import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { loadHubConfig } from "../core/hub-config.js";
 
@@ -59,7 +60,6 @@ async function writeState(
 }
 
 function detectEditorCli(): EditorCli | null {
-  const { execSync } = require("node:child_process") as typeof import("node:child_process");
   const candidates: EditorCli[] = ["kiro-cli", "claude", "opencode"];
   for (const cli of candidates) {
     try {
