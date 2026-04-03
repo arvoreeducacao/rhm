@@ -366,6 +366,36 @@ The `@arvoretech/memory-mcp` provides semantic search via MCP so AI agents can q
 
 See [Memory](/docs/memory) for full documentation.
 
+## Consolidation
+
+### `hub consolidate`
+
+Extract knowledge from chat sessions across editors into team memories:
+
+```bash
+hub consolidate                    # Process last 20 sessions from all editors
+hub consolidate --last 50          # Last 50 sessions
+hub consolidate --since 2026-03-01 # Only sessions after this date
+hub consolidate --editor kiro      # Only from Kiro
+hub consolidate --editor claude    # Only from Claude Code
+hub consolidate --cli claude       # Use Claude CLI for extraction
+hub consolidate --dry-run          # Preview batch without extracting
+hub consolidate --reset            # Reset state and reprocess all
+```
+
+| Flag | Description |
+|------|-------------|
+| `-n, --last <count>` | Number of recent sessions to process (default: 20) |
+| `-s, --since <date>` | Only process sessions after this date (YYYY-MM-DD) |
+| `-e, --editor <editor>` | Editor to collect from: `kiro`, `claude`, `opencode`, `all` (default: all) |
+| `--cli <cli>` | Editor CLI to use for extraction: `kiro-cli`, `claude`, `opencode` |
+| `--dry-run` | Show batch content without running extraction |
+| `--reset` | Reset consolidation state and reprocess all sessions |
+
+The command auto-detects which editor CLIs are installed and uses the first one found. Sessions already processed are tracked in `.hub/consolidation-state.json` and skipped on subsequent runs.
+
+See [Memory — Consolidation](/docs/memory#consolidation) for full documentation.
+
 ## Registry
 
 ### `hub registry [subcommand]`

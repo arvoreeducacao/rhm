@@ -1,0 +1,60 @@
+---
+title: "v0.16.0 — Chat consolidation"
+version: "0.16.0"
+date: "2026-04-03"
+description: "New hub consolidate command extracts knowledge from chat sessions across Kiro, Claude Code, and OpenCode into team memories — using the editor's own CLI as the LLM engine."
+---
+
+Your AI agents have hundreds of conversations. Decisions get made, patterns get discovered, gotchas get found — and then they're lost in chat history. `hub consolidate` fixes that.
+
+## What's new
+
+### `hub consolidate`
+
+Reads chat sessions from all your editors, compacts them into a batch, and spawns your editor's CLI to extract useful knowledge into `./memories/`.
+
+```bash
+hub consolidate                    # Process last 20 sessions
+hub consolidate --last 50          # Last 50 sessions
+hub consolidate --since 2026-03-01 # Since a specific date
+hub consolidate --editor kiro      # Only from Kiro
+hub consolidate --cli claude       # Use Claude CLI for extraction
+hub consolidate --dry-run          # Preview without extracting
+hub consolidate --reset            # Reprocess all sessions
+```
+
+### How it works
+
+1. Reads chat history from Kiro, Claude Code, and OpenCode (auto-detected)
+2. Normalizes messages across editors into a unified format
+3. Sorts by most recent first, skips already-indexed sessions
+4. Writes a compacted batch to `.hub/consolidation/`
+5. Spawns the editor CLI (`kiro-cli`, `claude`, or `opencode`) with a knowledge extraction prompt
+6. The agent reads the batch, checks existing memories for duplicates, and writes new `.md` files to `./memories/{category}/`
+7. Marks processed sessions in `.hub/consolidation-state.json`
+
+### Supported editors
+
+| Editor | Chat location | Format |
+|--------|--------------|--------|
+| Kiro | `~/Library/Application Support/Kiro/User/globalStorage/kiro.kiroagent/workspace-sessions/` | JSON per session |
+| Claude Code | `~/.claude/projects/{project}/` | JSONL per session |
+| OpenCode | `~/.local/share/opencode/storage/` | JSON (session → message → part) |
+
+### Zero extra dependencies
+
+No API keys, no SDK, no external LLM service. It uses the CLI of whatever editor you already have installed — same model, same subscription, same config. The pattern is identical to how `agent-teams-lead` spawns teammates.
+
+### Scheduling
+
+Run it automatically with cron, launchd, or systemd. See the [Memory docs](/docs/memory#scheduling-consolidation) for setup instructions per OS.
+
+## Bug fixes
+
+- Fixed session ordering: collectors now sort globally by date before applying the limit, ensuring the most recent sessions are always processed first regardless of which workspace directory they're in.
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.16.0 generate
+```
