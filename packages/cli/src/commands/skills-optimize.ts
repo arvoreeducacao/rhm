@@ -99,8 +99,6 @@ async function callLLM(
     body: JSON.stringify({
       model: opts.model,
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 4096,
     }),
   });
 
