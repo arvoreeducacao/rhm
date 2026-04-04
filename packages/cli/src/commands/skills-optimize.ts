@@ -332,7 +332,7 @@ function resolveLLMOpts(opts: {
     process.env.OPENAI_API_KEY ||
     process.env.ANTHROPIC_API_KEY ||
     "";
-  const model = opts.model || process.env.HUB_OPTIMIZE_MODEL || "gpt-4o";
+  const model = opts.model || process.env.HUB_OPTIMIZE_MODEL || "gpt-5-mini";
   const baseUrl =
     opts.baseUrl ||
     process.env.HUB_OPTIMIZE_BASE_URL ||
