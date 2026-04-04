@@ -6,6 +6,7 @@ import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { downloadDirFromGitHub } from "./registry.js";
 import { checkAndAutoRegenerate } from "../core/hub-cache.js";
+import { optimizeCommand } from "./skills-optimize.js";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 
@@ -435,4 +436,5 @@ export const skillsCommand = new Command("skills")
 
         if (!opts.global) await checkAndAutoRegenerate(hubDir);
       })
-  );
+  )
+  .addCommand(optimizeCommand);

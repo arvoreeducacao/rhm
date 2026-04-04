@@ -112,6 +112,45 @@ Examples:
 
 ---
 
+## Skill Optimization
+
+Skills have a `description` and `triggers` in their SKILL.md frontmatter that determine when the AI activates them. If a skill triggers too often (false positives) or not enough (missed activations), you can optimize it:
+
+```bash
+hub skills optimize frontend-nextjs
+```
+
+This runs an iterative loop that:
+1. Generates realistic test queries (should-trigger and should-not-trigger)
+2. Simulates the AI's skill selection against all your workspace skills
+3. Improves the description and triggers based on what failed
+4. Repeats until accuracy is maximized or iterations are exhausted
+
+The result is a rewritten `description` and `triggers` in your SKILL.md that better match real developer intent.
+
+```bash
+# Dry run — see proposed changes without applying
+hub skills optimize backend-nestjs --dry-run --verbose
+
+# Use a specific model and save the report
+hub skills optimize qa-test-planner --model gpt-4o --save-report report.json
+
+# Bring your own eval set
+hub skills optimize frontend-nextjs --eval-set my-evals.json
+
+# Configure via environment variables
+export OPENAI_API_KEY=sk-...
+export HUB_OPTIMIZE_MODEL=gpt-4o-mini
+export HUB_OPTIMIZE_BASE_URL=https://api.openai.com/v1
+hub skills optimize my-skill
+```
+
+Works with any OpenAI-compatible API (OpenAI, Anthropic via proxy, local models, OpenRouter, etc.).
+
+Inspired by [DeerFlow](https://github.com/bytedance/deer-flow)'s skill description optimization system.
+
+---
+
 ## Quick Start
 
 ```bash
