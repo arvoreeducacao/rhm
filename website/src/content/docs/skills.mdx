@@ -184,6 +184,57 @@ hub skills remove backend-nestjs
 hub skills remove backend-nestjs --global
 ```
 
+## Optimizing Skill Triggering
+
+Skills have a `description` and `triggers` in their SKILL.md frontmatter that determine when the AI activates them. If a skill triggers too often (false positives) or not enough (missed activations), you can optimize it automatically:
+
+```bash
+hub skills optimize frontend-nextjs
+```
+
+This runs an iterative loop that:
+1. Generates realistic test queries (should-trigger and should-not-trigger)
+2. Simulates the AI's skill selection against all your workspace skills
+3. Improves the description and triggers based on what failed
+4. Repeats until accuracy is maximized or iterations are exhausted
+
+The result is a rewritten `description` and `triggers` in your SKILL.md.
+
+```bash
+# Dry run — see proposed changes without applying
+hub skills optimize backend-nestjs --dry-run --verbose
+
+# Use a specific model and save the report
+hub skills optimize qa-test-planner --model gpt-4o --save-report report.json
+
+# Bring your own eval set
+hub skills optimize frontend-nextjs --eval-set my-evals.json
+```
+
+### Custom Eval Sets
+
+You can provide your own eval set as a JSON file with queries that should or shouldn't trigger the skill:
+
+```json
+[
+  {"query": "I need to add a new API endpoint for user profiles", "should_trigger": true},
+  {"query": "Fix the CSS layout on the homepage", "should_trigger": false}
+]
+```
+
+### Configuration
+
+The optimize command works with any OpenAI-compatible API. Configure via flags or environment variables:
+
+| Flag / Env Var | Description | Default |
+|----------------|-------------|---------|
+| `--api-key` / `OPENAI_API_KEY` | API key | — |
+| `--model` / `HUB_OPTIMIZE_MODEL` | Model to use | `gpt-4o` |
+| `--base-url` / `HUB_OPTIMIZE_BASE_URL` | API base URL | `https://api.openai.com/v1` |
+| `--iterations` | Max improvement iterations | `3` |
+
+Inspired by [DeerFlow](https://github.com/bytedance/deer-flow)'s skill description optimization system.
+
 ## Creating Custom Skills
 
 A skill follows the Agent Skills standard:

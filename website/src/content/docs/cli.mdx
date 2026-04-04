@@ -255,6 +255,8 @@ hub skills add git@github.com:company/skills.git           # Install from git UR
 hub skills add ./my-local-skills                           # Install from local path
 hub skills add backend-nestjs --global                     # Install globally
 hub skills remove backend-nestjs                           # Remove a skill
+hub skills optimize backend-nestjs                         # Optimize description & triggers
+hub skills optimize backend-nestjs --dry-run --verbose     # Preview without applying
 ```
 
 | Flag | Description |
@@ -263,6 +265,30 @@ hub skills remove backend-nestjs                           # Remove a skill
 | `-g, --global` | Install to/remove from global `~/.cursor/skills/` |
 | `-r, --repo <repo>` | Override registry repository |
 | `-l, --list` | List available skills without installing |
+
+### `hub skills optimize <skill>`
+
+Optimize a skill's description and triggers for better activation accuracy using LLM-based evaluation:
+
+```bash
+hub skills optimize frontend-nextjs
+hub skills optimize qa-test-planner --model gpt-4o --iterations 5
+hub skills optimize backend-nestjs --dry-run --verbose
+hub skills optimize my-skill --eval-set evals.json --save-report report.json
+```
+
+| Flag | Description |
+|------|-------------|
+| `-i, --iterations <n>` | Max improvement iterations (default: 3) |
+| `--api-key <key>` | OpenAI-compatible API key |
+| `--model <model>` | Model to use (default: gpt-4o) |
+| `--base-url <url>` | API base URL |
+| `--eval-set <path>` | Path to custom eval set JSON |
+| `--dry-run` | Show proposed changes without applying |
+| `-v, --verbose` | Show detailed progress |
+| `--save-report <path>` | Save optimization report to JSON file |
+
+Also configurable via environment variables: `OPENAI_API_KEY`, `HUB_OPTIMIZE_MODEL`, `HUB_OPTIMIZE_BASE_URL`.
 
 See [Skills](/docs/skills) for more details.
 
