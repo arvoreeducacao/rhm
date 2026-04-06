@@ -10,8 +10,6 @@ import { generateDockerCompose } from "../core/docker-compose.js";
 
 const execAsync = promisify(exec);
 
-const SANDBOX_IMAGE = "ghcr.io/agent-infra/sandbox:latest";
-
 function getSandboxConfig(config: Awaited<ReturnType<typeof loadHubConfig>>) {
   return config.services?.find((s) => s.type === "sandbox") ?? null;
 }
