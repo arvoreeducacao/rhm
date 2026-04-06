@@ -313,6 +313,10 @@ async function generateCursor(config: HubConfig, hubDir: string) {
         mcpConfig[mcp.name] = buildCursorMcpEntry(mcp);
       }
     }
+    const sandbox = getSandboxService(config);
+    if (sandbox && !mcpConfig["sandbox"]) {
+      mcpConfig["sandbox"] = buildSandboxMcpEntry(sandbox.port);
+    }
     await writeFile(
       join(cursorDir, "mcp.json"),
       JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n",
@@ -353,8 +357,16 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   try {
     const agentFiles = await readdir(agentsDir);
     const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
+    const sandboxSvc = getSandboxService(config);
     for (const file of mdFiles) {
-      await copyFile(join(agentsDir, file), join(cursorDir, "agents", file));
+      if (sandboxSvc) {
+        const agentName = file.replace(/\.md$/, "");
+        const agentContent = await readFile(join(agentsDir, file), "utf-8");
+        const withSandbox = injectSandboxContext(agentName, agentContent, sandboxSvc.port);
+        await writeFile(join(cursorDir, "agents", file), withSandbox, "utf-8");
+      } else {
+        await copyFile(join(agentsDir, file), join(cursorDir, "agents", file));
+      }
     }
     console.log(chalk.green(`  Copied ${mdFiles.length} agent definitions`));
   } catch {
@@ -413,6 +425,16 @@ interface ProxyUpstreamEntry {
   command: string;
   args: string[];
   env?: Record<string, string>;
+}
+
+function buildSandboxMcpEntry(port: number): Record<string, unknown> {
+  return { url: `http://localhost:${port}/mcp` };
+}
+
+function getSandboxService(config: HubConfig): { port: number } | null {
+  const svc = config.services?.find((s) => s.type === "sandbox");
+  if (!svc) return null;
+  return { port: svc.port ?? 8080 };
 }
 
 function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): { upstreamsJson: string; collectedEnv: Record<string, string> } {
@@ -570,6 +592,26 @@ function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Record<st
     ...(env && { env }),
     ...(autoApprove && { autoApprove }),
   };
+}
+
+const SANDBOX_AGENT_TARGETS = new Set(["qa-frontend", "qa-backend", "coding-frontend", "coding-backend"]);
+
+function injectSandboxContext(agentName: string, content: string, sandboxPort: number): string {
+  if (!SANDBOX_AGENT_TARGETS.has(agentName)) return content;
+  const section = `
+## Sandbox Environment
+
+A sandboxed execution environment is available via the \`sandbox\` MCP (http://localhost:${sandboxPort}/mcp).
+
+Use it to:
+- Run shell commands: \`shell.exec\`
+- Read/write files: \`file.read\`, \`file.write\`
+- Control a real browser: \`browser.navigate\`, \`browser.screenshot\`, \`browser.click\`
+- Execute code: \`jupyter.execute\`
+
+The sandbox workspace is mounted at \`/home/gem/workspace\`. Prefer running builds, tests, and browser interactions inside the sandbox rather than on the host machine.
+`;
+  return content.trimEnd() + "\n" + section;
 }
 
 function buildKiroAgentContent(rawContent: string): string {
@@ -2231,7 +2273,10 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
     for (const file of mdFiles) {
       const agentContent = await readFile(join(agentsDir, file), "utf-8");
-      const kiroAgent = buildKiroAgentContent(agentContent);
+      const agentName = file.replace(/\.md$/, "");
+      const sandboxSvc = getSandboxService(config);
+      const withSandbox = sandboxSvc ? injectSandboxContext(agentName, agentContent, sandboxSvc.port) : agentContent;
+      const kiroAgent = buildKiroAgentContent(withSandbox);
       await writeFile(join(kiroAgentsDir, file), kiroAgent, "utf-8");
     }
     console.log(chalk.green(`  Copied ${mdFiles.length} agents to .kiro/agents/`));
@@ -2283,6 +2328,10 @@ async function generateKiro(config: HubConfig, hubDir: string) {
       } else {
         mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, mode);
       }
+    }
+    const sandbox = getSandboxService(config);
+    if (sandbox && !mcpConfig["sandbox"]) {
+      mcpConfig["sandbox"] = buildSandboxMcpEntry(sandbox.port);
     }
     const mcpJsonPath = join(settingsDir, "mcp.json");
     const disabledState = await readExistingMcpDisabledState(mcpJsonPath);

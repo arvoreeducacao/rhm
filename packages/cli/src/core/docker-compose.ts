@@ -1,14 +1,44 @@
 import { stringify } from "yaml";
+import { resolve } from "node:path";
 import type { Service } from "./hub-config.js";
 
-export function generateDockerCompose(services: Service[]): string {
+const SANDBOX_IMAGE = "ghcr.io/agent-infra/sandbox:latest";
+const SANDBOX_PORT = 8080;
+
+function buildSandboxEntry(svc: Service, hubDir: string): Record<string, unknown> {
+  const port = svc.port ?? SANDBOX_PORT;
+  const workspacePath = resolve(hubDir, svc.workspace ?? ".");
+
+  return {
+    image: SANDBOX_IMAGE,
+    container_name: svc.name,
+    restart: "unless-stopped",
+    security_opt: ["seccomp:unconfined"],
+    shm_size: "2gb",
+    extra_hosts: ["host.docker.internal:host-gateway"],
+    ports: [`${port}:8080`],
+    volumes: [`${workspacePath}:/workspace`],
+    environment: {
+      WORKSPACE: "/workspace",
+      ...(svc.env ?? {}),
+    },
+  };
+}
+
+export function generateDockerCompose(services: Service[], hubDir: string = process.cwd()): string {
   const compose: Record<string, unknown> = {
     services: {} as Record<string, unknown>,
   };
 
   const svcMap = compose.services as Record<string, unknown>;
+  const volumes: Record<string, unknown> = {};
 
   for (const svc of services) {
+    if (svc.type === "sandbox") {
+      svcMap[svc.name] = buildSandboxEntry(svc, hubDir);
+      continue;
+    }
+
     const entry: Record<string, unknown> = {
       image: svc.image,
       restart: "unless-stopped",
@@ -24,16 +54,16 @@ export function generateDockerCompose(services: Service[]): string {
       entry.environment = svc.env;
     }
 
-    entry.volumes = [`${svc.name}_data:/var/lib/${guessDataDir(svc.image)}`];
+    const dataDir = guessDataDir(svc.image ?? svc.name);
+    entry.volumes = [`${svc.name}_data:/var/lib/${dataDir}`];
+    volumes[`${svc.name}_data`] = null;
 
     svcMap[svc.name] = entry;
   }
 
-  const volumes: Record<string, unknown> = {};
-  for (const svc of services) {
-    volumes[`${svc.name}_data`] = null;
+  if (Object.keys(volumes).length > 0) {
+    compose.volumes = volumes;
   }
-  compose.volumes = volumes;
 
   return stringify(compose, { lineWidth: 120 });
 }

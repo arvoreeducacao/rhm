@@ -165,3 +165,62 @@ Volumes and `restart: unless-stopped` are automatically added by the CLI. The vo
 ```bash
 hub setup --skip-services
 ```
+
+## Sandbox
+
+The `sandbox` service type runs an [AIO Sandbox](https://github.com/agent-infra/sandbox) container — a full Linux environment with a real browser, code execution, and MCP endpoint. It's designed for AI agents to run builds, tests, and browser automation in isolation.
+
+### Configuration
+
+```yaml
+services:
+  - name: sandbox
+    type: sandbox
+    port: 8080
+```
+
+Or with TypeScript:
+
+```typescript
+services: [
+  { name: "sandbox", type: "sandbox", port: 8080 },
+],
+```
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | string | Yes | — | Service name |
+| `type` | `"sandbox"` | Yes | — | Must be `"sandbox"` |
+| `port` | number | No | `8080` | Host port mapped to the sandbox |
+| `workspace` | string | No | `.` | Path to mount inside the container |
+| `env` | object | No | — | Extra environment variables |
+
+### CLI Commands
+
+```bash
+hub sandbox up       # Start the sandbox container
+hub sandbox down     # Stop the sandbox container
+hub sandbox status   # Check if it's running (default)
+hub sandbox logs     # Follow container logs
+hub sandbox open     # Open VSCode Server in the browser
+```
+
+### Endpoints
+
+When running, the sandbox exposes:
+
+| Endpoint | Description |
+|----------|-------------|
+| `http://localhost:<port>/mcp` | MCP endpoint for AI agents |
+| `http://localhost:<port>/code-server/` | VSCode in the browser |
+| `http://localhost:<port>/vnc/index.html?autoconnect=true` | Real browser via VNC |
+| `http://localhost:<port>/v1/docs` | API documentation |
+
+### Integration with `hub generate`
+
+When a sandbox service is configured, `hub generate` automatically:
+
+1. Adds a `sandbox` MCP entry to the editor config (Cursor, Kiro)
+2. Injects a "Sandbox Environment" section into QA and coding agent prompts (`qa-frontend`, `qa-backend`, `coding-frontend`, `coding-backend`)
+
+This lets agents run shell commands, execute code, control a browser, and read/write files inside the sandbox without touching the host machine.
