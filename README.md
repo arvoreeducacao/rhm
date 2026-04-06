@@ -214,6 +214,9 @@ services:
   - name: redis
     image: redis:7-alpine
     port: 6379
+  - name: sandbox
+    type: sandbox
+    port: 8080
 
 env:
   profiles:
