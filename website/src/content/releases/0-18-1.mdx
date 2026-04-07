@@ -1,0 +1,35 @@
+---
+title: "v0.18.1 — Design enforcement & upstream MCP instructions"
+version: "0.18.1"
+date: "2026-04-07"
+description: "Design system rules can now be enforced with enforce: true, and MCP instructions are rendered for upstream (proxied) MCPs too."
+---
+
+Two improvements to how `hub generate` builds the orchestrator rules.
+
+## Design enforcement
+
+If you have a `design` config with skills, you can now add `enforce: true` to generate mandatory design system rules in the orchestrator prompt:
+
+```ts
+design: {
+  enforce: true,
+  skills: ["bonsai-design-system"],
+  libraries: [{ name: "shadcn/ui", mcp: "context7" }],
+  icons: "custom(./src/components/icons)",
+},
+```
+
+This generates a `DESIGN ENFORCEMENT — MANDATORY` section that instructs the agent to always consult the design skill before creating or modifying UI, use only design tokens, and prefer existing components over custom ones.
+
+Without `enforce`, behavior is unchanged — the design section remains informational.
+
+## Upstream MCP instructions
+
+Previously, if an MCP had `instructions` but was listed as an upstream of the proxy, those instructions were silently dropped. Now any MCP with `instructions` gets them rendered in the `### MCP Instructions` section regardless of whether it's direct or proxied.
+
+## Upgrade
+
+```bash
+hub update
+```

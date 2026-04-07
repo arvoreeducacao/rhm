@@ -152,6 +152,7 @@ export interface DesignConfig {
   libraries?: DesignLibrary[];
   icons?: string;
   instructions?: string;
+  enforce?: boolean;
 }
 
 export interface HubConfig {

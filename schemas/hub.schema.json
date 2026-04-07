@@ -302,6 +302,10 @@
         "instructions": {
           "type": "string",
           "description": "General design instructions for the AI agent"
+        },
+        "enforce": {
+          "type": "boolean",
+          "description": "When true, generates mandatory design system rules that force the agent to consult design skills before any UI work"
         }
       }
     },

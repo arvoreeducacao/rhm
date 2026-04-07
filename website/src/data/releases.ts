@@ -15,6 +15,28 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.18.1",
+    date: "2026-04-07",
+    title: "Design enforcement & upstream MCP instructions",
+    slug: "0-18-1",
+    summary:
+      "Design system rules can now be enforced with enforce: true, and MCP instructions are rendered for upstream (proxied) MCPs too.",
+    changes: [
+      {
+        type: "feat",
+        title: "Design enforcement mode",
+        description:
+          "New enforce: true option in the design config generates a DESIGN ENFORCEMENT — MANDATORY section in the orchestrator prompt. The agent is instructed to always consult design skills before creating or modifying UI, use only design tokens, and prefer existing components over custom ones.",
+      },
+      {
+        type: "fix",
+        title: "Render instructions for upstream MCPs",
+        description:
+          "MCPs with instructions that were listed as proxy upstreams had their instructions silently dropped from the generated orchestrator rules. Now any MCP with instructions gets them rendered regardless of whether it's direct or proxied.",
+      },
+    ],
+  },
+  {
     version: "0.18.0",
     date: "2026-04-07",
     title: "Sandbox via mcp.sandbox()",

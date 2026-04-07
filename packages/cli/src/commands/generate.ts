@@ -41,6 +41,19 @@ function buildDesignSection(config: HubConfig): string | null {
   const parts: string[] = [];
   parts.push(`\n## Design System`);
 
+  if (design.enforce && design.skills?.length) {
+    const skillList = design.skills.map((s) => `\`${s}\``).join(", ");
+    parts.push(`
+**DESIGN ENFORCEMENT — MANDATORY**
+
+Before creating or modifying ANY UI component, page, or visual element:
+1. Consult the design skill(s): ${skillList}
+2. Use ONLY the design tokens, colors, spacing, and typography defined in the design system
+3. Do NOT invent custom styles, colors, or spacing values — always reference the design tokens
+4. If a component exists in the design system or component library, use it instead of creating a new one
+5. After implementing UI changes, verify that the output follows the design system guidelines`);
+  }
+
   if (design.instructions) {
     parts.push(`\n${design.instructions.trim()}`);
   }
@@ -940,7 +953,7 @@ Some MCPs are aggregated behind a proxy (\`${proxyMcp.name}\`). Their tools are 
 > When you need a capability and are unsure which tool to use, always try \`mcp_search\` first with relevant keywords. The proxy aggregates tools from all upstream MCPs.`);
   }
 
-  const mcpsWithInstructions = mcps.filter((m) => m.instructions && !m.upstreams);
+  const mcpsWithInstructions = mcps.filter((m) => m.instructions);
   if (mcpsWithInstructions.length > 0) {
     lines.push(`
 ### MCP Instructions`);
