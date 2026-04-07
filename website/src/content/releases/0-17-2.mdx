@@ -1,0 +1,69 @@
+---
+title: "v0.17.2 — Sandbox support"
+version: "0.17.2"
+date: "2026-04-06"
+description: "New hub sandbox command manages an AIO Sandbox container with VSCode Server, browser automation, MCP endpoint, and Jupyter — all accessible locally via Docker Compose."
+---
+
+QA agents and coding agents can now run shell commands, control a real browser, and execute code inside an isolated container — without touching your host machine.
+
+`hub sandbox` manages that container.
+
+## What's new
+
+### `hub sandbox`
+
+A new command to manage the AIO Sandbox environment:
+
+```bash
+hub sandbox up      # start the container
+hub sandbox down    # stop it
+hub sandbox status  # check if it's running
+hub sandbox logs    # stream container logs
+hub sandbox open    # open VSCode Server in the browser
+```
+
+When running, the sandbox exposes four endpoints:
+
+```
+MCP:     http://localhost:8080/mcp
+VSCode:  http://localhost:8080/code-server/
+Browser: http://localhost:8080/vnc/index.html?autoconnect=true
+Docs:    http://localhost:8080/v1/docs
+```
+
+### Configuration
+
+Add a sandbox service to your `hub.yaml`:
+
+```yaml
+services:
+  - name: sandbox
+    type: sandbox
+    port: 8080
+```
+
+Then run `hub generate` — the Docker Compose entry and MCP config are wired automatically.
+
+### What gets injected on `hub generate`
+
+**Editor MCP config (Cursor & Kiro):** The sandbox MCP URL is added so agents can use sandbox tools directly from chat.
+
+**Agent prompts (QA & coding agents):** A `## Sandbox Environment` section is injected with the available tools and workspace path:
+
+- `shell.exec` — run shell commands
+- `file.read` / `file.write` — read and write files
+- `browser.navigate`, `browser.screenshot`, `browser.click` — control a real browser
+- `jupyter.execute` — execute code
+
+The workspace is mounted at `/home/gem/workspace`.
+
+### Docker Compose generation
+
+`hub generate` writes the sandbox service into `.hub/docker-compose.yml` automatically. The workspace directory is mounted at `/workspace` inside the container to avoid home directory permission issues.
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.17.2 generate
+```
