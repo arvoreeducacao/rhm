@@ -15,6 +15,14 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.17.2",
+    date: "2026-04-07",
+    title: "Test",
+    slug: "0-17-2",
+    summary: "Test release",
+    changes: [],
+  },
+  {
     version: "0.17.1",
     date: "2026-04-06",
     title: "Fix remote source overwrite",
