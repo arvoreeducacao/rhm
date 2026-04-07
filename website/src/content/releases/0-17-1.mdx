@@ -1,0 +1,32 @@
+---
+title: "v0.17.1 — Fix remote source overwrite"
+version: "0.17.1"
+date: "2026-04-06"
+description: "Remote source skills are no longer overwritten by stale local copies when the remote fetch fails."
+---
+
+If you had a remote source (e.g. a Notion page) configured as a skill, and the fetch failed (401, timeout, whatever), `hub generate` would still overwrite the previously synced content with the local copy from `./skills/`. The good content was gone, replaced by whatever was sitting in the local folder.
+
+## What happened
+
+The generate flow for all editors (Cursor, Kiro, Claude Code, OpenCode) does two things in sequence:
+
+1. Copy local skills from `./skills/` to the editor's skill directory (e.g. `.kiro/skills/`)
+2. Sync remote sources (Notion, URL, etc.) on top
+
+Step 1 always ran — even for skills that are managed by remote sources. So if step 2 failed, the file was already overwritten by the local copy.
+
+## The fix
+
+Skills that are defined as `remote_sources` in your config are now skipped during the local copy step. This means:
+
+- If the remote fetch succeeds → fresh content is written as before
+- If the remote fetch fails → the existing file from a previous successful sync is preserved
+
+The fix applies to all four generators.
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.17.1 generate
+```

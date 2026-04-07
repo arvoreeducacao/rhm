@@ -15,6 +15,22 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.17.1",
+    date: "2026-04-06",
+    title: "Fix remote source overwrite",
+    slug: "0-17-1",
+    summary:
+      "Remote source skills are no longer overwritten by stale local copies when the remote fetch fails. All four generators now skip local skill copy for folders managed by remote sources.",
+    changes: [
+      {
+        type: "fix",
+        title: "Preserve remote source skills on fetch failure",
+        description:
+          "Skills defined as remote_sources are now skipped during the local cp step in all generators (Cursor, Kiro, Claude Code, OpenCode). Previously, the local copy would overwrite a successfully synced file before the remote fetch ran, and if the fetch failed the good content was lost.",
+      },
+    ],
+  },
+  {
     version: "0.17.0",
     date: "2026-04-06",
     title: "Persona",

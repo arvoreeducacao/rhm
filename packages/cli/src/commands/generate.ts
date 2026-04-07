@@ -23,6 +23,14 @@ async function syncRemoteSources(config: HubConfig, hubDir: string, skillsDir: s
   }
 }
 
+function getRemoteSkillNames(config: HubConfig): Set<string> {
+  const names = new Set<string>();
+  for (const source of config.remote_sources ?? []) {
+    if (source.type === "skill") names.add(source.name);
+  }
+  return names;
+}
+
 function buildDesignSection(config: HubConfig): string | null {
   const design = config.design;
   if (!design) return null;
@@ -380,12 +388,14 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   }
 
   const skillsDir = resolve(hubDir, "skills");
+  const remoteSkillsCursor = getRemoteSkillNames(config);
   try {
     const skillFolders = await readdir(skillsDir);
     const cursorSkillsDir = join(cursorDir, "skills");
     await mkdir(cursorSkillsDir, { recursive: true });
     let count = 0;
     for (const folder of skillFolders) {
+      if (remoteSkillsCursor.has(folder)) continue;
       const skillFile = join(skillsDir, folder, "SKILL.md");
       try {
         await readFile(skillFile);
@@ -1435,10 +1445,12 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   }
 
   const skillsDir = resolve(hubDir, "skills");
+  const remoteSkillsOC = getRemoteSkillNames(config);
   try {
     const skillFolders = await readdir(skillsDir);
     let count = 0;
     for (const folder of skillFolders) {
+      if (remoteSkillsOC.has(folder)) continue;
       const skillFile = join(skillsDir, folder, "SKILL.md");
       try {
         await readFile(skillFile);
@@ -2070,6 +2082,7 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
   }
 
   const skillsDir = resolve(hubDir, "skills");
+  const remoteSkillsClaude = getRemoteSkillNames(config);
   try {
     const skillFolders = await readdir(skillsDir);
     const claudeSkillsDir = join(claudeDir, "skills");
@@ -2077,6 +2090,7 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
     let count = 0;
 
     for (const folder of skillFolders) {
+      if (remoteSkillsClaude.has(folder)) continue;
       const skillFile = join(skillsDir, folder, "SKILL.md");
       try {
         await readFile(skillFile);
@@ -2306,6 +2320,7 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   }
 
   const skillsDir = resolve(hubDir, "skills");
+  const remoteSkillsKiro = getRemoteSkillNames(config);
   try {
     const skillFolders = await readdir(skillsDir);
     const kiroSkillsDir = join(kiroDir, "skills");
@@ -2313,6 +2328,7 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     let count = 0;
 
     for (const folder of skillFolders) {
+      if (remoteSkillsKiro.has(folder)) continue;
       const skillFile = join(skillsDir, folder, "SKILL.md");
       try {
         await readFile(skillFile);
