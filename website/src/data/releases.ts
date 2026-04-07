@@ -15,6 +15,40 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.17.0",
+    date: "2026-04-06",
+    title: "Persona",
+    slug: "0-17-0",
+    summary:
+      "New hub persona command creates a personal AI profile for each team member. The agent adapts its communication style based on who it's talking to — from CEOs who want business summaries to senior devs who want raw technical details.",
+    changes: [
+      {
+        type: "feat",
+        title: "hub persona",
+        description:
+          "Interactive TUI that asks your name, role, technical level, extra context, and preferred language. Saves to .hub/persona.yaml — local and gitignored, so each team member has their own profile.",
+      },
+      {
+        type: "feat",
+        title: "Persona injection in hub generate",
+        description:
+          "All four editor generators (Cursor, Kiro, Claude Code, OpenCode) now read .hub/persona.yaml and inject a User Persona section into AGENTS.md with specific communication instructions tailored to the user's role and technical level.",
+      },
+      {
+        type: "feat",
+        title: "Four technical levels",
+        description:
+          "Non-technical (no jargon, business-focused), Beginner (gentle explanations), Intermediate (normal with context for niche topics), and Advanced (concise, direct, no hand-holding). Each level generates different agent behavior instructions.",
+      },
+      {
+        type: "feat",
+        title: "Language preference",
+        description:
+          "The persona includes a preferred language field. When set to anything other than English, the agent is instructed to always communicate in that language.",
+      },
+    ],
+  },
+  {
     version: "0.16.0",
     date: "2026-04-03",
     title: "Chat consolidation",
