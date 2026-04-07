@@ -251,6 +251,14 @@ export const mcp = {
     };
   },
 
+  sandbox(port: number = 8080, overrides?: MCPOverrides): MCPConfig {
+    return {
+      name: "sandbox",
+      url: `http://localhost:${port}/mcp`,
+      ...overrides,
+    };
+  },
+
   proxy(name: string, overrides: MCPOverrides & { upstreams: string[] }): MCPConfig {
     return {
       name,

@@ -322,10 +322,6 @@ async function generateCursor(config: HubConfig, hubDir: string) {
         mcpConfig[mcp.name] = buildCursorMcpEntry(mcp);
       }
     }
-    const sandbox = getSandboxService(config);
-    if (sandbox && !mcpConfig["sandbox"]) {
-      mcpConfig["sandbox"] = buildSandboxMcpEntry(sandbox.port);
-    }
     await writeFile(
       join(cursorDir, "mcp.json"),
       JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n",
@@ -371,7 +367,7 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   try {
     const agentFiles = await readdir(agentsDir);
     const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
-    const sandboxSvc = getSandboxService(config);
+    const sandboxSvc = getSandboxMcp(config);
     for (const file of mdFiles) {
       if (sandboxSvc) {
         const agentName = file.replace(/\.md$/, "");
@@ -443,14 +439,11 @@ interface ProxyUpstreamEntry {
   env?: Record<string, string>;
 }
 
-function buildSandboxMcpEntry(port: number): Record<string, unknown> {
-  return { url: `http://localhost:${port}/mcp` };
-}
-
-function getSandboxService(config: HubConfig): { port: number } | null {
-  const svc = config.services?.find((s) => s.type === "sandbox");
-  if (!svc) return null;
-  return { port: svc.port ?? 8080 };
+function getSandboxMcp(config: HubConfig): { port: number } | null {
+  const sandboxMcp = config.mcps?.find((m) => m.name === "sandbox" && m.url);
+  if (!sandboxMcp?.url) return null;
+  const match = sandboxMcp.url.match(/:(\d+)/);
+  return match ? { port: parseInt(match[1], 10) } : { port: 8080 };
 }
 
 function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): { upstreamsJson: string; collectedEnv: Record<string, string> } {
@@ -2309,7 +2302,7 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     for (const file of mdFiles) {
       const agentContent = await readFile(join(agentsDir, file), "utf-8");
       const agentName = file.replace(/\.md$/, "");
-      const sandboxSvc = getSandboxService(config);
+      const sandboxSvc = getSandboxMcp(config);
       const withSandbox = sandboxSvc ? injectSandboxContext(agentName, agentContent, sandboxSvc.port) : agentContent;
       const kiroAgent = buildKiroAgentContent(withSandbox);
       await writeFile(join(kiroAgentsDir, file), kiroAgent, "utf-8");
@@ -2365,10 +2358,6 @@ async function generateKiro(config: HubConfig, hubDir: string) {
       } else {
         mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, mode);
       }
-    }
-    const sandbox = getSandboxService(config);
-    if (sandbox && !mcpConfig["sandbox"]) {
-      mcpConfig["sandbox"] = buildSandboxMcpEntry(sandbox.port);
     }
     const mcpJsonPath = join(settingsDir, "mcp.json");
     const disabledState = await readExistingMcpDisabledState(mcpJsonPath);
