@@ -70,17 +70,17 @@ function detectPackageManager(): "pnpm" | "yarn" | "npm" {
     const binPath = execSync("which hub", { stdio: "pipe", encoding: "utf-8" }).trim();
     if (binPath.includes("/pnpm/")) return "pnpm";
     if (binPath.includes("/yarn/")) return "yarn";
-  } catch {}
+  } catch { /* ignore */ }
 
   try {
     const out = execSync(`pnpm list -g --depth=0 ${PACKAGE_NAME}`, { stdio: "pipe", encoding: "utf-8" });
     if (out.includes(PACKAGE_NAME)) return "pnpm";
-  } catch {}
+  } catch { /* ignore */ }
 
   try {
     const out = execSync(`yarn global list --depth=0`, { stdio: "pipe", encoding: "utf-8" });
     if (out.includes(PACKAGE_NAME)) return "yarn";
-  } catch {}
+  } catch { /* ignore */ }
 
   return "npm";
 }
