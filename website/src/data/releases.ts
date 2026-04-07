@@ -15,6 +15,46 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.17.2",
+    date: "2026-04-06",
+    title: "Sandbox support",
+    slug: "0-17-2",
+    summary:
+      "New hub sandbox command manages an AIO Sandbox container with VSCode Server, browser automation, MCP endpoint, and Jupyter — all accessible locally via Docker Compose.",
+    changes: [
+      {
+        type: "feat",
+        title: "hub sandbox command",
+        description:
+          "New command with up, down, status, logs, and open subcommands. Starts and stops the sandbox container via Docker Compose, checks running state, streams logs, and opens VSCode Server in the browser.",
+      },
+      {
+        type: "feat",
+        title: "Docker Compose generation for sandbox",
+        description:
+          "generateDockerCompose now emits a sandbox service entry when a service with type: sandbox is declared in hub.yaml. Mounts the workspace at /workspace and exposes MCP, VSCode Server, VNC browser, and Jupyter docs endpoints on the configured port.",
+      },
+      {
+        type: "feat",
+        title: "Sandbox MCP injection on generate",
+        description:
+          "hub generate now injects the sandbox MCP URL (http://localhost:{port}/mcp) into Cursor and Kiro editor configs when a sandbox service is present.",
+      },
+      {
+        type: "feat",
+        title: "Sandbox context in agent prompts",
+        description:
+          "QA and coding agent prompts receive a Sandbox Environment section on generate, documenting the available MCP tools (shell.exec, file.read/write, browser.*, jupyter.execute) and the /home/gem/workspace mount path.",
+      },
+      {
+        type: "fix",
+        title: "Remove unused SANDBOX_IMAGE constant",
+        description:
+          "Cleaned up a leftover SANDBOX_IMAGE constant from sandbox.ts that was never referenced after the image was moved to docker-compose generation.",
+      },
+    ],
+  },
+  {
     version: "0.17.1",
     date: "2026-04-06",
     title: "Fix remote source overwrite",
