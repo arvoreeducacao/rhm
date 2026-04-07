@@ -16,7 +16,7 @@ async function ensureCompose(hubDir: string): Promise<string> {
       console.log(chalk.yellow("No services defined in hub.yaml"));
       process.exit(1);
     }
-    const content = generateDockerCompose(config.services);
+    const content = generateDockerCompose(config.services, hubDir);
     await writeFile(composePath, content, "utf-8");
     console.log(chalk.green("Generated docker-compose.yml"));
   }

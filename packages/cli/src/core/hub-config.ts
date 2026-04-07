@@ -26,10 +26,12 @@ export interface Repo {
 
 export interface Service {
   name: string;
-  image: string;
+  type?: "sandbox" | string;
+  image?: string;
   port?: number;
   ports?: number[];
   env?: Record<string, string>;
+  workspace?: string;
 }
 
 export interface MCPConfig {

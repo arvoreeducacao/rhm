@@ -431,6 +431,22 @@ hub worktree copy-envs feature-login  # Copy to specific worktree
 
 See [Worktrees](/docs/worktrees) for more details.
 
+## Sandbox
+
+### `hub sandbox [action]`
+
+Manage the AIO Sandbox environment:
+
+```bash
+hub sandbox up       # Start the sandbox container
+hub sandbox down     # Stop the sandbox container
+hub sandbox status   # Check if running (default)
+hub sandbox logs     # Follow container logs
+hub sandbox open     # Open VSCode Server in browser
+```
+
+Requires a service with `type: sandbox` in your config. See [Services — Sandbox](/docs/services#sandbox) for configuration details.
+
 ## Update
 
 ### `hub update`
