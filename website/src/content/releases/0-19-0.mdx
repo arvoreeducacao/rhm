@@ -1,0 +1,45 @@
+---
+title: "v0.19.0 — Persona as dedicated editor file"
+version: "0.19.0"
+date: "2026-04-07"
+description: "Persona is now a dedicated editor file instead of being appended to AGENTS.md. Gitignored by default, with new fields for AWS profiles, GitHub username, focus areas, and timezone."
+---
+
+The persona feature got a significant upgrade. Instead of being appended to `AGENTS.md` (which is shared with the team), persona is now generated as a dedicated file per editor — personal and gitignored.
+
+## Dedicated persona files
+
+Each editor gets its own persona file with always-apply semantics:
+
+| Editor | File | Format |
+|--------|------|--------|
+| Kiro | `.kiro/steering/persona.md` | Steering with `inclusion: always` |
+| Cursor | `.cursor/rules/persona.mdc` | Rule with `alwaysApply: true` |
+| OpenCode | `.opencode/rules/persona.md` | Rule file |
+| Claude Code | Appended to `CLAUDE.md` | Inline section |
+
+All persona files are automatically added to `.gitignore` since they're personal — each team member has their own.
+
+## Extended persona TUI
+
+`hub persona` now collects five new optional fields:
+
+- **AWS profiles** — name:description pairs (e.g. `my-prd:Production, my-stg:Staging`)
+- **GitHub username** — for branch naming and PR assignments
+- **Focus areas** — what you care about most (e.g. "infrastructure and costs")
+- **Timezone** — for scheduling context
+- **Slack display name** — for mentions
+
+All fields are optional and only included in the generated file when provided.
+
+## hub scan fix
+
+`hub scan --check` no longer flags persona files as unsynced assets. Previously, the pre-commit hook would block commits because it detected persona.md as an unregistered steering file.
+
+## Upgrade
+
+```bash
+hub update
+hub persona   # re-run to add new fields
+hub generate
+```

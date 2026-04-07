@@ -15,6 +15,40 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.19.0",
+    date: "2026-04-07",
+    title: "Persona as dedicated editor file",
+    slug: "0-19-0",
+    summary:
+      "Persona is now generated as a dedicated editor file (.kiro/steering/persona.md, .cursor/rules/persona.mdc, .opencode/rules/persona.md) instead of being appended to AGENTS.md. The file is gitignored by default since it's personal. The persona TUI now collects AWS profiles, GitHub username, focus areas, and timezone.",
+    changes: [
+      {
+        type: "feat",
+        title: "Persona as separate editor file",
+        description:
+          "All four generators (Kiro, Cursor, Claude Code, OpenCode) now write persona as a dedicated file with always-apply inclusion, instead of appending it to AGENTS.md. For Kiro it's a steering file, for Cursor a .mdc rule, for OpenCode a rule, and for Claude Code it's appended to CLAUDE.md.",
+      },
+      {
+        type: "feat",
+        title: "Extended persona fields",
+        description:
+          "The persona TUI now collects five new optional fields: AWS profiles (name:description pairs), GitHub username, Slack display name, focus areas, and timezone. All are included in the generated persona file when provided.",
+      },
+      {
+        type: "feat",
+        title: "Persona gitignored by default",
+        description:
+          "buildGitignoreLines now includes .kiro/steering/persona.md, .cursor/rules/persona.mdc, and .opencode/rules/persona.md in the managed gitignore block, since persona is personal and should not be committed.",
+      },
+      {
+        type: "fix",
+        title: "hub scan ignores persona files",
+        description:
+          "findUnsyncedAssets now skips persona.md and persona.mdc in all editor directories, so hub scan --check no longer flags them as unsynced assets.",
+      },
+    ],
+  },
+  {
     version: "0.18.1",
     date: "2026-04-07",
     title: "Design enforcement & upstream MCP instructions",

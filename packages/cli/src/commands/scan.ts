@@ -154,6 +154,7 @@ async function findUnsyncedAssets(hubDir: string): Promise<UnsyncedAsset[]> {
       for (const file of files) {
         if (!file.endsWith(".md")) continue;
         if (file === "orchestrator.md") continue; // auto-generated
+        if (file === "persona.md") continue; // personal, not shared
         const canonicalFile = join(canonicalSteeringDir, file);
         if (existsSync(canonicalFile)) continue;
 
@@ -176,6 +177,7 @@ async function findUnsyncedAssets(hubDir: string): Promise<UnsyncedAsset[]> {
       for (const file of files) {
         if (!file.endsWith(".mdc")) continue;
         if (file === "orchestrator.mdc") continue; // auto-generated
+        if (file === "persona.mdc") continue; // personal, not shared
         const mdName = file.replace(/\.mdc$/, ".md");
         const canonicalFile = join(canonicalSteeringDir, mdName);
         if (existsSync(canonicalFile)) continue;
@@ -199,6 +201,7 @@ async function findUnsyncedAssets(hubDir: string): Promise<UnsyncedAsset[]> {
       for (const file of files) {
         if (!file.endsWith(".md")) continue;
         if (file === "orchestrator.md") continue; // auto-generated
+        if (file === "persona.md") continue; // personal, not shared
         const canonicalFile = join(canonicalSteeringDir, file);
         if (existsSync(canonicalFile)) continue;
 
