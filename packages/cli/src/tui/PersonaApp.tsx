@@ -3,15 +3,25 @@ import { Box, Text, useInput, useStdout, useApp } from 'ink'
 import TextInput from 'ink-text-input'
 import { colors, symbols } from './theme.js'
 
+export interface AwsProfile {
+  name: string
+  description: string
+}
+
 export interface PersonaData {
   name: string
   role: string
   context: string
   technical_level: 'non-technical' | 'beginner' | 'intermediate' | 'advanced'
   language: string
+  aws_profiles?: AwsProfile[]
+  github_username?: string
+  slack_display_name?: string
+  focus_areas?: string
+  timezone?: string
 }
 
-type PersonaStep = 'name' | 'role' | 'technical_level' | 'context' | 'language' | 'review' | 'done'
+type PersonaStep = 'name' | 'role' | 'technical_level' | 'context' | 'language' | 'github_username' | 'aws_profiles' | 'focus_areas' | 'timezone' | 'review' | 'done'
 
 const TECHNICAL_LEVELS = [
   { value: 'non-technical' as const, label: 'Non-technical', description: 'No coding experience — CEO, PM, designer, etc.' },
@@ -26,6 +36,10 @@ const STEP_INFO: Record<string, { title: string; subtitle: string }> = {
   technical_level: { title: 'How technical are you?', subtitle: 'This changes how the AI explains things to you.' },
   context: { title: 'Anything else the AI should know about you?', subtitle: 'e.g. "I focus on business metrics", "I only work on the mobile app", "I review PRs but don\'t code"' },
   language: { title: 'What language should the AI use?', subtitle: 'e.g. English, Português, Español...' },
+  github_username: { title: 'What\'s your GitHub username?', subtitle: 'Used for branch naming and PR assignments. (optional — press Enter to skip)' },
+  aws_profiles: { title: 'What AWS profiles do you use?', subtitle: 'Format: profile-name:description (one per line). e.g. "my-company-prd:Production account". Press Enter to skip.' },
+  focus_areas: { title: 'What areas do you focus on?', subtitle: 'e.g. "infrastructure and costs", "frontend UX", "backend APIs", "mobile app". (optional)' },
+  timezone: { title: 'What\'s your timezone?', subtitle: 'e.g. America/Sao_Paulo, US/Eastern, Europe/London. (optional)' },
 }
 
 interface Props {
@@ -46,6 +60,11 @@ export function PersonaApp({ existing, onComplete }: Props) {
     context: existing?.context || '',
     technical_level: existing?.technical_level || 'intermediate',
     language: existing?.language || 'English',
+    aws_profiles: existing?.aws_profiles || [],
+    github_username: existing?.github_username || '',
+    slack_display_name: existing?.slack_display_name || '',
+    focus_areas: existing?.focus_areas || '',
+    timezone: existing?.timezone || '',
   })
   const [inputValue, setInputValue] = useState(existing?.name || '')
   const [levelCursor, setLevelCursor] = useState(
@@ -76,7 +95,13 @@ export function PersonaApp({ existing, onComplete }: Props) {
     }
     if (step === 'review') {
       if (key.return || input === 'y') {
-        onComplete(data)
+        const cleanedData = { ...data }
+        if (!cleanedData.github_username) delete cleanedData.github_username
+        if (!cleanedData.slack_display_name) delete cleanedData.slack_display_name
+        if (!cleanedData.focus_areas) delete cleanedData.focus_areas
+        if (!cleanedData.timezone) delete cleanedData.timezone
+        if (!cleanedData.aws_profiles?.length) delete cleanedData.aws_profiles
+        onComplete(cleanedData)
         goTo('done')
       }
       if (input === 'b' || key.leftArrow) {
@@ -183,9 +208,81 @@ export function PersonaApp({ existing, onComplete }: Props) {
               value={inputValue}
               onChange={setInputValue}
               onSubmit={(v) => {
-                handleTextSubmit(v || 'English', 'language', 'review')
+                handleTextSubmit(v || 'English', 'language', 'github_username')
               }}
               placeholder="English"
+            />
+          </Box>
+        )}
+
+        {step === 'github_username' && (
+          <Box>
+            <Text color={colors.brand} bold>{'❯ '}</Text>
+            <TextInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={(v) => {
+                setData((prev) => ({ ...prev, github_username: v.trim() }))
+                setInputValue(data.aws_profiles?.map((p) => `${p.name}:${p.description}`).join(', ') || '')
+                goTo('aws_profiles')
+              }}
+              placeholder="(optional — press Enter to skip)"
+            />
+          </Box>
+        )}
+
+        {step === 'aws_profiles' && (
+          <Box flexDirection="column">
+            <Box>
+              <Text color={colors.brand} bold>{'❯ '}</Text>
+              <TextInput
+                value={inputValue}
+                onChange={setInputValue}
+                onSubmit={(v) => {
+                  const profiles: AwsProfile[] = v.trim()
+                    ? v.split(',').map((p) => {
+                        const [name, ...descParts] = p.trim().split(':')
+                        return { name: name.trim(), description: descParts.join(':').trim() || name.trim() }
+                      }).filter((p) => p.name)
+                    : []
+                  setData((prev) => ({ ...prev, aws_profiles: profiles }))
+                  setInputValue(data.focus_areas || '')
+                  goTo('focus_areas')
+                }}
+                placeholder="my-prd:Production, my-stg:Staging (optional)"
+              />
+            </Box>
+          </Box>
+        )}
+
+        {step === 'focus_areas' && (
+          <Box>
+            <Text color={colors.brand} bold>{'❯ '}</Text>
+            <TextInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={(v) => {
+                setData((prev) => ({ ...prev, focus_areas: v.trim() }))
+                setInputValue(data.timezone || '')
+                goTo('timezone')
+              }}
+              placeholder="(optional — press Enter to skip)"
+            />
+          </Box>
+        )}
+
+        {step === 'timezone' && (
+          <Box>
+            <Text color={colors.brand} bold>{'❯ '}</Text>
+            <TextInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={(v) => {
+                setData((prev) => ({ ...prev, timezone: v.trim() }))
+                setInputValue('')
+                goTo('review')
+              }}
+              placeholder="America/Sao_Paulo (optional)"
             />
           </Box>
         )}
@@ -198,6 +295,12 @@ export function PersonaApp({ existing, onComplete }: Props) {
               <ReviewRow label="Level" value={TECHNICAL_LEVELS.find((l) => l.value === data.technical_level)?.label || data.technical_level} />
               {data.context && <ReviewRow label="Context" value={data.context} />}
               <ReviewRow label="Language" value={data.language} />
+              {data.github_username && <ReviewRow label="GitHub" value={data.github_username} />}
+              {data.aws_profiles && data.aws_profiles.length > 0 && (
+                <ReviewRow label="AWS" value={data.aws_profiles.map((p) => `${p.name} (${p.description})`).join(', ')} />
+              )}
+              {data.focus_areas && <ReviewRow label="Focus" value={data.focus_areas} />}
+              {data.timezone && <ReviewRow label="Timezone" value={data.timezone} />}
             </Box>
             <Box marginTop={1}>
               <Text color={colors.dim}>

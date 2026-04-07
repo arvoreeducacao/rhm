@@ -67,6 +67,26 @@ ${persona.name} is an experienced developer. Communicate directly:
 - Show code directly without hand-holding.`);
   }
 
+  if (persona.focus_areas) {
+    lines.push(`\n${persona.name} focuses on: ${persona.focus_areas}. Prioritize these areas in suggestions and discussions.`);
+  }
+
+  if (persona.aws_profiles?.length) {
+    lines.push(`\n### AWS Profiles\n`);
+    for (const profile of persona.aws_profiles) {
+      lines.push(`- \`${profile.name}\`: ${profile.description}`);
+    }
+    lines.push(`\nWhen running AWS commands, ask which environment if not clear from context.`);
+  }
+
+  if (persona.github_username) {
+    lines.push(`\nGitHub username: **${persona.github_username}**`);
+  }
+
+  if (persona.timezone) {
+    lines.push(`\nTimezone: ${persona.timezone}`);
+  }
+
   if (persona.context) {
     lines.push(`\nAdditional context about ${persona.name}: ${persona.context}`);
   }
@@ -76,6 +96,20 @@ ${persona.name} is an experienced developer. Communicate directly:
   }
 
   return lines.join("\n");
+}
+
+export function buildPersonaEditorFile(persona: PersonaData, editor: "kiro" | "cursor" | "claude-code" | "opencode"): string {
+  const content = buildPersonaSection(persona);
+
+  if (editor === "kiro") {
+    return `---\ninclusion: always\nname: persona\n---\n\n# Persona — ${persona.name}\n${content}\n`;
+  }
+
+  if (editor === "cursor") {
+    return `---\ndescription: "Personal AI profile for ${persona.name}"\nalwaysApply: true\n---\n\n# Persona — ${persona.name}\n${content}\n`;
+  }
+
+  return `# Persona — ${persona.name}\n${content}\n`;
 }
 
 export const personaCommand = new Command("persona")
