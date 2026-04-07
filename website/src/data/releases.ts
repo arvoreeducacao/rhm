@@ -15,6 +15,34 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.20.0",
+    date: "2026-04-07",
+    title: "Improved hub update experience",
+    slug: "0-20-0",
+    summary:
+      "hub update now shows a changelog of all releases included in the update, with a clean spinner instead of raw package manager output. Release data is fetched from the hub website via a new /api/releases.json endpoint.",
+    changes: [
+      {
+        type: "feat",
+        title: "Release changelog in hub update",
+        description:
+          "When updating, the CLI now fetches release data from hub.arvore.com.br/api/releases.json and displays all versions between the current and latest, with their changes grouped by type (feat, fix, refactor).",
+      },
+      {
+        type: "feat",
+        title: "Clean spinner UX",
+        description:
+          "Package manager output (pnpm/yarn/npm install logs) is now hidden behind an ora spinner. No more noisy deprecation warnings or progress bars — just a clean loading indicator and a success/fail message.",
+      },
+      {
+        type: "feat",
+        title: "Releases JSON API endpoint",
+        description:
+          "New /api/releases.json endpoint on the hub website serves the full releases data as JSON with CORS headers, enabling the CLI and other tools to consume release information programmatically.",
+      },
+    ],
+  },
+  {
     version: "0.19.0",
     date: "2026-04-07",
     title: "Persona as dedicated editor file",
