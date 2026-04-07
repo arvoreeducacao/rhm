@@ -1,0 +1,53 @@
+---
+title: "v0.20.0 — Improved hub update experience"
+version: "0.20.0"
+date: "2026-04-07"
+description: "hub update now shows a changelog of included releases with a clean spinner instead of raw package manager output."
+---
+
+`hub update` got a proper UX upgrade. Instead of dumping raw pnpm/yarn/npm output with deprecation warnings and progress bars, it now shows a clean spinner and a changelog of everything that changed since your last version.
+
+## Release changelog
+
+When an update is available, the CLI fetches release data from the hub website and shows every version between yours and the latest:
+
+```
+✔ Update available: 0.18.1 → 0.20.0
+
+  Releases included:
+
+  ● v0.18.2 — Design enforcement & upstream MCP instructions (07/04/2026)
+    FEAT     Design enforcement mode
+    FIX      Render instructions for upstream MCPs
+
+  ● v0.19.0 — Persona as dedicated editor file (07/04/2026)
+    FEAT     Persona as separate editor file
+    FEAT     Extended persona fields
+    FEAT     Persona gitignored by default
+    FIX      hub scan ignores persona files
+
+  ● v0.20.0 — Improved hub update experience (07/04/2026)
+    FEAT     Release changelog in hub update
+    FEAT     Clean spinner UX
+    FEAT     Releases JSON API endpoint
+
+  Full notes: https://hub.arvore.com.br/releases
+
+✔ Updated to 0.20.0
+```
+
+The `--check` flag still works — it shows the changelog without installing.
+
+## Clean spinner
+
+Package manager output is now captured silently. You see a spinner while it installs, and a success or failure message at the end. No more noise.
+
+## Releases API
+
+A new `/api/releases.json` endpoint on the hub website serves the full release data as JSON. The CLI uses it, but it's also available for any other tooling that needs release information programmatically.
+
+## Upgrade
+
+```bash
+hub update
+```
