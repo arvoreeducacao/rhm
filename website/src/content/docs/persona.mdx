@@ -1,0 +1,98 @@
+---
+title: Persona
+description: Personal AI profile — adapts how the agent communicates with each team member based on their role and technical level.
+order: 8
+---
+
+Not everyone on your team is a developer. The CEO reviews PRs. The designer checks implementations. The PM asks for features. Each person has a different background, and the AI should talk to them differently.
+
+`hub persona` creates a personal profile stored locally (`.hub/persona.yaml`) that tells the AI who it's talking to. When you run `hub generate`, the persona is injected into `AGENTS.md` so the agent adapts its communication style automatically.
+
+## Quick Start
+
+```bash
+hub persona
+```
+
+This launches an interactive TUI that asks:
+
+1. Your name
+2. Your role (CEO, Designer, Backend Dev, QA Engineer, etc.)
+3. Your technical level (non-technical, beginner, intermediate, advanced)
+4. Any extra context about you (optional)
+5. Your preferred language (English, Português, etc.)
+
+Then run `hub generate` to apply it.
+
+## What Changes
+
+The persona injects a `## User Persona` section into `AGENTS.md` with specific communication instructions. Here's what each level does:
+
+### Non-technical
+For CEOs, PMs, designers, and anyone who doesn't code:
+- No jargon or acronyms without plain-language explanations
+- Decisions framed as business impact, not implementation details
+- Progress reported as product changes, not code changes
+- No code snippets unless explicitly asked
+
+### Beginner
+For people learning to code or new to the stack:
+- Technical concepts explained briefly when first mentioned
+- Code shown with context about what it does
+- Encouraging, patient tone
+
+### Intermediate
+For developers comfortable with code but still learning some tools:
+- Normal technical language with explanations for niche concepts
+- Focus on the "why" behind architectural choices
+
+### Advanced
+For experienced developers:
+- Concise, direct, technical communication
+- Focus on trade-offs and edge cases
+- No hand-holding
+
+## How It Works
+
+The persona file is stored at `.hub/persona.yaml` — which is already gitignored (`.hub/` is in the default `.gitignore`). Each team member has their own file on their machine.
+
+```yaml
+name: João
+role: CEO
+technical_level: non-technical
+context: "I focus on business metrics and product strategy"
+language: Português
+```
+
+When `hub generate` runs, it reads this file and appends a persona section to `AGENTS.md`. The section includes specific instructions for the AI about how to communicate with that person.
+
+## Example Output
+
+For a non-technical CEO, the generated section looks like:
+
+```markdown
+## User Persona
+
+You are talking to **João**, who is a **CEO**.
+
+João is not technical. Adapt your communication:
+- Never use jargon, acronyms, or technical terms without explaining them first.
+- Explain decisions in terms of business impact, not implementation details.
+- When showing progress, focus on what changed for the user/product.
+- Keep responses short and focused on what matters to them.
+- Never show code snippets unless explicitly asked.
+
+Additional context about João: I focus on business metrics and product strategy
+
+Always communicate with João in **Português**.
+```
+
+## Per-Person, Not Per-Team
+
+The `hub.yaml` is shared across the team. The persona is personal — it lives in `.hub/` which is gitignored. Each person runs `hub persona` once on their machine, then `hub generate` picks it up automatically.
+
+This means the same workspace can serve a CEO who wants business summaries and a senior dev who wants raw technical details.
+
+## Updating Your Persona
+
+Run `hub persona` again — it pre-fills your existing answers so you can just change what you need.

@@ -1,0 +1,97 @@
+---
+title: "v0.17.0 — Persona"
+version: "0.17.0"
+date: "2026-04-06"
+description: "New hub persona command creates a personal AI profile for each team member. The agent adapts its communication style based on who it's talking to."
+---
+
+Not everyone on your team is a developer. The CEO reviews PRs. The designer checks implementations. The PM asks for features. Until now, the AI talked to everyone the same way — with technical jargon, code snippets, and implementation details.
+
+`hub persona` fixes that.
+
+## What's new
+
+### `hub persona`
+
+An interactive TUI that creates your personal AI profile:
+
+```bash
+hub persona
+```
+
+It asks five things:
+1. Your name
+2. Your role (CEO, Designer, Backend Dev, QA Engineer, etc.)
+3. Your technical level (non-technical, beginner, intermediate, advanced)
+4. Extra context about you (optional — e.g. "I focus on business metrics")
+5. Your preferred language (English, Português, etc.)
+
+The profile is saved to `.hub/persona.yaml` — which is local and gitignored. Each person on the team has their own.
+
+### How it changes the AI
+
+When you run `hub generate`, the persona is read and injected as a `## User Persona` section into `AGENTS.md`. The AI then adapts its communication:
+
+**Non-technical** (CEO, PM, Designer):
+- No jargon or acronyms without plain-language explanations
+- Decisions framed as business impact, not implementation details
+- Progress reported as product changes, not code changes
+- No code snippets unless explicitly asked
+
+**Beginner** (learning to code, new to the stack):
+- Technical concepts explained briefly when first mentioned
+- Code shown with context about what it does
+- Encouraging, patient tone
+
+**Intermediate** (comfortable with code):
+- Normal technical language with explanations for niche concepts
+- Focus on the "why" behind architectural choices
+
+**Advanced** (experienced developer):
+- Concise, direct, technical communication
+- Focus on trade-offs and edge cases
+- No hand-holding
+
+### Example output
+
+For a non-technical CEO who speaks Portuguese:
+
+```markdown
+## User Persona
+
+You are talking to **João**, who is a **CEO**.
+
+João is not technical. Adapt your communication:
+- Never use jargon, acronyms, or technical terms without explaining them first.
+- Explain decisions in terms of business impact, not implementation details.
+- When showing progress, focus on what changed for the user/product.
+- Keep responses short and focused on what matters to them.
+- Never show code snippets unless explicitly asked.
+
+Additional context about João: I focus on business metrics and product strategy
+
+Always communicate with João in **Português**.
+```
+
+### Per-person, not per-team
+
+The `hub.yaml` is shared. The persona is personal. Same workspace can serve a CEO who wants business summaries and a senior dev who wants raw technical details.
+
+### Updating your persona
+
+Run `hub persona` again — it pre-fills your existing answers so you can change what you need.
+
+## All editors supported
+
+Persona injection works across all four generators: Cursor, Kiro, Claude Code, and OpenCode. The `hub generate` output shows which persona was applied:
+
+```
+  Generated AGENTS.md
+  Applied persona: João (CEO)
+```
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.17.0 generate
+```

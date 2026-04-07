@@ -7,6 +7,7 @@ import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig, type WorkflowStep } from "../core/hub-config.js";
 import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
 import { fetchRemoteSources } from "../core/design-sources.js";
+import { loadPersona, buildPersonaSection } from "./persona.js";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
 
@@ -331,9 +332,14 @@ async function generateCursor(config: HubConfig, hubDir: string) {
 
   const cleanedOrchestratorForAgents = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
   const skillsSectionCursor = await buildSkillsSection(hubDir, config);
-  const agentsMdCursor = skillsSectionCursor ? cleanedOrchestratorForAgents + "\n" + skillsSectionCursor : cleanedOrchestratorForAgents;
+  const personaCursor = await loadPersona(hubDir);
+  const personaSectionCursor = personaCursor ? buildPersonaSection(personaCursor) : "";
+  const agentsMdCursor = [cleanedOrchestratorForAgents, skillsSectionCursor, personaSectionCursor].filter(Boolean).join("\n");
   await writeFile(join(hubDir, "AGENTS.md"), agentsMdCursor + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
+  if (personaCursor) {
+    console.log(chalk.green(`  Applied persona: ${personaCursor.name} (${personaCursor.role})`));
+  }
 
   const hubSteeringDirCursor = resolve(hubDir, "steering");
   try {
@@ -1359,9 +1365,14 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   await rm(join(opencodeDir, "rules", "orchestrator.md")).catch(() => {});
 
   const skillsSectionOC = await buildSkillsSection(hubDir, config);
-  const agentsMdOC = skillsSectionOC ? orchestratorContent + "\n" + skillsSectionOC : orchestratorContent;
+  const personaOC = await loadPersona(hubDir);
+  const personaSectionOC = personaOC ? buildPersonaSection(personaOC) : "";
+  const agentsMdOC = [orchestratorContent, skillsSectionOC, personaSectionOC].filter(Boolean).join("\n");
   await writeFile(join(hubDir, "AGENTS.md"), agentsMdOC + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
+  if (personaOC) {
+    console.log(chalk.green(`  Applied persona: ${personaOC.name} (${personaOC.role})`));
+  }
 
   const hubSteeringDirOC = resolve(hubDir, "steering");
   try {
@@ -2034,9 +2045,14 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
     .trim();
 
   const skillsSectionClaude = await buildSkillsSection(hubDir, config);
-  const agentsMdClaude = skillsSectionClaude ? cleanedOrchestrator + "\n" + skillsSectionClaude : cleanedOrchestrator;
+  const personaClaude = await loadPersona(hubDir);
+  const personaSectionClaude = personaClaude ? buildPersonaSection(personaClaude) : "";
+  const agentsMdClaude = [cleanedOrchestrator, skillsSectionClaude, personaSectionClaude].filter(Boolean).join("\n");
   await writeFile(join(hubDir, "AGENTS.md"), agentsMdClaude + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
+  if (personaClaude) {
+    console.log(chalk.green(`  Applied persona: ${personaClaude.name} (${personaClaude.role})`));
+  }
 
   const claudeMdSections: string[] = [];
   claudeMdSections.push(cleanedOrchestrator);
@@ -2209,10 +2225,15 @@ async function generateKiro(config: HubConfig, hubDir: string) {
 
   const kiroRule = buildKiroOrchestratorRule(config);
   const skillsSection = await buildSkillsSection(hubDir, config);
-  const kiroRuleWithSkills = skillsSection ? kiroRule + "\n" + skillsSection : kiroRule;
+  const personaKiro = await loadPersona(hubDir);
+  const personaSectionKiro = personaKiro ? buildPersonaSection(personaKiro) : "";
+  const kiroRuleWithSkills = [kiroRule, skillsSection, personaSectionKiro].filter(Boolean).join("\n");
 
   await writeFile(join(hubDir, "AGENTS.md"), kiroRuleWithSkills + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
+  if (personaKiro) {
+    console.log(chalk.green(`  Applied persona: ${personaKiro.name} (${personaKiro.role})`));
+  }
 
   await rm(join(steeringDir, "orchestrator.md")).catch(() => {});
 

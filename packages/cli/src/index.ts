@@ -22,6 +22,7 @@ import { directoryCommand } from "./commands/directory.js";
 import { scanCommand } from "./commands/scan.js";
 import { cloneCommand } from "./commands/clone.js";
 import { consolidateCommand } from "./commands/consolidate.js";
+import { personaCommand } from "./commands/persona.js";
 import { sandboxCommand } from "./commands/sandbox.js";
 
 import { readFileSync } from "node:fs";
@@ -65,6 +66,7 @@ program.addCommand(directoryCommand);
 program.addCommand(scanCommand);
 program.addCommand(cloneCommand);
 program.addCommand(consolidateCommand);
+program.addCommand(personaCommand);
 program.addCommand(sandboxCommand);
 
 program.parse();

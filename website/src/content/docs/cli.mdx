@@ -463,3 +463,19 @@ Automatically detects your package manager (pnpm, npm, or yarn) and runs the app
 | Flag | Description |
 |------|-------------|
 | `--check` | Only check for updates, don't install |
+
+## Persona
+
+### `hub persona`
+
+Set up your personal AI profile — adapts how the agent communicates with you:
+
+```bash
+hub persona
+```
+
+Launches an interactive TUI that asks your name, role, technical level, extra context, and preferred language. Saves to `.hub/persona.yaml` (local, gitignored).
+
+When you run `hub generate`, the persona is injected into `AGENTS.md` so the AI adapts its communication style to you — whether you're a CEO who wants business summaries or a senior dev who wants raw technical details.
+
+See [Persona](/docs/persona) for full documentation.
