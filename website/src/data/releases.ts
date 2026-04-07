@@ -15,6 +15,34 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.18.0",
+    date: "2026-04-07",
+    title: "Sandbox via mcp.sandbox()",
+    slug: "0-18-0",
+    summary:
+      "The sandbox MCP is now configured like any other MCP via mcp.sandbox() in hub.config.ts, instead of being auto-injected from a services entry. This makes it composable, overridable, and consistent with the rest of the config.",
+    changes: [
+      {
+        type: "refactor",
+        title: "mcp.sandbox() helper",
+        description:
+          "New type-safe helper in define-config.ts. Call mcp.sandbox(port) in your mcps array and hub generate wires it into Cursor and Kiro mcp.json automatically — no special-casing needed.",
+      },
+      {
+        type: "refactor",
+        title: "Remove hardcoded sandbox injection",
+        description:
+          "generate.ts no longer detects services with type: sandbox and force-injects the MCP entry. The sandbox MCP now flows through the same path as every other MCP with a URL.",
+      },
+      {
+        type: "refactor",
+        title: "Agent context injection via mcps",
+        description:
+          "The Sandbox Environment section injected into QA and coding agent prompts is now triggered by the presence of a sandbox entry in the mcps array, not by services.",
+      },
+    ],
+  },
+  {
     version: "0.17.3",
     date: "2026-04-07",
     title: "Fix update PM detection",

@@ -1,0 +1,55 @@
+---
+title: "v0.18.0 — Sandbox via mcp.sandbox()"
+version: "0.18.0"
+date: "2026-04-07"
+description: "The sandbox MCP is now configured like any other MCP via mcp.sandbox() in hub.config.ts, instead of being auto-injected from a services entry."
+---
+
+The sandbox was shipped in v0.17.2 but with a design issue: the MCP entry was auto-injected into editor configs by detecting `services` with `type: sandbox`. That meant it wasn't visible in your `mcps` array, couldn't be overridden, and didn't follow the same pattern as everything else.
+
+v0.18.0 fixes that.
+
+## What changed
+
+### `mcp.sandbox()`
+
+Configure the sandbox like any other MCP:
+
+```ts
+import { defineConfig, mcp, service } from "@arvoretech/hub/config";
+
+export default defineConfig({
+  mcps: [
+    mcp.sandbox(8080),
+  ],
+  services: [
+    { name: "sandbox", type: "sandbox", port: 8080 },
+  ],
+});
+```
+
+`mcp.sandbox(port)` defaults to port `8080` if omitted.
+
+### No more auto-injection
+
+`hub generate` no longer scans `services` for `type: sandbox` and force-injects the MCP. The entry flows through the normal MCP pipeline — same as any MCP with a `url`.
+
+### Agent context still works
+
+The `## Sandbox Environment` section injected into QA and coding agent prompts is now triggered by the presence of `sandbox` in your `mcps` array instead of `services`. Behavior is identical, the source of truth is just in the right place.
+
+## Migration
+
+If you were on v0.17.2, add `mcp.sandbox()` to your `mcps` array and run `hub generate` again:
+
+```ts
+mcps: [
+  mcp.sandbox(8080), // add this
+],
+```
+
+## Upgrade
+
+```bash
+npx @arvoretech/hub@0.18.0 generate
+```
