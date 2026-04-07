@@ -1,0 +1,25 @@
+---
+title: "v0.17.3 — Fix update PM detection"
+version: "0.17.3"
+date: "2026-04-07"
+description: "hub update now correctly detects which package manager was used to install the CLI globally, instead of just checking which PMs are available on the system."
+---
+
+`hub update` was detecting the package manager by checking which ones were installed on the system (`pnpm --version`, `yarn --version`), not which one actually installed the hub CLI. If you had pnpm installed but used npm to install hub globally, it would try to update via pnpm and fail.
+
+## The fix
+
+Detection now follows this priority:
+
+1. `npm_config_user_agent` — set automatically when running via a PM (e.g. `pnpm exec hub update`)
+2. `which hub` path inspection — checks if the binary lives under a `/pnpm/` or `/yarn/` directory
+3. `pnpm list -g` / `yarn global list` — checks which PM actually has the package registered
+4. Falls back to `npm`
+
+The install command was also extracted into `buildInstallCommand()` so pnpm correctly uses `pnpm add -g` instead of `pnpm install -g`.
+
+## Upgrade
+
+```bash
+hub update
+```

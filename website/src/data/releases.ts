@@ -15,6 +15,22 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.17.3",
+    date: "2026-04-07",
+    title: "Fix update PM detection",
+    slug: "0-17-3",
+    summary:
+      "hub update now correctly detects which package manager was used to install the CLI globally, instead of just checking which PMs are available on the system.",
+    changes: [
+      {
+        type: "fix",
+        title: "Detect PM from install context, not system availability",
+        description:
+          "Detection now checks npm_config_user_agent, the hub binary path, and global package lists instead of just running pnpm/yarn --version. Also fixes pnpm to use 'pnpm add -g' instead of 'pnpm install -g'.",
+      },
+    ],
+  },
+  {
     version: "0.17.2",
     date: "2026-04-06",
     title: "Sandbox support",

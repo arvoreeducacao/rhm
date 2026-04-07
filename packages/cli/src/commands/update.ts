@@ -21,17 +21,39 @@ async function getLatestVersion(): Promise<string> {
   return data.version;
 }
 
-function detectPackageManager(): "pnpm" | "npm" | "yarn" {
+function detectPackageManager(): "pnpm" | "yarn" | "npm" {
+  const userAgent = process.env.npm_config_user_agent ?? "";
+  if (userAgent.startsWith("pnpm")) return "pnpm";
+  if (userAgent.startsWith("yarn")) return "yarn";
+  if (userAgent.startsWith("npm")) return "npm";
+
   try {
-    execSync("pnpm --version", { stdio: "pipe" });
-    return "pnpm";
-  } catch {
-    try {
-      execSync("yarn --version", { stdio: "pipe" });
-      return "yarn";
-    } catch {
-      return "npm";
-    }
+    const binPath = execSync("which hub", { stdio: "pipe", encoding: "utf-8" }).trim();
+    if (binPath.includes("/pnpm/")) return "pnpm";
+    if (binPath.includes("/yarn/")) return "yarn";
+  } catch { /* binary not found */ }
+
+  try {
+    const out = execSync(`pnpm list -g --depth=0 ${PACKAGE_NAME}`, { stdio: "pipe", encoding: "utf-8" });
+    if (out.includes(PACKAGE_NAME)) return "pnpm";
+  } catch { /* pnpm not available */ }
+
+  try {
+    const out = execSync(`yarn global list --depth=0`, { stdio: "pipe", encoding: "utf-8" });
+    if (out.includes(PACKAGE_NAME)) return "yarn";
+  } catch { /* yarn not available */ }
+
+  return "npm";
+}
+
+function buildInstallCommand(pm: "pnpm" | "yarn" | "npm"): string {
+  switch (pm) {
+    case "pnpm":
+      return `pnpm add -g ${PACKAGE_NAME}@latest`;
+    case "yarn":
+      return `yarn global add ${PACKAGE_NAME}@latest`;
+    case "npm":
+      return `npm install -g ${PACKAGE_NAME}@latest`;
   }
 }
 
@@ -59,19 +81,14 @@ export const updateCommand = new Command("update")
 
     console.log(chalk.yellow(`\n  Update available: ${currentVersion} → ${latestVersion}`));
 
+    const pm = detectPackageManager();
+
     if (opts.check) {
-      const pm = detectPackageManager();
-      console.log(chalk.dim(`\n  Run 'hub update' or '${pm} install -g ${PACKAGE_NAME}@latest' to update.\n`));
+      console.log(chalk.dim(`\n  Run 'hub update' or '${buildInstallCommand(pm)}' to update.\n`));
       return;
     }
 
-    const pm = detectPackageManager();
-    const installCmd =
-      pm === "pnpm"
-        ? `pnpm install -g ${PACKAGE_NAME}@latest`
-        : pm === "yarn"
-          ? `yarn global add ${PACKAGE_NAME}@latest`
-          : `npm install -g ${PACKAGE_NAME}@latest`;
+    const installCmd = buildInstallCommand(pm);
 
     console.log(chalk.cyan(`\n  Updating with ${pm}...\n`));
     console.log(chalk.dim(`  $ ${installCmd}\n`));
