@@ -128,6 +128,7 @@ export interface MemoryConfig {
   categories?: string[];
   auto_capture?: boolean;
   embedding_model?: string;
+  enforce?: boolean;
 }
 
 export interface RemoteSource {
@@ -180,6 +181,7 @@ export interface HubConfig {
     pipeline?: WorkflowStep[];
     prompt?: PromptCustomization;
     enforce_workflow?: boolean;
+    fetch_checker?: boolean;
   };
 }
 
