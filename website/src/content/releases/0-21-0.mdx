@@ -1,15 +1,15 @@
 ---
-title: "v0.21.0 — Fetch Checker & Memory Enforcement"
+title: "v0.21.0 — Fact Checker & Memory Enforcement"
 version: "0.21.0"
 date: "2026-04-08"
-description: "Two new config options that make agents more reliable: fetch_checker forces verification of external state, and memory.enforce makes team memory consultation mandatory."
+description: "Two new config options that make agents more reliable: fact_checker forces verification of external state, and memory.enforce makes team memory consultation mandatory."
 ---
 
 Two new options in `hub.yaml` / `hub.config.ts` that address real problems we hit daily: agents making claims about external state without checking, and agents ignoring team memory.
 
-## Fetch Checker
+## Fact Checker
 
-New `workflow.fetch_checker` option. When enabled, the generated orchestrator prompt includes a **Mandatory Verification** section that forbids the agent from stating the status of any external resource without first checking it with the appropriate tool.
+New `workflow.fact_checker` option. When enabled, the generated orchestrator prompt includes a **Mandatory Verification** section that forbids the agent from stating the status of any external resource without first checking it with the appropriate tool.
 
 This covers:
 - PR status (merged, open, closed, approved)
@@ -22,7 +22,7 @@ This covers:
 ```typescript
 export default defineConfig({
   workflow: {
-    fetch_checker: true,
+    fact_checker: true,
     pipeline: [...]
   }
 });

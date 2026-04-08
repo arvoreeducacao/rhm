@@ -17,16 +17,16 @@ export const releases: Release[] = [
   {
     version: "0.21.0",
     date: "2026-04-08",
-    title: "Fetch Checker & Memory Enforcement",
+    title: "Fact Checker & Memory Enforcement",
     slug: "0-21-0",
     summary:
-      "Two new config options that make agents more reliable: fetch_checker forces verification of external state before reporting it, and memory.enforce makes team memory consultation mandatory on every interaction.",
+      "Two new config options that make agents more reliable: fact_checker forces verification of external state before reporting it, and memory.enforce makes team memory consultation mandatory on every interaction.",
     changes: [
       {
         type: "feat",
-        title: "Fetch Checker",
+        title: "Fact Checker",
         description:
-          "New workflow.fetch_checker option. When enabled, the orchestrator prompt includes a Mandatory Verification section that forbids the agent from stating the status of any external resource (PR status, deploy state, branch existence, CI results, service health) without first checking it with the appropriate tool. Prevents hallucinated status reports.",
+          "New workflow.fact_checker option. When enabled, the orchestrator prompt includes a Mandatory Verification section that forbids the agent from stating the status of any external resource (PR status, deploy state, branch existence, CI results, service health) without first checking it with the appropriate tool. Prevents hallucinated status reports.",
       },
       {
         type: "feat",

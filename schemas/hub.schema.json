@@ -380,7 +380,7 @@
           "default": false,
           "description": "When true, adds strict enforcement rules to the orchestrator prompt — the AI must follow every pipeline step in order, never skip steps, and always validate outputs before proceeding."
         },
-        "fetch_checker": {
+        "fact_checker": {
           "type": "boolean",
           "default": false,
           "description": "When true, forces the agent to verify any factual claim about external state (PR status, deploy status, branch state, merge status, etc.) by actually checking with the appropriate tool BEFORE stating it to the user. Prevents hallucinated status reports."

@@ -181,7 +181,7 @@ export interface HubConfig {
     pipeline?: WorkflowStep[];
     prompt?: PromptCustomization;
     enforce_workflow?: boolean;
-    fetch_checker?: boolean;
+    fact_checker?: boolean;
   };
 }
 

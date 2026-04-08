@@ -1043,7 +1043,7 @@ Additional context sources:
 
 function buildFetchCheckerSection(): string {
   return `
-## Fetch Checker — Mandatory Verification
+## Fact Checker — Mandatory Verification
 
 **NEVER state the status of any external resource without verifying it first.**
 
@@ -1281,7 +1281,7 @@ If the user doesn't have a task in their project management tool, create one usi
     sections.push(buildMemorySection(config));
   }
 
-  if (config.workflow?.fetch_checker) {
+  if (config.workflow?.fact_checker) {
     sections.push(buildFetchCheckerSection());
   }
 
@@ -1659,7 +1659,7 @@ If the user doesn't have a task in their project management tool, create one usi
     sections.push(buildMemorySection(config));
   }
 
-  if (config.workflow?.fetch_checker) {
+  if (config.workflow?.fact_checker) {
     sections.push(buildFetchCheckerSection());
   }
 
@@ -1887,7 +1887,7 @@ If the user doesn't have a task in their project management tool, create one usi
     sections.push(buildMemorySection(config));
   }
 
-  if (config.workflow?.fetch_checker) {
+  if (config.workflow?.fact_checker) {
     sections.push(buildFetchCheckerSection());
   }
 
