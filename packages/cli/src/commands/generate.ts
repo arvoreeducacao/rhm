@@ -1082,6 +1082,13 @@ This workspace has a team memory knowledge base via the \`team-memory\` MCP.
 3. If memories are found, factor them into your response — they may contain past decisions, conventions, known issues, or domain context that directly affects the current task
 4. If no relevant memories are found, proceed normally
 
+### Before calling tools:
+When you are about to use a tool that interacts with external systems (database queries, API calls, git operations, deployments, file modifications in specific domains), do a quick \`search_memories\` for the relevant entity or system first. There may be a memory about:
+- Schema changes, migrations, or known issues with that table/endpoint
+- Conventions for how that system should be used
+- Past incidents or gotchas that affect the operation you're about to perform
+This does NOT apply to simple read/search tools — use judgment on when a memory check adds value.
+
 ### When completing work:
 - If you discovered something valuable (a decision, a gotcha, a convention, a domain insight, a debugging finding), use \`add_memory\` to capture it
 - Be specific: include context, rationale, and affected areas
