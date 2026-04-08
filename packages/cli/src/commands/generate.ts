@@ -1041,6 +1041,80 @@ Additional context sources:
   return parts.join("\n");
 }
 
+function buildFetchCheckerSection(): string {
+  return `
+## Fact Checker — Mandatory Verification
+
+**NEVER state the status of any external resource without verifying it first.**
+
+Before making ANY claim about:
+- PR status (merged, open, closed, approved, changes requested)
+- Branch state (ahead, behind, conflicts, existence)
+- Deploy status (deployed, failed, in progress)
+- CI/CD pipeline results (passed, failed, running)
+- Issue/task status (open, closed, in progress)
+- Service health (up, down, degraded)
+- Any other external state that can change over time
+
+You MUST:
+1. Use the appropriate tool to check the actual current state (GitHub CLI, MCP tools, git commands, etc.)
+2. Only THEN report the result to the user
+3. If you cannot verify, explicitly say "I was unable to verify this — please check manually"
+
+**NEVER assume, guess, or rely on cached/stale information.** Every claim about external state must be backed by a fresh check.
+This applies to ALL agents in the pipeline, not just the orchestrator.`;
+}
+
+function buildMemorySection(config: HubConfig): string {
+  const enforce = config.memory?.enforce ?? false;
+
+  if (enforce) {
+    return `
+## Team Memory — MANDATORY
+
+This workspace has a team memory knowledge base via the \`team-memory\` MCP.
+
+**YOU MUST consult memory at the START of EVERY interaction.** This is not optional.
+
+### On every message from the user:
+1. Extract the key topics, entities, and domain terms from the user's request
+2. Run \`search_memories\` with relevant keywords BEFORE doing anything else
+3. If memories are found, factor them into your response — they may contain past decisions, conventions, known issues, or domain context that directly affects the current task
+4. If no relevant memories are found, proceed normally
+
+### Before calling tools:
+When you are about to use a tool that interacts with external systems (database queries, API calls, git operations, deployments, file modifications in specific domains), do a quick \`search_memories\` for the relevant entity or system first. There may be a memory about:
+- Schema changes, migrations, or known issues with that table/endpoint
+- Conventions for how that system should be used
+- Past incidents or gotchas that affect the operation you're about to perform
+This does NOT apply to simple read/search tools — use judgment on when a memory check adds value.
+
+### When completing work:
+- If you discovered something valuable (a decision, a gotcha, a convention, a domain insight, a debugging finding), use \`add_memory\` to capture it
+- Be specific: include context, rationale, and affected areas
+- Use appropriate categories: decisions, conventions, incidents, domain, gotchas
+
+### Why this matters:
+- Memories contain institutional knowledge that prevents repeated mistakes
+- Past decisions explain WHY things are the way they are
+- Conventions ensure consistency across the team
+- Gotchas save hours of debugging
+
+Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`;
+  }
+
+  return `
+## Team Memory
+
+This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
+
+**Before starting any task**, use \`search_memories\` to find relevant context — past decisions, conventions, known issues, and domain knowledge. This avoids repeating mistakes and ensures consistency with previous choices.
+
+**After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
+
+Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`;
+}
+
 function buildCoreBehaviorSections(): string[] {
   const sections: string[] = [];
 
@@ -1211,16 +1285,11 @@ If the user doesn't have a task in their project management tool, create one usi
   }
 
   if (config.memory) {
-    sections.push(`
-## Team Memory
+    sections.push(buildMemorySection(config));
+  }
 
-This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
-
-**Before starting any task**, use \`search_memories\` to find relevant context — past decisions, conventions, known issues, and domain knowledge. This avoids repeating mistakes and ensures consistency with previous choices.
-
-**After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
-
-Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
+  if (config.workflow?.fact_checker) {
+    sections.push(buildFetchCheckerSection());
   }
 
   const designSectionOpenCode = buildDesignSection(config);
@@ -1594,16 +1663,11 @@ If the user doesn't have a task in their project management tool, create one usi
   }
 
   if (config.memory) {
-    sections.push(`
-## Team Memory
+    sections.push(buildMemorySection(config));
+  }
 
-This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
-
-**Before starting any task**, use \`search_memories\` to find relevant context — past decisions, conventions, known issues, and domain knowledge. This avoids repeating mistakes and ensures consistency with previous choices.
-
-**After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
-
-Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
+  if (config.workflow?.fact_checker) {
+    sections.push(buildFetchCheckerSection());
   }
 
   const designSectionKiro = buildDesignSection(config);
@@ -1827,16 +1891,11 @@ If the user doesn't have a task in their project management tool, create one usi
   }
 
   if (config.memory) {
-    sections.push(`
-## Team Memory
+    sections.push(buildMemorySection(config));
+  }
 
-This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
-
-**Before starting any task**, use \`search_memories\` to find relevant context — past decisions, conventions, known issues, and domain knowledge. This avoids repeating mistakes and ensures consistency with previous choices.
-
-**After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
-
-Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`);
+  if (config.workflow?.fact_checker) {
+    sections.push(buildFetchCheckerSection());
   }
 
   const designSectionCursor = buildDesignSection(config);

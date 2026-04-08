@@ -1,0 +1,58 @@
+---
+title: "v0.21.0 — Fact Checker & Memory Enforcement"
+version: "0.21.0"
+date: "2026-04-08"
+description: "Two new config options that make agents more reliable: fact_checker forces verification of external state, and memory.enforce makes team memory consultation mandatory."
+---
+
+Two new options in `hub.yaml` / `hub.config.ts` that address real problems we hit daily: agents making claims about external state without checking, and agents ignoring team memory.
+
+## Fact Checker
+
+New `workflow.fact_checker` option. When enabled, the generated orchestrator prompt includes a **Mandatory Verification** section that forbids the agent from stating the status of any external resource without first checking it with the appropriate tool.
+
+This covers:
+- PR status (merged, open, closed, approved)
+- Branch state (ahead, behind, conflicts, existence)
+- Deploy status (deployed, failed, in progress)
+- CI/CD pipeline results
+- Issue/task status
+- Service health
+
+```typescript
+export default defineConfig({
+  workflow: {
+    fact_checker: true,
+    pipeline: [...]
+  }
+});
+```
+
+If the agent can't verify something, it must explicitly say so instead of guessing.
+
+## Memory Enforcement
+
+New `memory.enforce` option. When enabled, the Team Memory section changes from a soft recommendation to a hard rule — the agent **must** run `search_memories` at the start of **every** interaction.
+
+```typescript
+export default defineConfig({
+  memory: {
+    path: "./memories",
+    enforce: true
+  }
+});
+```
+
+The enforced prompt instructs the agent to:
+1. Extract key topics from the user's message
+2. Search memories with relevant keywords before doing anything else
+3. Factor found memories into the response
+4. Save new learnings after completing work
+
+This ensures institutional knowledge (past decisions, conventions, gotchas) is always considered, not just when the agent feels like it.
+
+## Upgrade
+
+```bash
+hub update
+```

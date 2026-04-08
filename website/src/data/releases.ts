@@ -15,6 +15,28 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.21.0",
+    date: "2026-04-08",
+    title: "Fact Checker & Memory Enforcement",
+    slug: "0-21-0",
+    summary:
+      "Two new config options that make agents more reliable: fact_checker forces verification of external state before reporting it, and memory.enforce makes team memory consultation mandatory on every interaction.",
+    changes: [
+      {
+        type: "feat",
+        title: "Fact Checker",
+        description:
+          "New workflow.fact_checker option. When enabled, the orchestrator prompt includes a Mandatory Verification section that forbids the agent from stating the status of any external resource (PR status, deploy state, branch existence, CI results, service health) without first checking it with the appropriate tool. Prevents hallucinated status reports.",
+      },
+      {
+        type: "feat",
+        title: "Memory Enforcement",
+        description:
+          "New memory.enforce option. When enabled, the Team Memory section changes from a recommendation to a mandatory rule — the agent MUST run search_memories at the start of every interaction, not just at the beginning of tasks. Ensures institutional knowledge is always considered.",
+      },
+    ],
+  },
+  {
     version: "0.20.0",
     date: "2026-04-07",
     title: "Improved hub update experience",
