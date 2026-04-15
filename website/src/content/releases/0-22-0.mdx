@@ -1,0 +1,68 @@
+---
+title: "v0.22.0 — Memory Steering Index"
+version: "0.22.0"
+date: "2026-04-15"
+description: "The team-memory MCP now auto-generates a steering file with an index of all active memories. The model sees what exists without calling any MCP tool."
+---
+
+The biggest friction with team memory was that the model had no idea what memories existed until it called `search_memories` — and if the keywords didn't match, relevant memories were invisible. Now the MCP generates a steering file that the model reads directly from context.
+
+## How it works
+
+The `@arvoretech/memory-mcp` (1.3.0) now maintains a `team-memories-index.md` steering file that lists every active memory with its title, category, tags, and ID.
+
+The index is synced automatically on:
+- **MCP startup** — full rebuild from disk
+- **add_memory** — new entry added to index
+- **archive_memory** — entry removed from index
+- **remove_memory** — entry removed from index
+
+The file looks like this:
+
+```markdown
+# Team Memories Index
+
+Total: 130 active memories. Use `get_memory(id)` to read full content.
+
+## conventions (12)
+- **Slack eng-prs channel ID** [slack] → `2026-03-02-slack-eng-prs-channel-id`
+- **Frontend: always use Orval** [frontend, api] → `2026-04-07-frontend-sempre-usar-orval`
+...
+
+## decisions (45)
+- **Aurora MySQL optimization** [database, mysql] → `2026-04-04-aurora-mysql-otimizacao`
+...
+
+## gotchas (38)
+- **Drizzle 0.44.5 bug** [drizzle, database] → `2026-04-09-drizzle-0-44-5-bug`
+...
+```
+
+## Editor support
+
+The MCP auto-detects which editor directories exist and writes the index to all of them:
+
+| Editor | Path | Inclusion |
+|--------|------|-----------|
+| Kiro | `.kiro/steering/team-memories-index.md` | `inclusion: always` |
+| Cursor | `.cursor/rules/team-memories-index.md` | `alwaysApply: true` |
+| OpenCode | `.opencode/rules/team-memories-index.md` | Auto-included |
+| Claude Code | Via `hub generate` | Included in CLAUDE.md |
+
+## Updated orchestrator prompt
+
+The Team Memory section in AGENTS.md now tells the model:
+
+1. **Read the index first** — you already know what memories exist
+2. **Use `get_memory(id)`** — when you need the full content of a specific memory
+3. **Use `search_memories`** — only for semantic/fuzzy search beyond what the index shows
+
+This eliminates the mandatory `search_memories` call on every interaction, reducing MCP round-trips and token usage.
+
+## Upgrade
+
+```bash
+hub update
+```
+
+The memory MCP will generate the steering index on its next startup.

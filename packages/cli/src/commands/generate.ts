@@ -1073,21 +1073,15 @@ function buildMemorySection(config: HubConfig): string {
 ## Team Memory — MANDATORY
 
 This workspace has a team memory knowledge base via the \`team-memory\` MCP.
+The MCP automatically generates a steering file (\`team-memories-index\`) with an index of all active memories. This file is always included in your context.
 
-**YOU MUST consult memory at the START of EVERY interaction.** This is not optional.
+**Use the index first.** You already know what memories exist — check the steering file before calling any MCP tool.
 
-### On every message from the user:
-1. Extract the key topics, entities, and domain terms from the user's request
-2. Run \`search_memories\` with relevant keywords BEFORE doing anything else
-3. If memories are found, factor them into your response — they may contain past decisions, conventions, known issues, or domain context that directly affects the current task
-4. If no relevant memories are found, proceed normally
-
-### Before calling tools:
-When you are about to use a tool that interacts with external systems (database queries, API calls, git operations, deployments, file modifications in specific domains), do a quick \`search_memories\` for the relevant entity or system first. There may be a memory about:
-- Schema changes, migrations, or known issues with that table/endpoint
-- Conventions for how that system should be used
-- Past incidents or gotchas that affect the operation you're about to perform
-This does NOT apply to simple read/search tools — use judgment on when a memory check adds value.
+### How to use memories:
+1. **Read the index** — the \`team-memories-index\` steering file lists all active memories with title, category, tags, and ID
+2. **Get full content** — use \`get_memory(id)\` when you need the complete context of a specific memory
+3. **Semantic search** — use \`search_memories\` only when you need fuzzy/semantic matching beyond what the index shows
+4. **Capture knowledge** — use \`add_memory\` when you discover decisions, conventions, gotchas, or domain insights during work
 
 ### When completing work:
 - If you discovered something valuable (a decision, a gotcha, a convention, a domain insight, a debugging finding), use \`add_memory\` to capture it
@@ -1107,8 +1101,9 @@ Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_mem
 ## Team Memory
 
 This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
+The MCP automatically generates a steering file (\`team-memories-index\`) with an index of all active memories.
 
-**Before starting any task**, use \`search_memories\` to find relevant context — past decisions, conventions, known issues, and domain knowledge. This avoids repeating mistakes and ensures consistency with previous choices.
+**Check the index first** — use \`get_memory(id)\` for full content, and \`search_memories\` only for semantic search beyond the index.
 
 **After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
 
