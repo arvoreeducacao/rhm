@@ -15,6 +15,28 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: "0.22.0",
+    date: "2026-04-15",
+    title: "Memory Steering Index",
+    slug: "0-22-0",
+    summary:
+      "The team-memory MCP now auto-generates a steering file with an index of all active memories. The model sees what memories exist without calling any MCP tool — just reads the index from context and uses get_memory(id) when it needs full content.",
+    changes: [
+      {
+        type: "feat",
+        title: "Auto-sync steering index in memory MCP",
+        description:
+          "The @arvoretech/memory-mcp (1.3.0) now generates and maintains a team-memories-index.md steering file listing all active memories with title, category, tags, and ID. The index is synced on startup, add_memory, archive_memory, and remove_memory. Editor detection is automatic — writes to .kiro/steering/, .cursor/rules/, and .opencode/rules/ based on which directories exist.",
+      },
+      {
+        type: "feat",
+        title: "Updated memory section in orchestrator",
+        description:
+          "The Team Memory section in AGENTS.md now instructs the model to check the steering index first, use get_memory(id) for full content, and only call search_memories for semantic search. Eliminates mandatory MCP round-trips on every interaction.",
+      },
+    ],
+  },
+  {
     version: "0.21.0",
     date: "2026-04-08",
     title: "Fact Checker & Memory Enforcement",
