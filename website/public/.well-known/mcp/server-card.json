@@ -1,0 +1,23 @@
+{
+  "serverInfo": {
+    "name": "repo-hub",
+    "version": "0.22.0",
+    "description": "Repo Hub — One config file. Your AI ships features. Configure agents, skills, MCPs, and workflows across multiple repositories."
+  },
+  "capabilities": {
+    "documentation": {
+      "llmsTxt": "https://hub.arvore.com.br/llms.txt",
+      "llmsFullTxt": "https://hub.arvore.com.br/llms-full.txt"
+    },
+    "registry": {
+      "agents": "https://hub.arvore.com.br/directory.json",
+      "releases": "https://hub.arvore.com.br/api/releases.json"
+    }
+  },
+  "links": {
+    "homepage": "https://hub.arvore.com.br",
+    "documentation": "https://hub.arvore.com.br/docs/getting-started",
+    "repository": "https://github.com/arvoreeducacao/rhm",
+    "npm": "https://www.npmjs.com/package/@arvoretech/hub"
+  }
+}

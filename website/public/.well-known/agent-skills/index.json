@@ -1,0 +1,68 @@
+{
+  "$schema": "https://agentskills.io/schema/v0.2.0/index.json",
+  "skills": [
+    {
+      "name": "repo-hub-getting-started",
+      "type": "documentation",
+      "description": "How to install and configure Repo Hub — the config file that teaches AI how your team ships code.",
+      "url": "https://hub.arvore.com.br/docs/getting-started",
+      "sha256": ""
+    },
+    {
+      "name": "repo-hub-configuration",
+      "type": "documentation",
+      "description": "Full reference for hub.yaml and hub.config.ts — repos, MCPs, agents, skills, workflow, and design system configuration.",
+      "url": "https://hub.arvore.com.br/docs/configuration",
+      "sha256": ""
+    },
+    {
+      "name": "repo-hub-agents",
+      "type": "documentation",
+      "description": "How to define specialized AI agent roles (refinement, coding, review, QA, delivery) in Repo Hub.",
+      "url": "https://hub.arvore.com.br/docs/agents",
+      "sha256": ""
+    },
+    {
+      "name": "repo-hub-skills",
+      "type": "documentation",
+      "description": "How to create and manage skills — cheat sheets that teach AI your team's coding patterns and conventions.",
+      "url": "https://hub.arvore.com.br/docs/skills",
+      "sha256": ""
+    },
+    {
+      "name": "repo-hub-mcps",
+      "type": "documentation",
+      "description": "How to configure MCP (Model Context Protocol) servers to connect AI to your databases, monitoring, and tools.",
+      "url": "https://hub.arvore.com.br/docs/mcps",
+      "sha256": ""
+    },
+    {
+      "name": "repo-hub-workflow",
+      "type": "documentation",
+      "description": "How to define development pipelines — from refinement through coding, review, QA, and delivery.",
+      "url": "https://hub.arvore.com.br/docs/workflow",
+      "sha256": ""
+    },
+    {
+      "name": "repo-hub-agent-teams",
+      "type": "documentation",
+      "description": "How to spawn parallel AI teammates that coordinate on tasks, share a mailbox, and work across repos simultaneously.",
+      "url": "https://hub.arvore.com.br/docs/agent-teams",
+      "sha256": ""
+    },
+    {
+      "name": "repo-hub-llms-txt",
+      "type": "documentation",
+      "description": "LLM-friendly documentation index for Repo Hub in plain text format.",
+      "url": "https://hub.arvore.com.br/llms.txt",
+      "sha256": ""
+    },
+    {
+      "name": "repo-hub-llms-full-txt",
+      "type": "documentation",
+      "description": "Complete Repo Hub documentation in a single plain text file, optimized for LLM consumption.",
+      "url": "https://hub.arvore.com.br/llms-full.txt",
+      "sha256": ""
+    }
+  ]
+}

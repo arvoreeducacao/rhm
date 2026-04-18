@@ -65,6 +65,43 @@ const fullTitle = `${title} | Repo Hub`;
         }
       })();
     </script>
+    <script is:inline>
+      (function() {
+        if (typeof navigator !== 'undefined' && navigator.modelContext && navigator.modelContext.provideContext) {
+          navigator.modelContext.provideContext({
+            tools: [
+              {
+                name: 'get_documentation',
+                description: 'Get the full Repo Hub documentation as a single markdown file, optimized for LLM consumption.',
+                inputSchema: { type: 'object', properties: {} },
+                execute: async function() {
+                  var res = await fetch('/llms-full.txt');
+                  return { content: await res.text() };
+                }
+              },
+              {
+                name: 'get_releases',
+                description: 'Get the latest Repo Hub releases and changelog.',
+                inputSchema: { type: 'object', properties: {} },
+                execute: async function() {
+                  var res = await fetch('/api/releases.json');
+                  return { content: JSON.stringify(await res.json()) };
+                }
+              },
+              {
+                name: 'search_directory',
+                description: 'Search the Repo Hub directory for agents, skills, and MCPs.',
+                inputSchema: { type: 'object', properties: {} },
+                execute: async function() {
+                  var res = await fetch('/directory.json');
+                  return { content: JSON.stringify(await res.json()) };
+                }
+              }
+            ]
+          });
+        }
+      })();
+    </script>
   </head>
   <body class="min-h-screen flex flex-col">
     <Header />
