@@ -1,0 +1,37 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://hub.arvore.com.br/api/releases.json",
+      "service-desc": [
+        {
+          "href": "https://hub.arvore.com.br/docs/cli",
+          "type": "text/html"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://hub.arvore.com.br/docs/getting-started",
+          "type": "text/html"
+        }
+      ]
+    },
+    {
+      "anchor": "https://hub.arvore.com.br/directory.json",
+      "service-doc": [
+        {
+          "href": "https://hub.arvore.com.br/directory",
+          "type": "text/html"
+        }
+      ]
+    },
+    {
+      "anchor": "https://hub.arvore.com.br/llms.txt",
+      "service-doc": [
+        {
+          "href": "https://hub.arvore.com.br/docs/getting-started",
+          "type": "text/html"
+        }
+      ]
+    }
+  ]
+}
