@@ -42,6 +42,16 @@ import { ViewTransitions } from 'astro:transitions';
       })();
     </script>
     <script is:inline>
+      document.addEventListener('astro:before-swap', function(e) {
+        var isDark = document.documentElement.classList.contains('dark');
+        if (isDark) {
+          e.newDocument.documentElement.classList.add('dark');
+        } else {
+          e.newDocument.documentElement.classList.remove('dark');
+        }
+      });
+    </script>
+    <script is:inline>
       (function() {
         if (typeof navigator !== 'undefined' && navigator.modelContext && navigator.modelContext.provideContext) {
           navigator.modelContext.provideContext({
