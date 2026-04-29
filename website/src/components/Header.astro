@@ -252,57 +252,62 @@ const resourcesItems = [
     updateThemeIcons();
   }
 
-  updateThemeIcons();
+  function initHeader() {
+    updateThemeIcons();
 
-  document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
-  document.getElementById('theme-toggle-mobile')?.addEventListener('click', toggleTheme);
-  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
-    document.getElementById('mobile-menu')?.classList.toggle('hidden');
-  });
+    document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+    document.getElementById('theme-toggle-mobile')?.addEventListener('click', toggleTheme);
+    document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+      document.getElementById('mobile-menu')?.classList.toggle('hidden');
+    });
 
-  document.querySelectorAll('.nav-dropdown').forEach(dropdown => {
-    const trigger = dropdown.querySelector('.nav-trigger');
-    const panel = dropdown.querySelector('.dropdown-panel');
-    const chevron = trigger?.querySelector('svg');
-    let timeout: ReturnType<typeof setTimeout>;
+    document.querySelectorAll('.nav-dropdown').forEach(dropdown => {
+      const trigger = dropdown.querySelector('.nav-trigger');
+      const panel = dropdown.querySelector('.dropdown-panel');
+      const chevron = trigger?.querySelector('svg');
+      let timeout: ReturnType<typeof setTimeout>;
 
-    function show() {
-      clearTimeout(timeout);
-      document.querySelectorAll('.nav-dropdown').forEach(other => {
-        if (other !== dropdown) {
-          const otherPanel = other.querySelector('.dropdown-panel');
-          const otherChevron = other.querySelector('.nav-trigger svg');
-          otherPanel?.classList.add('invisible', 'opacity-0');
-          otherPanel?.classList.remove('visible', 'opacity-100');
-          otherChevron?.classList.remove('rotate-180');
+      function show() {
+        clearTimeout(timeout);
+        document.querySelectorAll('.nav-dropdown').forEach(other => {
+          if (other !== dropdown) {
+            const otherPanel = other.querySelector('.dropdown-panel');
+            const otherChevron = other.querySelector('.nav-trigger svg');
+            otherPanel?.classList.add('invisible', 'opacity-0');
+            otherPanel?.classList.remove('visible', 'opacity-100');
+            otherChevron?.classList.remove('rotate-180');
+          }
+        });
+        panel?.classList.remove('invisible', 'opacity-0');
+        panel?.classList.add('visible', 'opacity-100');
+        chevron?.classList.add('rotate-180');
+      }
+
+      function hide() {
+        timeout = setTimeout(() => {
+          panel?.classList.add('invisible', 'opacity-0');
+          panel?.classList.remove('visible', 'opacity-100');
+          chevron?.classList.remove('rotate-180');
+        }, 150);
+      }
+
+      dropdown.addEventListener('mouseenter', show);
+      dropdown.addEventListener('mouseleave', hide);
+
+      trigger?.addEventListener('focus', show);
+      trigger?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (panel?.classList.contains('invisible')) {
+          show();
+        } else {
+          hide();
         }
       });
-      panel?.classList.remove('invisible', 'opacity-0');
-      panel?.classList.add('visible', 'opacity-100');
-      chevron?.classList.add('rotate-180');
-    }
-
-    function hide() {
-      timeout = setTimeout(() => {
-        panel?.classList.add('invisible', 'opacity-0');
-        panel?.classList.remove('visible', 'opacity-100');
-        chevron?.classList.remove('rotate-180');
-      }, 150);
-    }
-
-    dropdown.addEventListener('mouseenter', show);
-    dropdown.addEventListener('mouseleave', hide);
-
-    trigger?.addEventListener('focus', show);
-    trigger?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (panel?.classList.contains('invisible')) {
-        show();
-      } else {
-        hide();
-      }
     });
-  });
+  }
+
+  initHeader();
+  document.addEventListener('astro:after-swap', initHeader);
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
