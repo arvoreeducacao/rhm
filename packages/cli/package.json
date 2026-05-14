@@ -27,6 +27,7 @@
     "lint:fix": "eslint src/ --fix"
   },
   "dependencies": {
+    "@arvoretech/hub-core": "workspace:*",
     "chalk": "^5.4.0",
     "commander": "^13.0.0",
     "execa": "^9.5.0",

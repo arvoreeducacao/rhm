@@ -1,0 +1,47 @@
+{
+  "name": "@arvoretech/hub-core",
+  "version": "0.22.0",
+  "description": "Core config loader, types, and prompt builders for hub workspaces",
+  "main": "dist/index.js",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./config": "./dist/config/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts src/config/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts src/config/index.ts --format esm --watch",
+    "test": "vitest --passWithNoTests",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "chalk": "^5.4.0",
+    "yaml": "^2.7.0"
+  },
+  "optionalDependencies": {
+    "tsx": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "author": "Arvore",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arvoreeducacao/rhm.git",
+    "directory": "packages/core"
+  },
+  "keywords": [
+    "hub",
+    "ai",
+    "multi-repo",
+    "config"
+  ]
+}
