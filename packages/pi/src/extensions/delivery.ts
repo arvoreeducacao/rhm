@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadHubConfig, type HubConfig } from "@arvoretech/hub-core";
 
@@ -8,7 +8,7 @@ function getReposWithChanges(config: HubConfig, hubDir: string): { name: string;
   for (const repo of config.repos) {
     const repoPath = resolve(hubDir, repo.path);
     try {
-      const status = execSync("git status --porcelain", { cwd: repoPath, encoding: "utf-8" });
+      const status = execFileSync("git", ["status", "--porcelain"], { cwd: repoPath, encoding: "utf-8" });
       if (status.trim()) {
         changed.push({ name: repo.name, path: repoPath });
       }
@@ -21,19 +21,20 @@ function getReposWithChanges(config: HubConfig, hubDir: string): { name: string;
 
 function createBranch(repoPath: string, branchName: string): void {
   try {
-    execSync(`git checkout -b ${branchName}`, { cwd: repoPath, encoding: "utf-8", stdio: "pipe" });
+    execFileSync("git", ["checkout", "-b", branchName], { cwd: repoPath, stdio: "pipe" });
   } catch {
-    execSync(`git checkout ${branchName}`, { cwd: repoPath, encoding: "utf-8", stdio: "pipe" });
+    execFileSync("git", ["checkout", branchName], { cwd: repoPath, stdio: "pipe" });
   }
 }
 
 function pushAndCreatePr(repoPath: string, branchName: string, title: string, body: string): string {
-  execSync(`git add -A`, { cwd: repoPath, stdio: "pipe" });
-  execSync(`git commit -m "${title}"`, { cwd: repoPath, stdio: "pipe" });
-  execSync(`git push -u origin ${branchName}`, { cwd: repoPath, stdio: "pipe" });
+  execFileSync("git", ["add", "-A"], { cwd: repoPath, stdio: "pipe" });
+  execFileSync("git", ["commit", "-m", title], { cwd: repoPath, stdio: "pipe" });
+  execFileSync("git", ["push", "-u", "origin", branchName], { cwd: repoPath, stdio: "pipe" });
 
-  const prUrl = execSync(
-    `gh pr create --title "${title}" --body "${body.replace(/"/g, '\\"')}" --head ${branchName}`,
+  const prUrl = execFileSync(
+    "gh",
+    ["pr", "create", "--title", title, "--body", body, "--head", branchName],
     { cwd: repoPath, encoding: "utf-8", stdio: "pipe" }
   ).trim();
 

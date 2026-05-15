@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadHubConfig, type HubConfig, type Repo } from "@arvoretech/hub-core";
@@ -23,7 +23,7 @@ function detectMissingTools(config: HubConfig): { name: string; version?: string
 
   for (const [name, version] of Object.entries(tools)) {
     try {
-      execSync(`which ${name}`, { stdio: "pipe" });
+      execFileSync("which", [name], { stdio: "pipe" });
     } catch {
       missing.push({ name, version });
     }
@@ -108,7 +108,7 @@ export function onboarding(pi: ExtensionAPI) {
             const dest = resolve(hubDir, repo.path);
             try {
               ctx.ui.notify(`Cloning ${repo.name}...`, "info");
-              execSync(`git clone ${repo.url} ${dest}`, { stdio: "pipe", timeout: 120_000 });
+              execFileSync("git", ["clone", repo.url, dest], { stdio: "pipe", timeout: 120_000 });
               ctx.ui.notify(`✓ ${repo.name} cloned`, "info");
             } catch (err) {
               const msg = err instanceof Error ? err.message : String(err);
@@ -132,7 +132,7 @@ export function onboarding(pi: ExtensionAPI) {
             const cmd = repo.commands!.install!;
             try {
               ctx.ui.notify(`Installing ${repo.name}...`, "info");
-              execSync(cmd, { cwd: repoPath, stdio: "pipe", timeout: 300_000 });
+              execFileSync("sh", ["-c", cmd], { cwd: repoPath, stdio: "pipe", timeout: 300_000 });
               ctx.ui.notify(`✓ ${repo.name} installed`, "info");
             } catch (err) {
               const msg = err instanceof Error ? err.message : String(err);
@@ -176,7 +176,7 @@ export function onboarding(pi: ExtensionAPI) {
 
       if (profile.aws_profile) {
         try {
-          execSync(`aws sts get-caller-identity --profile ${profile.aws_profile}`, { stdio: "pipe", timeout: 10_000 });
+          execFileSync("aws", ["sts", "get-caller-identity", "--profile", profile.aws_profile], { stdio: "pipe", timeout: 10_000 });
           ctx.ui.notify(`AWS profile "${profile.aws_profile}" active ✓`, "info");
         } catch {
           ctx.ui.notify(`AWS profile "${profile.aws_profile}" failed — check credentials`, "warning");

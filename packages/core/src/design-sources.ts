@@ -51,7 +51,7 @@ function buildSkillContent(source: FetchedSource): string {
     "---",
     `name: ${source.name}`,
     `description: "${source.instructions || `Design source: ${source.name}`}"`,
-    `triggers: [${triggers.join(", ")}]`,
+    `triggers: ${JSON.stringify(triggers)}`,
     "---",
     "",
   ];

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
 import type { HubConfig } from "./types.js";
@@ -8,7 +8,9 @@ import type { HubConfig } from "./types.js";
 export function resolveConfigPath(dir: string): { path: string; format: "yaml" | "typescript" } {
   const tsPath = join(dir, "hub.config.ts");
   if (existsSync(tsPath)) return { path: tsPath, format: "typescript" };
-  return { path: join(dir, "hub.yaml"), format: "yaml" };
+  const yamlPath = join(dir, "hub.yaml");
+  if (existsSync(yamlPath)) return { path: yamlPath, format: "yaml" };
+  throw new Error(`No hub config found in ${dir}. Expected hub.config.ts or hub.yaml`);
 }
 
 async function loadTypeScriptConfig(configPath: string): Promise<HubConfig> {
@@ -19,10 +21,12 @@ async function loadTypeScriptConfig(configPath: string): Promise<HubConfig> {
     return (mod.default ?? mod) as HubConfig;
   } catch {
     const { execFileSync } = await import("node:child_process");
-    const json = execFileSync("npx", ["tsx", "-e", `import c from '${configPath}'; console.log(JSON.stringify(c))`], {
+    const evalScript = `import c from ${JSON.stringify(fileUrl)}; console.log(JSON.stringify(c.default ?? c));`;
+    const json = execFileSync("npx", ["tsx", "-e", evalScript], {
       encoding: "utf-8",
-      cwd: configPath.replace(/\/hub\.config\.ts$/, ""),
-      stdio: ["pipe", "pipe", "pipe"],
+      cwd: dirname(configPath),
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 15_000,
     });
     return JSON.parse(json) as HubConfig;
   }
