@@ -51,7 +51,7 @@ export function mcpWiring(pi: ExtensionAPI) {
       try {
         const existing = await readFile(mcpJsonPath, "utf-8");
         existingHash = createHash("sha256").update(existing).digest("hex");
-      } catch {}
+      } catch { /* skip */ }
     }
 
     if (newHash !== existingHash) {

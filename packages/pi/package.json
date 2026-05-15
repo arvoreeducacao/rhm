@@ -22,9 +22,12 @@
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "*",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.0.0",
+    "eslint": "^10.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.56.0",
     "vitest": "^3.0.0"
   },
   "author": "Arvore",

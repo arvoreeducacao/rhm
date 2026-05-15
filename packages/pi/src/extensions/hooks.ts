@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { loadHubConfig, HOOK_EVENT_MAP, type HookEntry, type HubConfig } from "@arvoretech/hub-core";
+import { loadHubConfig, type HookEntry, type HubConfig } from "@arvoretech/hub-core";
 
 type PiEvent = "tool_call" | "tool_result" | "agent_end" | "turn_end";
 
@@ -45,13 +45,13 @@ export function hooks(pi: ExtensionAPI) {
 function registerHookHandlers(
   pi: ExtensionAPI,
   piEvent: PiEvent,
-  hubEvent: string,
+  _hubEvent: string,
   entries: HookEntry[]
 ) {
-  pi.on(piEvent as any, async (event: any, ctx: any) => {
+  pi.on(piEvent as "tool_call", async (event: Record<string, unknown>) => {
     const vars: Record<string, string> = {
-      TOOL_NAME: event?.toolName || event?.name || "",
-      FILE_PATH: event?.filePath || event?.path || "",
+      TOOL_NAME: (event?.toolName as string) || (event?.name as string) || "",
+      FILE_PATH: (event?.filePath as string) || (event?.path as string) || "",
       REPO_NAME: "",
       STEP_NAME: "",
       TASK_ID: "",
