@@ -1,4 +1,4 @@
-export { defineConfig, repo, mcp, service } from "@arvoretech/hub-core/config";
+export { defineConfig, repo, mcp, service } from "./define-config.js";
 export type {
   HubConfig,
   Repo,
@@ -10,4 +10,4 @@ export type {
   MemoryConfig,
   EnvProfile,
   DesignConfig,
-} from "@arvoretech/hub-core/config";
+} from "../types.js";

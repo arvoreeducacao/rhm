@@ -1,0 +1,40 @@
+{
+  "name": "@arvoretech/hub-pi",
+  "version": "1.0.0",
+  "description": "Pi runtime package for hub.yaml workspaces — interprets config at runtime with no static generation",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./src/extensions"]
+  },
+  "scripts": {
+    "build": "tsup src/extensions/index.ts --format esm --dts --external typebox --external @earendil-works/pi-coding-agent",
+    "dev": "tsup src/extensions/index.ts --format esm --watch",
+    "test": "vitest --passWithNoTests",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@arvoretech/hub-core": "workspace:*",
+    "yaml": "^2.7.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.0.0",
+    "eslint": "^10.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.56.0",
+    "vitest": "^3.0.0"
+  },
+  "author": "Arvore",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arvoreeducacao/rhm.git",
+    "directory": "packages/pi"
+  }
+}
