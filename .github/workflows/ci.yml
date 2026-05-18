@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, develop]
   pull_request:
@@ -38,7 +39,7 @@ jobs:
   publish:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
       id-token: write
@@ -65,8 +66,15 @@ jobs:
       - name: Publish packages
         run: |
           for pkg in packages/*/; do
-            echo "Publishing $pkg..."
-            cd "$pkg"
-            pnpm publish --access public --no-git-checks --provenance || echo "Skipped $pkg (already published or error)"
-            cd ../..
+            PKG_NAME=$(node -p "require('./$pkg/package.json').name")
+            PKG_VERSION=$(node -p "require('./$pkg/package.json').version")
+            if npm view "$PKG_NAME@$PKG_VERSION" version 2>/dev/null; then
+              echo "$PKG_NAME@$PKG_VERSION already published, skipping."
+            else
+              echo "Publishing $PKG_NAME@$PKG_VERSION..."
+              cd "$pkg"
+              TARBALL=$(pnpm pack --pack-destination /tmp | tail -1)
+              npm publish "$TARBALL" --access public --provenance
+              cd ../..
+            fi
           done
