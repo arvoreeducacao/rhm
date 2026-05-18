@@ -7,6 +7,7 @@ import { workflowEngine } from "./workflow-engine.js";
 import { delivery } from "./delivery.js";
 import { hooks } from "./hooks.js";
 import { onboarding } from "./onboarding.js";
+import { header } from "./header.js";
 
 export default function hubPiPackage(pi: ExtensionAPI) {
   hubRuntime(pi);
@@ -17,4 +18,5 @@ export default function hubPiPackage(pi: ExtensionAPI) {
   delivery(pi);
   hooks(pi);
   onboarding(pi);
+  header(pi);
 }
