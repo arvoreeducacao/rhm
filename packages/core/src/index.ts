@@ -31,6 +31,7 @@ export {
   buildCursorMcpEntry,
   buildClaudeCodeMcpEntry,
   buildKiroMcpEntry,
+  buildPiMcpEntry,
   buildOpenCodeMcpEntry,
   readExistingMcpDisabledState,
   applyDisabledState,
