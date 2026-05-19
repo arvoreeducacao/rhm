@@ -6,7 +6,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   loadHubConfig,
   getUpstreamNames,
-  buildKiroMcpEntry,
+  buildPiMcpEntry,
   buildProxyMcpEntry,
   readExistingMcpDisabledState,
   applyDisabledState,
@@ -28,14 +28,14 @@ export function mcpWiring(pi: ExtensionAPI) {
 
     const mcpConfig: Record<string, Record<string, unknown>> = {};
     const upstreamSet = getUpstreamNames(config.mcps);
-    const buildEntry = (mcp: MCPConfig) => buildKiroMcpEntry(mcp, "editor");
+    const buildEntry = (mcp: MCPConfig) => buildPiMcpEntry(mcp);
 
     for (const mcp of config.mcps) {
       if (upstreamSet.has(mcp.name)) continue;
       if (mcp.upstreams?.length) {
         mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildEntry);
       } else {
-        mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, "editor");
+        mcpConfig[mcp.name] = buildPiMcpEntry(mcp);
       }
     }
 

@@ -252,6 +252,35 @@ export function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Re
   };
 }
 
+export function buildPiMcpEntry(mcp: MCPConfig): Record<string, unknown> {
+  const env = mcp.env ? stripEnvPrefix(mcp.env) : undefined;
+  const extra: Record<string, unknown> = {};
+  if (mcp.auth) extra.auth = mcp.auth;
+  if (mcp.lifecycle) extra.lifecycle = mcp.lifecycle;
+  if (mcp.idleTimeout !== undefined) extra.idleTimeout = mcp.idleTimeout;
+  if (mcp.directTools !== undefined) extra.directTools = mcp.directTools;
+  if (mcp.excludeTools?.length) extra.excludeTools = mcp.excludeTools;
+  if (mcp.url) {
+    return { url: mcp.url, ...(env && { env }), ...extra };
+  }
+  if (mcp.image) {
+    const args = ["run", "-i", "--rm"];
+    if (env) {
+      for (const [key, value] of Object.entries(env)) {
+        args.push("-e", `${key}=${value}`);
+      }
+    }
+    args.push(mcp.image);
+    return { command: "docker", args, ...extra };
+  }
+  return {
+    command: "npx",
+    args: ["-y", mcp.package!],
+    ...(env && { env }),
+    ...extra,
+  };
+}
+
 export function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   const env = mcp.env ? stripDollarPrefix(mcp.env) : undefined;
   if (mcp.url) {

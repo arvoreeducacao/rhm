@@ -38,6 +38,7 @@ export interface MCPConfig {
   env?: Record<string, string>;
   upstreams?: string[];
   autoApprove?: boolean | string[];
+  auth?: "bearer" | "oauth";
   lifecycle?: "lazy" | "eager" | "keep-alive";
   idleTimeout?: number;
   directTools?: boolean | string[];
