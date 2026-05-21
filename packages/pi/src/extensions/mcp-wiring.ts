@@ -5,12 +5,9 @@ import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   loadHubConfig,
-  getUpstreamNames,
   buildPiMcpEntry,
-  buildProxyMcpEntry,
   readExistingMcpDisabledState,
   applyDisabledState,
-  type MCPConfig,
 } from "@arvoretech/hub-core";
 
 export function mcpWiring(pi: ExtensionAPI) {
@@ -27,16 +24,10 @@ export function mcpWiring(pi: ExtensionAPI) {
     if (!config.mcps?.length) return;
 
     const mcpConfig: Record<string, Record<string, unknown>> = {};
-    const upstreamSet = getUpstreamNames(config.mcps);
-    const buildEntry = (mcp: MCPConfig) => buildPiMcpEntry(mcp);
 
     for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      if (mcp.upstreams?.length) {
-        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildEntry);
-      } else {
-        mcpConfig[mcp.name] = buildPiMcpEntry(mcp);
-      }
+      if (mcp.upstreams?.length) continue;
+      mcpConfig[mcp.name] = buildPiMcpEntry(mcp);
     }
 
     const mcpJsonPath = join(hubDir, ".pi", "mcp.json");
