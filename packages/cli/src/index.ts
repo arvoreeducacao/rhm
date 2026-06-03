@@ -24,6 +24,7 @@ import { cloneCommand } from "./commands/clone.js";
 import { consolidateCommand } from "./commands/consolidate.js";
 import { personaCommand } from "./commands/persona.js";
 import { sandboxCommand } from "./commands/sandbox.js";
+import { mcpCommand } from "./commands/mcp.js";
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -68,5 +69,6 @@ program.addCommand(cloneCommand);
 program.addCommand(consolidateCommand);
 program.addCommand(personaCommand);
 program.addCommand(sandboxCommand);
+program.addCommand(mcpCommand);
 
 program.parse();

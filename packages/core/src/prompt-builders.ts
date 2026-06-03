@@ -131,7 +131,7 @@ export function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): 
     const entry: ProxyUpstreamEntry = {
       name: mcp.name,
       command: "npx",
-      args: ["-y", mcp.package!],
+      args: ["-y", mcp.package!, ...(mcp.args || [])],
     };
 
     if (mcp.env) {
@@ -193,7 +193,7 @@ export function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   }
   return {
     command: "npx",
-    args: ["-y", mcp.package!],
+    args: ["-y", mcp.package!, ...(mcp.args || [])],
     ...(mcp.env && { env: mcp.env }),
     ...(autoApprove && { autoApprove }),
   };
@@ -215,7 +215,7 @@ export function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown>
   }
   return {
     command: "npx",
-    args: ["-y", mcp.package!],
+    args: ["-y", mcp.package!, ...(mcp.args || [])],
     ...(mcp.env && { env: mcp.env }),
   };
 }
@@ -245,7 +245,7 @@ export function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Re
   }
   return {
     command: "npx",
-    args: ["-y", mcp.package!],
+    args: ["-y", mcp.package!, ...(mcp.args || [])],
     ...(env && { env }),
     ...(autoApprove && { autoApprove }),
     ...extra,
@@ -275,7 +275,7 @@ export function buildPiMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   }
   return {
     command: "npx",
-    args: ["-y", mcp.package!],
+    args: ["-y", mcp.package!, ...(mcp.args || [])],
     ...(env && { env }),
     ...extra,
   };
@@ -298,7 +298,7 @@ export function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   }
   return {
     type: "local",
-    command: ["npx", "-y", mcp.package!],
+    command: ["npx", "-y", mcp.package!, ...(mcp.args || [])],
     ...(env && { environment: env }),
   };
 }
