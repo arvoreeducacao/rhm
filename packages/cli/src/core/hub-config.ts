@@ -22,6 +22,8 @@ export interface Repo {
   };
   skills?: string[];
   tools?: Record<string, string>;
+  optional?: boolean;
+  group?: string;
 }
 
 export interface Service {

@@ -193,6 +193,14 @@
           "type": "object",
           "additionalProperties": { "type": "string" },
           "description": "Repo-specific tool overrides"
+        },
+        "optional": {
+          "type": "boolean",
+          "description": "When true, the repo is not cloned automatically during setup/clone. The user is prompted to opt in (or it is skipped in non-interactive runs). Useful for heavy or audience-specific repos like design assets. The repo is still added to .gitignore so it stays ignored when cloned."
+        },
+        "group": {
+          "type": "string",
+          "description": "Logical group label for optional repos. Optional repos sharing a group are prompted together (e.g. 'design')."
         }
       }
     },

@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { loadHubConfig } from "../core/hub-config.js";
+import {
+  partitionOptional,
+  resolveOptionalRepos,
+} from "../core/optional-repos.js";
 
 function run(cmd: string, cwd?: string) {
   execSync(cmd, { stdio: "inherit", cwd });
@@ -35,7 +39,9 @@ export const cloneCommand = new Command("clone")
   .description("Clone all repositories without running full setup")
   .option("--ssh", "Force SSH clone (default if SSH is available)")
   .option("--https", "Force HTTPS clone via gh CLI")
-  .action(async (opts: { ssh?: boolean; https?: boolean }) => {
+  .option("--with-optional", "Clone optional repos without prompting")
+  .option("--skip-optional", "Skip optional repos without prompting")
+  .action(async (opts: { ssh?: boolean; https?: boolean; withOptional?: boolean; skipOptional?: boolean }) => {
     const hubDir = process.cwd();
     const config = await loadHubConfig(hubDir);
 
@@ -43,10 +49,16 @@ export const cloneCommand = new Command("clone")
 
     console.log(chalk.blue("\n━━━ Cloning repositories ━━━\n"));
 
+    const { required, optional } = partitionOptional(config.repos);
+    const optionalToClone = await resolveOptionalRepos(optional, hubDir, {
+      withOptional: opts.withOptional,
+      skipOptional: opts.skipOptional,
+    });
+
     let cloned = 0;
     let skipped = 0;
 
-    for (const repo of config.repos) {
+    for (const repo of [...required, ...optionalToClone]) {
       const fullPath = join(hubDir, repo.path);
       console.log(chalk.yellow(`▸ ${repo.name}`));
 

@@ -7,6 +7,10 @@ import chalk from "chalk";
 import { loadHubConfig } from "../core/hub-config.js";
 import { generateDockerCompose } from "../core/docker-compose.js";
 import { checkAndAutoRegenerate } from "../core/hub-cache.js";
+import {
+  partitionOptional,
+  resolveOptionalRepos,
+} from "../core/optional-repos.js";
 
 function run(cmd: string, cwd?: string) {
   execSync(cmd, { stdio: "inherit", cwd });
@@ -64,7 +68,9 @@ export const setupCommand = new Command("setup")
   .option("--skip-services", "Skip Docker services")
   .option("--skip-install", "Skip dependency installation")
   .option("--skip-tools", "Skip tool installation via mise")
-  .action(async (opts: { skipServices?: boolean; skipInstall?: boolean; skipTools?: boolean }) => {
+  .option("--with-optional", "Clone optional repos without prompting")
+  .option("--skip-optional", "Skip optional repos without prompting")
+  .action(async (opts: { skipServices?: boolean; skipInstall?: boolean; skipTools?: boolean; withOptional?: boolean; skipOptional?: boolean }) => {
     const hubDir = process.cwd();
     const config = await loadHubConfig(hubDir);
 
@@ -75,7 +81,13 @@ export const setupCommand = new Command("setup")
 
     console.log(chalk.blue(`\n━━━ Step ${step}/${totalSteps}: Cloning repositories ━━━\n`));
 
-    for (const repo of config.repos) {
+    const { required, optional } = partitionOptional(config.repos);
+    const optionalToClone = await resolveOptionalRepos(optional, hubDir, {
+      withOptional: opts.withOptional,
+      skipOptional: opts.skipOptional,
+    });
+
+    for (const repo of [...required, ...optionalToClone]) {
       const fullPath = join(hubDir, repo.path);
       console.log(chalk.yellow(`▸ ${repo.name}`));
 
