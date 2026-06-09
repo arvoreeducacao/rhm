@@ -60,6 +60,7 @@ export {
   buildKiroPipelineSection,
   buildOpenCodePipelineSection,
   buildKiroOrchestratorRule,
+  buildOrchestratorPrompt,
   buildOrchestratorRule,
   buildOpenCodeOrchestratorRule,
   buildSkillsSection,

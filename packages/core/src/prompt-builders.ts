@@ -1235,11 +1235,16 @@ If any validation agent leaves comments requiring fixes, call the relevant codin
   return parts.join("\n");
 }
 
-export function buildKiroOrchestratorRule(config: HubConfig): string {
+export function buildOrchestratorPrompt(
+  config: HubConfig,
+  options: { agentsDir?: string; assistantName?: string } = {},
+): string {
   const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
   const steps = config.workflow?.pipeline || [];
   const prompt = config.workflow?.prompt;
   const enforce = config.workflow?.enforce_workflow ?? false;
+  const agentsDir = options.agentsDir || "./agents";
+  const assistantName = options.assistantName || "the agent";
 
   const sections: string[] = [];
 
@@ -1247,9 +1252,9 @@ export function buildKiroOrchestratorRule(config: HubConfig): string {
 
 ## Your Main Responsibility
 
-You are the development orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end by following a structured pipeline. You delegate specialized work to subagents defined in \`.kiro/agents/\`.
+You are the development orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end by following a structured pipeline. You delegate specialized work to subagents defined in \`${agentsDir}\`.
 
-> **Note:** This workspace has custom subagents in \`.kiro/agents/\`. Each pipeline step delegates to the appropriate subagent. Use \`/agent-name\` or instruct Kiro to "use the X subagent" to invoke them.`);
+> **Note:** This workspace has custom subagents in \`${agentsDir}\`. Each pipeline step delegates to the appropriate subagent. Use \`/agent-name\` or instruct ${assistantName} to "use the X subagent" to invoke them.`);
 
   if (enforce) {
     sections.push(`
@@ -1375,6 +1380,13 @@ For bug reports or unexpected behavior, follow the debugging process from the \`
   }
 
   return sections.join("\n");
+}
+
+export function buildKiroOrchestratorRule(config: HubConfig): string {
+  return buildOrchestratorPrompt(config, {
+    agentsDir: ".kiro/agents/",
+    assistantName: "Kiro",
+  });
 }
 
 export function buildOrchestratorRule(config: HubConfig): string {
