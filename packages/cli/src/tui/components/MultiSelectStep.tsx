@@ -69,7 +69,14 @@ export function MultiSelectStep({ step, subtitle, items, onSubmit, loading, sour
   }, [cursor, maxVisible, scrollOffset])
 
   useInput((input, key) => {
-    if (loading || items.length === 0) return
+    if (loading) return
+
+    if (key.return) {
+      onSubmit([...selected])
+      return
+    }
+
+    if (items.length === 0) return
 
     if (searchMode) {
       if (key.escape || (key.return && searchQuery === '')) {
