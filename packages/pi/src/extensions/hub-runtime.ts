@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -10,37 +10,13 @@ import {
   type HubConfig,
 } from "@arvoretech/hub-core";
 
-let cachedConfig: HubConfig | null = null;
-let configMtime: number = 0;
-
-async function getConfig(cwd: string): Promise<HubConfig> {
-  const tsPath = join(cwd, "hub.config.ts");
-  const yamlPath = join(cwd, "hub.yaml");
-  const configPath = existsSync(tsPath) ? tsPath : yamlPath;
-
-  if (!existsSync(configPath)) {
-    throw new Error("No hub.config.ts or hub.yaml found");
-  }
-
-  const stat = statSync(configPath);
-  const mtime = stat.mtimeMs;
-
-  if (cachedConfig && mtime === configMtime) {
-    return cachedConfig;
-  }
-
-  cachedConfig = await loadHubConfig(cwd);
-  configMtime = mtime;
-  return cachedConfig;
-}
-
 export function hubRuntime(pi: ExtensionAPI) {
   let hubDir: string = "";
 
   pi.on("session_start", async (_event, ctx) => {
     hubDir = ctx.cwd;
     try {
-      const config = await getConfig(hubDir);
+      const config = await loadHubConfig(hubDir);
       ctx.ui.setStatus(`hub: ${config.name} (${config.repos.length} repos)`);
     } catch {
       // no hub config found, extension is a no-op
@@ -77,7 +53,7 @@ export function hubRuntime(pi: ExtensionAPI) {
 
     let config: HubConfig;
     try {
-      config = await getConfig(hubDir);
+      config = await loadHubConfig(hubDir);
     } catch {
       return;
     }
