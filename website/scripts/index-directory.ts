@@ -498,6 +498,12 @@ async function main() {
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
   const outPath = join(dataDir, "directory.json");
+
+  if (deduped.length === 0 && existsSync(outPath)) {
+    console.log("\nNo items indexed (possible rate limit). Keeping existing directory.json.");
+    return;
+  }
+
   writeFileSync(outPath, JSON.stringify(deduped, null, 2), "utf-8");
 
   console.log(`\nDone! ${deduped.length} items written to src/data/directory.json`);

@@ -52,16 +52,19 @@ export function App({ defaultName, createWorkspace }: Props) {
       try {
         const res = await fetch(DIRECTORY_URL)
         const items = await res.json() as Array<{ name: string; description: string; type: string; source: string; repo: string }>
-        setRegistryAgents(
-          items
-            .filter((i) => i.type === 'agent')
-            .map((i) => ({ name: i.name, description: i.description, tags: i.source !== 'registry' ? [i.repo] : undefined })),
-        )
-        setRegistrySkills(
-          items
-            .filter((i) => i.type === 'skill')
-            .map((i) => ({ name: i.name, description: i.description, tags: i.source !== 'registry' ? [i.repo] : undefined })),
-        )
+        const agents = items
+          .filter((i) => i.type === 'agent')
+          .map((i) => ({ name: i.name, description: i.description, tags: i.source !== 'registry' ? [i.repo] : undefined }))
+        const skills = items
+          .filter((i) => i.type === 'skill')
+          .map((i) => ({ name: i.name, description: i.description, tags: i.source !== 'registry' ? [i.repo] : undefined }))
+
+        if (agents.length === 0 && skills.length === 0) {
+          throw new Error('empty directory')
+        }
+
+        setRegistryAgents(agents)
+        setRegistrySkills(skills)
         setRegistrySource('from hub.arvore.com.br')
       } catch {
         setRegistryAgents([
