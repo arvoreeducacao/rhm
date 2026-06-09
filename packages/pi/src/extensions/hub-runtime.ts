@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   loadHubConfig,
-  buildKiroOrchestratorRule,
+  buildOrchestratorPrompt,
   buildSkillsSection,
   stripFrontMatter,
   type HubConfig,
@@ -58,7 +58,10 @@ export function hubRuntime(pi: ExtensionAPI) {
       return;
     }
 
-    const orchestratorRule = buildKiroOrchestratorRule(config);
+    const orchestratorRule = buildOrchestratorPrompt(config, {
+      agentsDir: "./agents",
+      assistantName: "the agent",
+    });
     const skillsSection = await buildSkillsSection(hubDir, config);
 
     const sections: string[] = [orchestratorRule];
