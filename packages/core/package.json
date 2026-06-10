@@ -1,6 +1,6 @@
 {
   "name": "@arvoretech/hub-core",
-  "version": "0.23.2",
+  "version": "0.24.0",
   "description": "Core config loader, types, and prompt builders for hub workspaces",
   "main": "dist/index.js",
   "type": "module",

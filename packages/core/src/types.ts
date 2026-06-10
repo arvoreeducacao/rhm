@@ -33,6 +33,7 @@ export interface MCPConfig {
   description?: string;
   instructions?: string;
   package?: string;
+  command?: string;
   args?: string[];
   url?: string;
   image?: string;

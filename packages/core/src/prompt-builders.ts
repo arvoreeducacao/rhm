@@ -273,6 +273,14 @@ export function buildPiMcpEntry(mcp: MCPConfig): Record<string, unknown> {
     args.push(mcp.image);
     return { command: "docker", args, ...extra };
   }
+  if (mcp.command) {
+    return {
+      command: mcp.command,
+      ...(mcp.args?.length && { args: mcp.args }),
+      ...(env && { env }),
+      ...extra,
+    };
+  }
   return {
     command: "npx",
     args: ["-y", mcp.package!, ...(mcp.args || [])],
