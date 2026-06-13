@@ -67,18 +67,6 @@ export interface IntegrationConfig {
   };
 }
 
-export interface WorkflowStep {
-  step: string;
-  agent?: string;
-  agents?: (string | { agent: string; when?: string; output?: string })[];
-  parallel?: boolean;
-  output?: string;
-  tools?: string[];
-  when?: string;
-  actions?: string[];
-  mode?: "plan" | "agent";
-}
-
 export interface SecretRef {
   secret: string;
   profile?: string;
@@ -157,6 +145,15 @@ export interface DesignConfig {
   enforce?: boolean;
 }
 
+export interface PiConfig {
+  headerBanner?: boolean;
+  onboarding?: boolean;
+  autoMcpWiring?: boolean;
+  injectCapabilities?: boolean;
+  hooks?: boolean;
+  persona?: boolean;
+}
+
 export interface HubConfig {
   name: string;
   description?: string;
@@ -177,11 +174,11 @@ export interface HubConfig {
   memory?: MemoryConfig;
   remote_sources?: RemoteSource[];
   design?: DesignConfig;
+  pi?: PiConfig;
+  skills?: string[];
   workflow?: {
     task_folder?: string;
-    pipeline?: WorkflowStep[];
     prompt?: PromptCustomization;
-    enforce_workflow?: boolean;
     fact_checker?: boolean;
   };
 }

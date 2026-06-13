@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import type { HubConfig, HookEntry, MCPConfig, WorkflowStep, PersonaData } from "./types.js";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import type { HubConfig, HookEntry, MCPConfig, PersonaData } from "./types.js";
 import type { KiroMode } from "./cache.js";
 
 export const HOOK_EVENT_MAP: Record<string, { cursor?: string; claude?: string; kiro?: string; opencode?: string }> = {
@@ -30,8 +30,6 @@ export const HOOK_EVENT_MAP: Record<string, { cursor?: string; claude?: string; 
   task_completed:           { cursor: undefined,                 claude: "TaskCompleted",       kiro: undefined,        opencode: "session.idle" },
   teammate_idle:            { cursor: undefined,                 claude: "TeammateIdle",        kiro: undefined,        opencode: undefined },
 };
-
-export const SANDBOX_AGENT_TARGETS = new Set(["qa-frontend", "qa-backend", "coding-frontend", "coding-backend"]);
 
 export function stripFrontMatter(content: string): string {
   const match = content.match(/^---\n[\s\S]*?\n---\n*/);
@@ -85,31 +83,6 @@ export function stripDollarPrefix(env: Record<string, string>): Record<string, s
     result[key] = value.replace(/\$\{env:(\w+)\}/g, "{env:$1}").replace(/\$\{(\w+)\}/g, "{env:$1}");
   }
   return result;
-}
-
-export function getSandboxMcp(config: HubConfig): { port: number } | null {
-  const sandboxMcp = config.mcps?.find((m) => m.name === "sandbox" && m.url);
-  if (!sandboxMcp?.url) return null;
-  const match = sandboxMcp.url.match(/:(\d+)/);
-  return match ? { port: parseInt(match[1], 10) } : { port: 8080 };
-}
-
-export function injectSandboxContext(agentName: string, content: string, sandboxPort: number): string {
-  if (!SANDBOX_AGENT_TARGETS.has(agentName)) return content;
-  const section = `
-## Sandbox Environment
-
-A sandboxed execution environment is available via the \`sandbox\` MCP (http://localhost:${sandboxPort}/mcp).
-
-Use it to:
-- Run shell commands: \`shell.exec\`
-- Read/write files: \`file.read\`, \`file.write\`
-- Control a real browser: \`browser.navigate\`, \`browser.screenshot\`, \`browser.click\`
-- Execute code: \`jupyter.execute\`
-
-The sandbox workspace is mounted at \`/home/gem/workspace\`. Prefer running builds, tests, and browser interactions inside the sandbox rather than on the host machine.
-`;
-  return content.trimEnd() + "\n" + section;
 }
 
 interface ProxyUpstreamEntry {
@@ -581,66 +554,6 @@ Before creating or modifying ANY UI component, page, or visual element:
   return parts.join("\n");
 }
 
-export function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
-  if (!mcps || mcps.length === 0) return "";
-
-  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
-  const upstreamNames = getUpstreamNames(mcps);
-  const directMcps = mcps.filter((m) => !m.upstreams && !upstreamNames.has(m.name));
-  const mcpByName = new Map(mcps.map((m) => [m.name, m]));
-
-  if (!proxyMcp && directMcps.length === 0) return "";
-
-  const lines: string[] = [];
-  lines.push(`
-## MCP Tools (Model Context Protocol)
-
-This workspace has multiple MCP servers available.`);
-
-  if (proxyMcp) {
-    lines.push(`
-Some MCPs are aggregated behind a proxy (\`${proxyMcp.name}\`). Their tools are NOT directly visible — you must use \`mcp_search\` to discover available tools and \`mcp_call\` to execute them.
-
-**How to use proxied tools:**
-1. \`mcp_search({ query: "your search term" })\` — find tools by name or description
-2. \`mcp_call({ ref: "tool-ref-from-search", args: { ... } })\` — execute the tool
-
-**MCPs available via proxy:**`);
-    for (const name of proxyMcp.upstreams!) {
-      const mcp = mcpByName.get(name);
-      const desc = mcp?.description ? ` — ${mcp.description}` : "";
-      lines.push(`- \`${name}\`${desc}`);
-    }
-  }
-
-  if (directMcps.length > 0) {
-    lines.push(`
-**MCPs available directly:**`);
-    for (const mcp of directMcps) {
-      const desc = mcp.description ? ` — ${mcp.description}` : "";
-      lines.push(`- \`${mcp.name}\`${desc}`);
-    }
-  }
-
-  if (proxyMcp) {
-    lines.push(`
-> When you need a capability and are unsure which tool to use, always try \`mcp_search\` first with relevant keywords. The proxy aggregates tools from all upstream MCPs.`);
-  }
-
-  const mcpsWithInstructions = mcps.filter((m) => m.instructions);
-  if (mcpsWithInstructions.length > 0) {
-    lines.push(`
-### MCP Instructions`);
-    for (const mcp of mcpsWithInstructions) {
-      lines.push(`
-#### ${mcp.name}
-${mcp.instructions!.trim()}`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
 export function buildMemorySection(config: HubConfig): string {
   const enforce = config.memory?.enforce ?? false;
 
@@ -829,54 +742,6 @@ export function buildDeliverySection(config: HubConfig): string {
   return parts.join("\n");
 }
 
-export function formatAction(action: string): string {
-  const map: Record<string, string> = {
-    "create-pr": "Create pull requests for each repository with changes",
-    "notify-slack": "Send notification to the configured Slack channel",
-    "notify-slack-prs": "Send PR notification to the Slack PRs channel",
-    "update-linear": "Update the Linear task status",
-    "update-linear-status": "Update the Linear task status to Review",
-    "update-jira": "Update the Jira task status",
-  };
-  return map[action] || action;
-}
-
-export function buildDocumentStructure(steps: WorkflowStep[], taskFolder: string): string {
-  const outputs: string[] = [];
-
-  for (const step of steps) {
-    if (step.output) {
-      outputs.push(step.output);
-    }
-    if (Array.isArray(step.agents)) {
-      for (const a of step.agents) {
-        if (typeof a === "object" && a.output) {
-          outputs.push(a.output);
-        }
-      }
-    }
-  }
-
-  if (outputs.length === 0) {
-    outputs.push("refinement.md", "code-backend.md", "code-frontend.md", "code-review.md", "qa-backend.md", "qa-frontend.md");
-  }
-
-  const tree = outputs.map((o) => `├── ${o}`);
-  if (tree.length > 0) {
-    tree[tree.length - 1] = tree[tree.length - 1].replace("├──", "└──");
-  }
-
-  return `
-## Document Structure
-
-All task documents are stored in \`${taskFolder}\`:
-
-\`\`\`
-${taskFolder}
-${tree.join("\n")}
-\`\`\``;
-}
-
 export function buildAgentTeamsSection(mcps: MCPConfig[] | undefined): string {
   if (!hasAgentTeamsLeadMcp(mcps)) return "";
 
@@ -987,299 +852,31 @@ This workspace has a persistent kanban board via the \`kanban\` MCP. Use it to o
 - Check the board at the start of every session — don't start from zero`;
 }
 
-export function buildPipelineSection(steps: WorkflowStep[]): string {
-  if (steps.length === 0) {
-    return `
-## Development Pipeline
-
-1. Use the \`refinement\` agent to collect requirements
-2. Use \`coding-backend\` and/or \`coding-frontend\` agents to implement
-3. Use \`code-reviewer\` to review the implementation
-4. Use \`qa-backend\` and/or \`qa-frontend\` to test
-5. Create PRs and notify the team`;
-  }
-
-  const parts: string[] = [`
-## Development Pipeline
-`];
-
-  for (const step of steps) {
-    if (step.actions) {
-      parts.push(`### Delivery`);
-      parts.push(`After all validations pass, execute these actions:`);
-      for (const action of step.actions) {
-        parts.push(`- ${formatAction(action)}`);
-      }
-      continue;
-    }
-
-    const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
-    parts.push(`### ${stepTitle}`);
-
-    if (step.mode === "plan") {
-      parts.push(`**Before starting this step, switch to Plan Mode** by calling \`SwitchMode\` with \`target_mode_id: "plan"\`. This ensures collaborative planning with the user in a read-only context before any implementation begins.`);
-      parts.push(``);
-    }
-
-    if (step.agent) {
-      parts.push(`Call the \`${step.agent}\` agent.${step.output ? ` It writes to \`${step.output}\`.` : ""}`);
-
-      if (step.step === "refinement") {
-        parts.push(`
-After it runs, read the document and validate with the user:
-- If there are unanswered questions, ask the user one at a time
-- If the user requests adjustments, send back to the refinement agent
-- Do not proceed until the document is complete and approved by the user`);
-      }
-    }
-
-    if (Array.isArray(step.agents)) {
-      const agentList = step.agents.map((a) => {
-        if (typeof a === "string") return { agent: a };
-        return a;
-      });
-
-      if (step.parallel) {
-        parts.push(`Call these agents${step.parallel ? " in parallel" : ""}:`);
-      } else {
-        parts.push(`Call these agents in sequence:`);
-      }
-
-      for (const a of agentList) {
-        let line = `- \`${a.agent}\``;
-        if (a.output) line += ` → writes to \`${a.output}\``;
-        if (a.when) line += ` (when: ${a.when})`;
-        parts.push(line);
-      }
-
-      if (step.step === "coding" || step.step === "code" || step.step === "implementation") {
-        parts.push(`
-If any coding agent has doubts, they will write questions in their document. Apply the same Q&A logic as refinement — validate with the user before proceeding.`);
-      }
-
-      if (step.step === "validation" || step.step === "review" || step.step === "qa") {
-        parts.push(`
-If any validation agent leaves comments requiring fixes, call the relevant coding agents again to address them.`);
-      }
-    }
-
-    if (step.mode === "plan") {
-      parts.push(`
-**After this step is complete and approved**, switch back to Agent Mode to proceed with the next step.`);
-    }
-
-    parts.push("");
-  }
-
-  return parts.join("\n");
+interface CapabilitiesPromptOptions {
+  format?: "plain" | "cursor-rule";
 }
 
-export function buildKiroPipelineSection(steps: WorkflowStep[]): string {
-  if (steps.length === 0) {
-    return `
-## Development Pipeline
-
-Follow each step sequentially, delegating to the appropriate subagent:
-
-1. **Refinement** — Use the \`refinement\` subagent to collect requirements. Write output to the task document.
-2. **Coding** — Use the \`coding-backend\` and \`coding-frontend\` subagents to implement the feature.
-3. **Review** — Use the \`code-reviewer\` subagent to review the implementation.
-4. **QA** — Use the \`qa-backend\` and/or \`qa-frontend\` subagents to test.
-5. **Delivery** — Create PRs and notify the team.`;
-  }
-
-  const parts: string[] = [`
-## Development Pipeline
-
-Follow each step sequentially, delegating to the appropriate subagent at each phase.
-`];
-
-  for (const step of steps) {
-    if (step.actions) {
-      parts.push(`### Delivery`);
-      parts.push(`After all validations pass, execute these actions:`);
-      for (const action of step.actions) {
-        parts.push(`- ${formatAction(action)}`);
-      }
-      continue;
-    }
-
-    const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
-    parts.push(`### ${stepTitle}`);
-
-    if (step.mode === "plan") {
-      parts.push(`**This step is a planning phase.** Do NOT make any code changes. Focus on reading, analyzing, and collaborating with the user to define requirements before proceeding.`);
-      parts.push(``);
-    }
-
-    if (step.agent) {
-      parts.push(`Use the \`${step.agent}\` subagent.${step.output ? ` Write output to \`${step.output}\`.` : ""}`);
-
-      if (step.step === "refinement") {
-        parts.push(`
-After completing the refinement, validate with the user:
-- If there are unanswered questions, ask the user one at a time
-- If the user requests adjustments, revisit the refinement
-- Do not proceed until the document is complete and approved by the user`);
-      }
-    }
-
-    if (Array.isArray(step.agents)) {
-      const agentList = step.agents.map((a) => {
-        if (typeof a === "string") return { agent: a };
-        return a;
-      });
-
-      parts.push(`Use these subagents sequentially:`);
-
-      for (const a of agentList) {
-        let line = `- \`${a.agent}\``;
-        if (a.output) line += ` → write to \`${a.output}\``;
-        if (a.when) line += ` (when: ${a.when})`;
-        parts.push(line);
-      }
-
-      if (step.step === "coding" || step.step === "code" || step.step === "implementation") {
-        parts.push(`
-If you encounter doubts during coding, write questions in the task document and validate with the user before proceeding.`);
-      }
-
-      if (step.step === "validation" || step.step === "review" || step.step === "qa") {
-        parts.push(`
-If any validation step reveals issues requiring fixes, go back to the relevant coding step to address them.`);
-      }
-    }
-
-    parts.push("");
-  }
-
-  return parts.join("\n");
-}
-
-export function buildOpenCodePipelineSection(steps: WorkflowStep[]): string {
-  if (steps.length === 0) {
-    return `
-## Development Pipeline
-
-1. Use \`@refinement\` to collect requirements
-2. Use \`@coding-backend\` and/or \`@coding-frontend\` agents to implement
-3. Use \`@code-reviewer\` to review the implementation
-4. Use \`@qa-backend\` and/or \`@qa-frontend\` to test
-5. Create PRs and notify the team`;
-  }
-
-  const parts: string[] = [`
-## Development Pipeline
-`];
-
-  for (const step of steps) {
-    if (step.actions) {
-      parts.push(`### Delivery`);
-      parts.push(`After all validations pass, execute these actions:`);
-      for (const action of step.actions) {
-        parts.push(`- ${formatAction(action)}`);
-      }
-      continue;
-    }
-
-    const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
-    parts.push(`### ${stepTitle}`);
-
-    if (step.mode === "plan") {
-      parts.push(`**This step is a planning phase.** Switch to the Plan agent (Tab key) for collaborative planning with the user before any implementation begins.`);
-      parts.push(``);
-    }
-
-    if (step.agent) {
-      parts.push(`Call \`@${step.agent}\`.${step.output ? ` It writes to \`${step.output}\`.` : ""}`);
-
-      if (step.step === "refinement") {
-        parts.push(`
-After it runs, read the document and validate with the user:
-- If there are unanswered questions, ask the user one at a time
-- If the user requests adjustments, send back to the refinement agent
-- Do not proceed until the document is complete and approved by the user`);
-      }
-    }
-
-    if (Array.isArray(step.agents)) {
-      const agentList = step.agents.map((a) => {
-        if (typeof a === "string") return { agent: a };
-        return a;
-      });
-
-      if (step.parallel) {
-        parts.push(`Call these agents in parallel:`);
-      } else {
-        parts.push(`Call these agents in sequence:`);
-      }
-
-      for (const a of agentList) {
-        let line = `- \`@${a.agent}\``;
-        if (a.output) line += ` → writes to \`${a.output}\``;
-        if (a.when) line += ` (when: ${a.when})`;
-        parts.push(line);
-      }
-
-      if (step.step === "coding" || step.step === "code" || step.step === "implementation") {
-        parts.push(`
-If any coding agent has doubts, they will write questions in their document. Apply the same Q&A logic as refinement — validate with the user before proceeding.`);
-      }
-
-      if (step.step === "validation" || step.step === "review" || step.step === "qa") {
-        parts.push(`
-If any validation agent leaves comments requiring fixes, call the relevant coding agents again to address them.`);
-      }
-    }
-
-    if (step.mode === "plan") {
-      parts.push(`
-**After this step is complete and approved**, switch back to Build agent to proceed with the next step.`);
-    }
-
-    parts.push("");
-  }
-
-  return parts.join("\n");
-}
-
-export function buildOrchestratorPrompt(
+export function buildCapabilitiesPrompt(
   config: HubConfig,
-  options: { agentsDir?: string; assistantName?: string } = {},
+  options: CapabilitiesPromptOptions = {},
 ): string {
-  const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
-  const steps = config.workflow?.pipeline || [];
   const prompt = config.workflow?.prompt;
-  const enforce = config.workflow?.enforce_workflow ?? false;
-  const agentsDir = options.agentsDir || "./agents";
-  const assistantName = options.assistantName || "the agent";
+  const format = options.format || "plain";
 
   const sections: string[] = [];
 
-  sections.push(`# Orchestrator
+  if (format === "cursor-rule") {
+    sections.push(`---
+description: "Workspace capabilities and conventions"
+alwaysApply: true
+---`);
+  }
+
+  sections.push(`# ${config.name}
 
 ## Your Main Responsibility
 
-You are the development orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end by following a structured pipeline. You delegate specialized work to subagents defined in \`${agentsDir}\`.
-
-> **Note:** This workspace has custom subagents in \`${agentsDir}\`. Each pipeline step delegates to the appropriate subagent. Use \`/agent-name\` or instruct ${assistantName} to "use the X subagent" to invoke them.`);
-
-  if (enforce) {
-    sections.push(`
-## STRICT WORKFLOW ENFORCEMENT
-
-**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
-
-- NEVER skip a pipeline step, even if the task seems simple or obvious.
-- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
-- ALWAYS use the designated subagent for each step. Do not improvise if a subagent is assigned.
-- ALWAYS wait for a step to complete and validate its output before moving to the next step.
-- If a step produces a document, READ the document and confirm it is complete before proceeding.
-- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
-- NEVER jump directly to coding without completing refinement first.
-- NEVER skip review or QA steps, even for small changes.
-- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
-  }
+You help the user build and operate software across the repositories in this workspace. You have access to skills (specialized knowledge), tools (via MCP), and the repositories themselves. Use the right capability for each task and apply your judgment — there is no fixed pipeline to follow.`);
 
   if (prompt?.prepend) {
     sections.push(`\n${prompt.prepend.trim()}`);
@@ -1316,27 +913,12 @@ If the user doesn't have a task in their project management tool, create one usi
     sections.push(`\n${prompt.sections.after_repositories.trim()}`);
   }
 
-  const docStructure = buildDocumentStructure(steps, taskFolder);
-  sections.push(docStructure);
-
-  const pipelineSection = buildKiroPipelineSection(steps);
-  sections.push(pipelineSection);
-
-  if (prompt?.sections?.after_pipeline) {
-    sections.push(`\n${prompt.sections.after_pipeline.trim()}`);
-  }
-
   if (config.integrations?.slack || config.integrations?.github) {
     sections.push(buildDeliverySection(config));
   }
 
   if (prompt?.sections?.after_delivery) {
     sections.push(`\n${prompt.sections.after_delivery.trim()}`);
-  }
-
-  const mcpToolsSectionKiro = buildMcpToolsSection(config.mcps);
-  if (mcpToolsSectionKiro) {
-    sections.push(mcpToolsSectionKiro);
   }
 
   if (config.memory) {
@@ -1347,27 +929,17 @@ If the user doesn't have a task in their project management tool, create one usi
     sections.push(buildFetchCheckerSection());
   }
 
-  const designSectionKiro = buildDesignSection(config);
-  if (designSectionKiro) sections.push(designSectionKiro);
+  const designSection = buildDesignSection(config);
+  if (designSection) sections.push(designSection);
 
-  const agentTeamsSectionKiro = buildAgentTeamsSection(config.mcps);
-  if (agentTeamsSectionKiro) sections.push(agentTeamsSectionKiro);
+  const agentTeamsSection = buildAgentTeamsSection(config.mcps);
+  if (agentTeamsSection) sections.push(agentTeamsSection);
 
-  const agentTeamsChatSectionKiro = buildAgentTeamsChatSection(config.mcps);
-  if (agentTeamsChatSectionKiro) sections.push(agentTeamsChatSectionKiro);
+  const agentTeamsChatSection = buildAgentTeamsChatSection(config.mcps);
+  if (agentTeamsChatSection) sections.push(agentTeamsChatSection);
 
-  const kanbanSectionKiro = buildKanbanSection(config.mcps);
-  if (kanbanSectionKiro) sections.push(kanbanSectionKiro);
-
-  sections.push(`
-## Troubleshooting and Debugging
-
-For bug reports or unexpected behavior, follow the debugging process from the \`agent-debugger.md\` steering file (if available), or:
-1. Collect context (symptoms, environment, timeline)
-2. Analyze logs and stack traces
-3. Form and test hypotheses systematically
-4. Identify the root cause
-5. Propose and implement the fix`);
+  const kanbanSection = buildKanbanSection(config.mcps);
+  if (kanbanSection) sections.push(kanbanSection);
 
   sections.push(...buildCoreBehaviorSections());
 
@@ -1388,352 +960,24 @@ For bug reports or unexpected behavior, follow the debugging process from the \`
   }
 
   return sections.join("\n");
+}
+
+export function buildOrchestratorPrompt(
+  config: HubConfig,
+): string {
+  return buildCapabilitiesPrompt(config, { format: "plain" });
 }
 
 export function buildKiroOrchestratorRule(config: HubConfig): string {
-  return buildOrchestratorPrompt(config, {
-    agentsDir: ".kiro/agents/",
-    assistantName: "Kiro",
-  });
+  return buildCapabilitiesPrompt(config, { format: "plain" });
 }
 
 export function buildOrchestratorRule(config: HubConfig): string {
-  const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
-  const steps = config.workflow?.pipeline || [];
-  const prompt = config.workflow?.prompt;
-  const enforce = config.workflow?.enforce_workflow ?? false;
-
-  const sections: string[] = [];
-
-  sections.push(`---
-description: "Orchestrator agent — coordinates sub-agents through the development pipeline"
-alwaysApply: true
----
-
-# Orchestrator
-
-## Your Main Responsibility
-
-You are an agent orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end using specialized sub-agents.`);
-
-  if (enforce) {
-    sections.push(`
-## STRICT WORKFLOW ENFORCEMENT
-
-**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
-
-- NEVER skip a pipeline step, even if the task seems simple or obvious.
-- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
-- ALWAYS call the designated sub-agent for each step. Do not attempt to perform a step yourself if an agent is assigned to it.
-- ALWAYS wait for a step to complete and validate its output before moving to the next step.
-- If a step produces a document, READ the document and confirm it is complete before proceeding.
-- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
-- NEVER jump directly to coding without completing refinement first.
-- NEVER skip review or QA steps, even for small changes.
-- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
-  }
-
-  if (prompt?.prepend) {
-    sections.push(`\n${prompt.prepend.trim()}`);
-  }
-
-  if (config.integrations?.linear) {
-    const linear = config.integrations.linear;
-    sections.push(`
-## Task Management
-
-If the user doesn't have a task in their project management tool, create one using the Linear MCP.${linear.team ? ` Add it to the **${linear.team}** team.` : ""} Provide the link to the user so they can review and modify as needed.`);
-  }
-
-  sections.push(`
-## Repositories
-`);
-  for (const repo of config.repos) {
-    const parts = [`- **${repo.path}**`];
-    if (repo.description) parts.push(`— ${repo.description}`);
-    else if (repo.tech) parts.push(`— ${repo.tech}`);
-    if (repo.skills?.length) parts.push(`(skills: ${repo.skills.join(", ")})`);
-    sections.push(parts.join(" "));
-
-    if (repo.commands) {
-      const cmds = Object.entries(repo.commands)
-        .filter(([, v]) => v)
-        .map(([k, v]) => `\`${k}\`: \`${v}\``)
-        .join(", ");
-      if (cmds) sections.push(`  Commands: ${cmds}`);
-    }
-  }
-
-  if (prompt?.sections?.after_repositories) {
-    sections.push(`\n${prompt.sections.after_repositories.trim()}`);
-  }
-
-  sections.push(buildDocumentStructure(steps, taskFolder));
-  sections.push(buildPipelineSection(steps));
-
-  if (prompt?.sections?.after_pipeline) {
-    sections.push(`\n${prompt.sections.after_pipeline.trim()}`);
-  }
-
-  if (config.integrations?.slack || config.integrations?.github) {
-    sections.push(buildDeliverySection(config));
-  }
-
-  if (prompt?.sections?.after_delivery) {
-    sections.push(`\n${prompt.sections.after_delivery.trim()}`);
-  }
-
-  const mcpToolsSection = buildMcpToolsSection(config.mcps);
-  if (mcpToolsSection) sections.push(mcpToolsSection);
-
-  if (config.memory) sections.push(buildMemorySection(config));
-  if (config.workflow?.fact_checker) sections.push(buildFetchCheckerSection());
-
-  const designSection = buildDesignSection(config);
-  if (designSection) sections.push(designSection);
-
-  const agentTeamsSection = buildAgentTeamsSection(config.mcps);
-  if (agentTeamsSection) sections.push(agentTeamsSection);
-
-  const agentTeamsChatSection = buildAgentTeamsChatSection(config.mcps);
-  if (agentTeamsChatSection) sections.push(agentTeamsChatSection);
-
-  const kanbanSection = buildKanbanSection(config.mcps);
-  if (kanbanSection) sections.push(kanbanSection);
-
-  sections.push(`
-## Troubleshooting and Debugging
-
-For bug reports or unexpected behavior, use the \`debugger\` agent directly.
-It will:
-1. Collect context (symptoms, environment, timeline)
-2. Analyze logs and stack traces
-3. Form and test hypotheses systematically
-4. Identify the root cause
-5. Propose a solution or call coding agents to implement the fix`);
-
-  sections.push(...buildCoreBehaviorSections());
-
-  if (prompt?.sections) {
-    const reservedKeys = new Set(["after_repositories", "after_pipeline", "after_delivery"]);
-    for (const [name, content] of Object.entries(prompt.sections)) {
-      if (reservedKeys.has(name)) continue;
-      const title = name
-        .split(/[-_]/)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-      sections.push(`\n## ${title}\n\n${content.trim()}`);
-    }
-  }
-
-  if (prompt?.append) {
-    sections.push(`\n${prompt.append.trim()}`);
-  }
-
-  return sections.join("\n");
+  return buildCapabilitiesPrompt(config, { format: "cursor-rule" });
 }
 
 export function buildOpenCodeOrchestratorRule(config: HubConfig): string {
-  const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
-  const steps = config.workflow?.pipeline || [];
-  const prompt = config.workflow?.prompt;
-  const enforce = config.workflow?.enforce_workflow ?? false;
-
-  const sections: string[] = [];
-
-  sections.push(`# Orchestrator
-
-## Your Main Responsibility
-
-You are an agent orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end using specialized sub-agents. Use \`@agent-name\` to invoke sub-agents for each phase of the pipeline.`);
-
-  if (enforce) {
-    sections.push(`
-## STRICT WORKFLOW ENFORCEMENT
-
-**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
-
-- NEVER skip a pipeline step, even if the task seems simple or obvious.
-- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
-- ALWAYS call the designated sub-agent for each step. Do not attempt to perform a step yourself if an agent is assigned to it.
-- ALWAYS wait for a step to complete and validate its output before moving to the next step.
-- If a step produces a document, READ the document and confirm it is complete before proceeding.
-- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
-- NEVER jump directly to coding without completing refinement first.
-- NEVER skip review or QA steps, even for small changes.
-- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
-  }
-
-  if (prompt?.prepend) {
-    sections.push(`\n${prompt.prepend.trim()}`);
-  }
-
-  if (config.integrations?.linear) {
-    const linear = config.integrations.linear;
-    sections.push(`
-## Task Management
-
-If the user doesn't have a task in their project management tool, create one using the Linear MCP.${linear.team ? ` Add it to the **${linear.team}** team.` : ""} Provide the link to the user so they can review and modify as needed.`);
-  }
-
-  sections.push(`
-## Repositories
-`);
-  for (const repo of config.repos) {
-    const parts = [`- **${repo.path}**`];
-    if (repo.description) parts.push(`— ${repo.description}`);
-    else if (repo.tech) parts.push(`— ${repo.tech}`);
-    if (repo.skills?.length) parts.push(`(skills: ${repo.skills.join(", ")})`);
-    sections.push(parts.join(" "));
-
-    if (repo.commands) {
-      const cmds = Object.entries(repo.commands)
-        .filter(([, v]) => v)
-        .map(([k, v]) => `\`${k}\`: \`${v}\``)
-        .join(", ");
-      if (cmds) sections.push(`  Commands: ${cmds}`);
-    }
-  }
-
-  if (prompt?.sections?.after_repositories) {
-    sections.push(`\n${prompt.sections.after_repositories.trim()}`);
-  }
-
-  sections.push(buildDocumentStructure(steps, taskFolder));
-  sections.push(buildOpenCodePipelineSection(steps));
-
-  if (prompt?.sections?.after_pipeline) {
-    sections.push(`\n${prompt.sections.after_pipeline.trim()}`);
-  }
-
-  if (config.integrations?.slack || config.integrations?.github) {
-    sections.push(buildDeliverySection(config));
-  }
-
-  if (prompt?.sections?.after_delivery) {
-    sections.push(`\n${prompt.sections.after_delivery.trim()}`);
-  }
-
-  const mcpToolsSection = buildMcpToolsSection(config.mcps);
-  if (mcpToolsSection) sections.push(mcpToolsSection);
-
-  if (config.memory) sections.push(buildMemorySection(config));
-  if (config.workflow?.fact_checker) sections.push(buildFetchCheckerSection());
-
-  const designSection = buildDesignSection(config);
-  if (designSection) sections.push(designSection);
-
-  const agentTeamsSection = buildAgentTeamsSection(config.mcps);
-  if (agentTeamsSection) sections.push(agentTeamsSection);
-
-  const agentTeamsChatSection = buildAgentTeamsChatSection(config.mcps);
-  if (agentTeamsChatSection) sections.push(agentTeamsChatSection);
-
-  const kanbanSection = buildKanbanSection(config.mcps);
-  if (kanbanSection) sections.push(kanbanSection);
-
-  sections.push(`
-## Troubleshooting and Debugging
-
-For bug reports or unexpected behavior, use the \`@debugger\` agent directly.
-It will:
-1. Collect context (symptoms, environment, timeline)
-2. Analyze logs and stack traces
-3. Form and test hypotheses systematically
-4. Identify the root cause
-5. Propose a solution or call coding agents to implement the fix`);
-
-  sections.push(...buildCoreBehaviorSections());
-
-  if (prompt?.sections) {
-    const reservedKeys = new Set(["after_repositories", "after_pipeline", "after_delivery"]);
-    for (const [name, content] of Object.entries(prompt.sections)) {
-      if (reservedKeys.has(name)) continue;
-      const title = name
-        .split(/[-_]/)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-      sections.push(`\n## ${title}\n\n${content.trim()}`);
-    }
-  }
-
-  if (prompt?.append) {
-    sections.push(`\n${prompt.append.trim()}`);
-  }
-
-  return sections.join("\n");
-}
-
-export async function buildSkillsSection(hubDir: string, config: HubConfig): Promise<string | null> {
-  const skillsDir = resolve(hubDir, "skills");
-  const skillEntries: { name: string; description: string }[] = [];
-
-  try {
-    const folders = await readdir(skillsDir);
-    for (const folder of folders) {
-      const skillPath = join(skillsDir, folder, "SKILL.md");
-      try {
-        const content = await readFile(skillPath, "utf-8");
-        const fm = parseFrontMatter(content);
-        if (fm?.name) {
-          skillEntries.push({
-            name: fm.name,
-            description: fm.description || "",
-          });
-        }
-      } catch {
-        // skip
-      }
-    }
-  } catch {
-    return null;
-  }
-
-  if (skillEntries.length === 0) return null;
-
-  const repoSkillMap = new Map<string, string[]>();
-  for (const repo of config.repos) {
-    if (repo.skills?.length) {
-      for (const skill of repo.skills) {
-        const repos = repoSkillMap.get(skill) || [];
-        repos.push(repo.path);
-        repoSkillMap.set(skill, repos);
-      }
-    }
-  }
-
-  const parts: string[] = [];
-  parts.push(`
-## Skills
-
-This workspace has skills that provide specialized knowledge for specific domains and repositories.
-Consult the relevant skill before working in an unfamiliar area — they contain patterns, conventions, and project-specific guidance.
-
-| Skill | Description | Repositories |
-|-------|-------------|--------------|`);
-
-  for (const entry of skillEntries) {
-    const repos = repoSkillMap.get(entry.name);
-    const repoCol = repos ? repos.map(r => `\`${r}\``).join(", ") : "—";
-    const desc = entry.description.replace(/\|/g, "\\|").split(".")[0].trim();
-    parts.push(`| \`${entry.name}\` | ${desc} | ${repoCol} |`);
-  }
-
-  parts.push(`
-When to consult a skill:
-- Before writing code in a repository that has an associated skill
-- When making architecture or pattern decisions in a specific domain
-- When unsure about project conventions, libraries, or testing approaches
-- When the user's request touches a domain covered by an available skill
-
-Additional context sources:
-- Use documentation MCPs to check library and framework docs before implementing
-- Use database MCPs to understand schema, query data, and verify state
-- Use package registry MCPs to verify security and versions before installing dependencies
-- Use the repository CLI commands (build, test, lint) to validate changes after implementation
-- Use monitoring MCPs for production debugging and log analysis when available`);
-
-  return parts.join("\n");
+  return buildCapabilitiesPrompt(config, { format: "plain" });
 }
 
 export async function loadPersona(hubDir: string): Promise<PersonaData | null> {

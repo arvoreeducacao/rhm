@@ -5,7 +5,6 @@ export type {
   MCPConfig,
   Service,
   IntegrationConfig,
-  WorkflowStep,
   HookEntry,
   MemoryConfig,
   EnvProfile,

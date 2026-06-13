@@ -1,5 +1,6 @@
 export * from "./types.js";
-export { loadHubConfig, resolveConfigPath, findHubRoot } from "./config.js";
+export { loadHubConfig, resolveConfigPath, findHubRoot, resolvePiConfig } from "./config.js";
+export type { ResolvedPiConfig } from "./config.js";
 export {
   readCache,
   writeCache,
@@ -17,15 +18,12 @@ export { fetchNotionPageAsMarkdown, extractPageId } from "./notion.js";
 export { downloadDirFromGitHub, listRegistryDir, listRegistrySkills } from "./registry.js";
 export {
   HOOK_EVENT_MAP,
-  SANDBOX_AGENT_TARGETS,
   stripFrontMatter,
   parseFrontMatter,
   getUpstreamNames,
   resolveAutoApprove,
   stripEnvPrefix,
   stripDollarPrefix,
-  getSandboxMcp,
-  injectSandboxContext,
   buildProxyUpstreams,
   buildProxyMcpEntry,
   buildCursorMcpEntry,
@@ -46,24 +44,18 @@ export {
   hasAgentTeamsChatMcp,
   hasKanbanMcp,
   buildDesignSection,
-  buildMcpToolsSection,
   buildMemorySection,
   buildFetchCheckerSection,
   buildCoreBehaviorSections,
   buildDeliverySection,
-  formatAction,
-  buildDocumentStructure,
   buildAgentTeamsSection,
   buildAgentTeamsChatSection,
   buildKanbanSection,
-  buildPipelineSection,
-  buildKiroPipelineSection,
-  buildOpenCodePipelineSection,
+  buildCapabilitiesPrompt,
   buildKiroOrchestratorRule,
   buildOrchestratorPrompt,
   buildOrchestratorRule,
   buildOpenCodeOrchestratorRule,
-  buildSkillsSection,
   loadPersona,
   buildPersonaSection,
   buildPersonaEditorFile,
