@@ -19,7 +19,6 @@ export function DoneStep({ state }: Props) {
 
   const stats = [
     { label: 'repos', value: String(state.repos.length) },
-    { label: 'agents', value: String(state.agents.length) },
     { label: 'skills', value: String(state.skills.length) },
     { label: 'mcps', value: String(state.mcps.length) },
   ]

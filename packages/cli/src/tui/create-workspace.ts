@@ -84,11 +84,10 @@ function buildTypeScriptConfig(state: InitState): string {
   lines.push('  },')
   lines.push('')
 
-  const pipeline = buildPipeline(state.agents)
-  lines.push('  workflow: {')
-  lines.push('    task_folder: "./tasks/{task_id}/",')
-  lines.push(`    pipeline: ${JSON.stringify(pipeline, null, 6).replace(/\n/g, '\n    ')},`)
-  lines.push('  },')
+  const capabilitySkills = state.skills
+  if (capabilitySkills.length > 0) {
+    lines.push(`  skills: ${JSON.stringify(capabilitySkills)},`)
+  }
 
   lines.push('});')
   lines.push('')
@@ -97,6 +96,7 @@ function buildTypeScriptConfig(state: InitState): string {
 }
 
 function buildYamlConfig(state: InitState): string {
+  const capabilitySkills = state.skills
   const config: Record<string, unknown> = {
     name: state.hubName,
     repos: state.repos.map((r) => ({
@@ -111,49 +111,11 @@ function buildYamlConfig(state: InitState): string {
       github: { pr_branch_pattern: '{task_id}-{slug}' },
       slack: { channels: { prs: '#eng-prs' } },
     },
-    workflow: {
-      task_folder: './tasks/{task_id}/',
-      pipeline: buildPipeline(state.agents),
-    },
+    ...(capabilitySkills.length > 0 && { skills: capabilitySkills }),
   }
   return SCHEMA_COMMENT + stringify(config)
 }
 
-function buildPipeline(agents: string[]) {
-  const pipeline: Record<string, unknown>[] = []
-  const hasAgent = (name: string) => agents.includes(name)
-
-  if (hasAgent('refinement')) {
-    pipeline.push({ step: 'refinement', agent: 'refinement', output: 'refinement.md' })
-  }
-
-  const codingAgents = ['coding-backend', 'coding-frontend'].filter(hasAgent)
-  if (codingAgents.length > 0) {
-    pipeline.push({
-      step: 'coding',
-      agents: codingAgents,
-      parallel: codingAgents.length > 1,
-    })
-  }
-
-  if (hasAgent('code-reviewer')) {
-    pipeline.push({ step: 'review', agent: 'code-reviewer', output: 'code-review.md' })
-  }
-
-  const qaAgents = ['qa-backend', 'qa-frontend'].filter(hasAgent)
-  if (qaAgents.length > 0) {
-    pipeline.push({
-      step: 'qa',
-      agents: qaAgents,
-      parallel: qaAgents.length > 1,
-      tools: ['playwright'],
-    })
-  }
-
-  pipeline.push({ step: 'deliver', actions: ['create-pr', 'notify-slack'] })
-
-  return pipeline
-}
 
 function buildGitignore(state: InitState): string {
   const lines = [
@@ -202,7 +164,6 @@ export function createWorkspaceTasks(
     run: async () => {
       await mkdir(targetDir, { recursive: true })
       await mkdir(join(targetDir, 'tasks'), { recursive: true })
-      await mkdir(join(targetDir, 'agents'), { recursive: true })
       await mkdir(join(targetDir, 'skills'), { recursive: true })
       await mkdir(join(targetDir, 'steering'), { recursive: true })
     },
@@ -227,33 +188,13 @@ export function createWorkspaceTasks(
     },
   })
 
-  if (state.agents.length > 0) {
+  const capabilitySkillsToInstall = state.skills
+  if (capabilitySkillsToInstall.length > 0) {
     tasks.push({
-      label: `Install ${state.agents.length} agents from registry`,
-      run: async () => {
-        const agentsDir = join(targetDir, 'agents')
-        for (const agent of state.agents) {
-          try {
-            const url = `https://raw.githubusercontent.com/arvoreeducacao/rhm/main/agents/${agent}.md`
-            const res = await fetch(url)
-            if (res.ok) {
-              const content = await res.text()
-              await writeFile(join(agentsDir, `${agent}.md`), content, 'utf-8')
-            }
-          } catch {
-            // skip
-          }
-        }
-      },
-    })
-  }
-
-  if (state.skills.length > 0) {
-    tasks.push({
-      label: `Install ${state.skills.length} skills from registry`,
+      label: `Install ${capabilitySkillsToInstall.length} skills from registry`,
       run: async () => {
         const skillsDir = join(targetDir, 'skills')
-        for (const skill of state.skills) {
+        for (const skill of capabilitySkillsToInstall) {
           try {
             await downloadDirFromGitHub(
               'arvoreeducacao/rhm',

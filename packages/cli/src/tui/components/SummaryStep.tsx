@@ -40,11 +40,6 @@ export function SummaryStep({ state, onConfirm, onBack }: Props) {
             detail={state.repos.length > 0 ? `(${state.repos.map((r) => r.name).join(', ')})` : undefined}
           />
           <SummaryRow
-            label="Agents"
-            value={String(state.agents.length)}
-            detail={state.agents.length > 0 ? `(${state.agents.join(', ')})` : undefined}
-          />
-          <SummaryRow
             label="Skills"
             value={String(state.skills.length)}
             detail={state.skills.length > 0 ? `(${state.skills.join(', ')})` : undefined}

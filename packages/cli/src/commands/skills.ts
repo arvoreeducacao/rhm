@@ -6,6 +6,8 @@ import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { downloadDirFromGitHub } from "./registry.js";
 import { checkAndAutoRegenerate } from "../core/hub-cache.js";
+import { loadHubConfig } from "../core/hub-config.js";
+import { collectConfigSkills, installConfigSkills } from "../core/install-skills.js";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 
@@ -315,6 +317,38 @@ function parseGitHubSource(source: string): { owner: string; repo: string; skill
 
 export const skillsCommand = new Command("skills")
   .description("Manage agent skills")
+  .addCommand(
+    new Command("sync")
+      .description("Install all skills declared in the hub config (config.skills + per-repo skills)")
+      .option("-r, --repo <repo>", "Registry repository (owner/repo)")
+      .option("-f, --force", "Re-install even if the skill already exists locally")
+      .action(async (opts: { repo?: string; force?: boolean }) => {
+        const hubDir = process.cwd();
+        let config;
+        try {
+          config = await loadHubConfig(hubDir);
+        } catch {
+          console.log(chalk.red("\n  Could not load hub config in the current directory.\n"));
+          return;
+        }
+        const declared = collectConfigSkills(config);
+        if (declared.length === 0) {
+          console.log(chalk.yellow("\n  No skills declared in config (top-level `skills` or per-repo `skills`).\n"));
+          return;
+        }
+        console.log(chalk.blue(`\n━━━ Syncing ${declared.length} skill(s) from config ━━━\n`));
+        const res = await installConfigSkills(config, hubDir, opts);
+        console.log();
+        const summary = [
+          res.installed.length ? `${res.installed.length} installed` : "",
+          res.skipped.length ? `${res.skipped.length} already present` : "",
+          res.failed.length ? `${res.failed.length} failed` : "",
+        ].filter(Boolean).join(", ");
+        if (summary) console.log(chalk.green(`  ${summary}`));
+        console.log();
+        if (res.installed.length > 0) await checkAndAutoRegenerate(hubDir);
+      }),
+  )
   .addCommand(
     new Command("add")
       .description("Install skills from registry, GitHub, git URL, or local path")

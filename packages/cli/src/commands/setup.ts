@@ -7,6 +7,7 @@ import chalk from "chalk";
 import { loadHubConfig } from "../core/hub-config.js";
 import { generateDockerCompose } from "../core/docker-compose.js";
 import { checkAndAutoRegenerate } from "../core/hub-cache.js";
+import { collectConfigSkills, installConfigSkills } from "../core/install-skills.js";
 
 function run(cmd: string, cwd?: string) {
   execSync(cmd, { stdio: "inherit", cwd });
@@ -70,7 +71,9 @@ export const setupCommand = new Command("setup")
 
     const useGh = !canSsh() && hasGh();
     const hasTools = config.tools || config.repos.some((r) => r.tools);
-    const totalSteps = hasTools && !opts.skipTools ? 5 : 4;
+    const hasSkills = collectConfigSkills(config).length > 0;
+    let totalSteps = hasTools && !opts.skipTools ? 5 : 4;
+    if (hasSkills) totalSteps += 1;
     let step = 1;
 
     console.log(chalk.blue(`\n━━━ Step ${step}/${totalSteps}: Cloning repositories ━━━\n`));
@@ -205,6 +208,21 @@ export const setupCommand = new Command("setup")
       }
     } else {
       console.log(chalk.blue(`\n━━━ Step ${step}/${totalSteps}: Install (skipped) ━━━\n`));
+    }
+
+    if (hasSkills) {
+      step++;
+      console.log(chalk.blue(`\n━━━ Step ${step}/${totalSteps}: Installing skills ━━━\n`));
+      const res = await installConfigSkills(config, hubDir);
+      const summary = [
+        res.installed.length ? `${res.installed.length} installed` : "",
+        res.skipped.length ? `${res.skipped.length} already present` : "",
+        res.failed.length ? `${res.failed.length} failed` : "",
+      ].filter(Boolean).join(", ");
+      if (summary) console.log(chalk.green(`  ${summary}`));
+      if (res.failed.length) {
+        console.log(chalk.dim(`  Missing skills can be added later with 'hub skills add <name>'.`));
+      }
     }
 
     console.log(chalk.blue("\n━━━ Setup complete ━━━\n"));

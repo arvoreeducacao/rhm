@@ -24,7 +24,7 @@ interface Props {
   createWorkspace: (state: InitState) => { label: string; run: () => Promise<void> }[]
 }
 
-const DEFAULT_AGENTS = ['refinement', 'coding-backend', 'coding-frontend', 'code-reviewer']
+const DEFAULT_SKILLS = ['refinement', 'code-review', 'qa-testing', 'debugging']
 const DIRECTORY_URL = 'https://hub.arvore.com.br/directory.json'
 const CLEAR = '\x1B[2J\x1B[H'
 
@@ -36,13 +36,11 @@ export function App({ defaultName, createWorkspace }: Props) {
     hubName: defaultName,
     editor: null,
     repos: [],
-    agents: DEFAULT_AGENTS,
-    skills: [],
+    skills: DEFAULT_SKILLS,
     mcps: [],
     configFormat: 'yaml',
   })
 
-  const [registryAgents, setRegistryAgents] = useState<RegistryItem[]>([])
   const [registrySkills, setRegistrySkills] = useState<RegistryItem[]>([])
   const [registryLoading, setRegistryLoading] = useState(true)
   const [registrySource, setRegistrySource] = useState('')
@@ -52,31 +50,22 @@ export function App({ defaultName, createWorkspace }: Props) {
       try {
         const res = await fetch(DIRECTORY_URL)
         const items = await res.json() as Array<{ name: string; description: string; type: string; source: string; repo: string }>
-        const agents = items
-          .filter((i) => i.type === 'agent')
-          .map((i) => ({ name: i.name, description: i.description, tags: i.source !== 'registry' ? [i.repo] : undefined }))
         const skills = items
           .filter((i) => i.type === 'skill')
           .map((i) => ({ name: i.name, description: i.description, tags: i.source !== 'registry' ? [i.repo] : undefined }))
 
-        if (agents.length === 0 && skills.length === 0) {
+        if (skills.length === 0) {
           throw new Error('empty directory')
         }
 
-        setRegistryAgents(agents)
         setRegistrySkills(skills)
         setRegistrySource('from hub.arvore.com.br')
       } catch {
-        setRegistryAgents([
-          { name: 'refinement', description: 'Collects requirements and defines contracts' },
-          { name: 'coding-backend', description: 'Implements backend features' },
-          { name: 'coding-frontend', description: 'Implements frontend features' },
-          { name: 'code-reviewer', description: 'Reviews code against requirements' },
-          { name: 'qa-backend', description: 'Tests backend implementations' },
-          { name: 'qa-frontend', description: 'Tests frontend with Playwright' },
-          { name: 'debugger', description: 'Investigates bugs and production issues' },
-        ])
         setRegistrySkills([
+          { name: 'refinement', description: 'Refine requirements and define contracts' },
+          { name: 'code-review', description: 'Review code against requirements and quality' },
+          { name: 'qa-testing', description: 'Test implementations end-to-end with Playwright' },
+          { name: 'debugging', description: 'Investigate bugs and production issues' },
           { name: 'backend-nestjs', description: 'NestJS patterns and conventions' },
           { name: 'frontend-nextjs', description: 'Next.js App Router patterns' },
           { name: 'database-mysql', description: 'MySQL schema and query patterns' },
@@ -144,39 +133,19 @@ export function App({ defaultName, createWorkspace }: Props) {
           repos={state.repos}
           onSubmit={(repos) => {
             stdout?.write(CLEAR)
-            setState((prev) => ({ ...prev, repos, step: 'agents' }))
-          }}
-        />
-      )}
-
-      {state.step === 'agents' && (
-        <MultiSelectStep
-          step="agents"
-          subtitle="Select agents for your development pipeline"
-          source={registrySource}
-          items={registryAgents.map((a) => ({
-            name: a.name,
-            description: a.description,
-            defaultSelected: DEFAULT_AGENTS.includes(a.name),
-            tags: a.tags,
-          }))}
-          onSubmit={(agents) => {
-            stdout?.write(CLEAR)
             const recommended = registrySkills
               .filter((s) => {
                 const techs = skillTechMap[s.name]
-                return techs?.some((t) => repoTechs.has(t))
+                return techs?.some((t) => new Set(repos.map((r) => r.tech).filter(Boolean)).has(t))
               })
               .map((s) => s.name)
-
             setState((prev) => ({
               ...prev,
-              agents,
-              skills: recommended,
+              repos,
+              skills: Array.from(new Set([...prev.skills, ...recommended])),
               step: 'skills',
             }))
           }}
-          loading={registryLoading}
         />
       )}
 

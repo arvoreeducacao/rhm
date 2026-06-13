@@ -18,7 +18,6 @@ export interface InitState {
   hubName: string
   editor: EditorChoice | null
   repos: RepoEntry[]
-  agents: string[]
   skills: string[]
   mcps: string[]
   configFormat: ConfigFormat
@@ -29,7 +28,6 @@ export type Step =
   | 'name'
   | 'editor'
   | 'repos'
-  | 'agents'
   | 'skills'
   | 'mcps'
   | 'format'
