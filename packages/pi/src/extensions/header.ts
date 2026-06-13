@@ -1,5 +1,5 @@
 import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
-import { loadHubConfig } from "@arvoretech/hub-core";
+import { getSessionState } from "./session-state.js";
 
 function center(text: string, width: number): string {
   if (!text) return text;
@@ -29,10 +29,9 @@ export function header(pi: ExtensionAPI) {
   let modelId = "";
 
   pi.on("session_start", async (_event, ctx) => {
-    try {
-      const config = await loadHubConfig(ctx.cwd);
-      projectName = config.name;
-    } catch { /* noop */ }
+    const { config, pi: toggles } = getSessionState();
+    if (!toggles?.headerBanner) return;
+    if (config) projectName = config.name;
 
     modelId = ctx.model?.id || "";
 
@@ -50,6 +49,8 @@ export function header(pi: ExtensionAPI) {
   });
 
   pi.on("model_select", async (event, ctx) => {
+    const { pi: toggles } = getSessionState();
+    if (!toggles?.headerBanner) return;
     modelId = event.model.id;
     if (!ctx.hasUI) return;
 

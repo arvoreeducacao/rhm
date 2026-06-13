@@ -2,7 +2,8 @@ import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { loadHubConfig, type HubConfig, type Repo } from "@arvoretech/hub-core";
+import { type HubConfig, type Repo } from "@arvoretech/hub-core";
+import { getSessionState } from "./session-state.js";
 
 interface MissingItems {
   repos: Repo[];
@@ -66,11 +67,10 @@ export function onboarding(pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     hubDir = ctx.cwd;
 
-    try {
-      config = await loadHubConfig(hubDir);
-    } catch {
-      return;
-    }
+    const session = getSessionState();
+    config = session.config;
+    if (!config) return;
+    if (!session.pi?.onboarding) return;
 
     const missing = detectMissing(config, hubDir);
     const total = missing.repos.length + missing.tools.length + missing.deps.length;

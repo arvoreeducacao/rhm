@@ -1,16 +1,12 @@
 import { resolve } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { loadHubConfig } from "@arvoretech/hub-core";
+import { getSessionState } from "./session-state.js";
 
 export function repoTools(pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
-    let config;
-    try {
-      config = await loadHubConfig(ctx.cwd);
-    } catch {
-      return;
-    }
+    const { config } = getSessionState();
+    if (!config) return;
 
     const repoNames = config.repos.map((r) => r.name);
     const commandNames = new Set<string>();

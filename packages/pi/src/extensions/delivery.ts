@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { loadHubConfig, type HubConfig } from "@arvoretech/hub-core";
+import { type HubConfig } from "@arvoretech/hub-core";
+import { getSessionState } from "./session-state.js";
 
 function getReposWithChanges(config: HubConfig, hubDir: string): { name: string; path: string }[] {
   const changed: { name: string; path: string }[] = [];
@@ -47,11 +48,7 @@ export function delivery(pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     hubDir = ctx.cwd;
-    try {
-      config = await loadHubConfig(hubDir);
-    } catch {
-      // skip
-    }
+    config = getSessionState().config;
   });
 
   pi.registerCommand("deliver", {
