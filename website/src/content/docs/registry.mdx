@@ -16,13 +16,12 @@ By default, the registry points to the Repo Hub repository itself (`arvoreeducac
 hub registry list
 ```
 
-This fetches all available skills, agents, hooks, and commands and displays them grouped by type.
+This fetches all available skills, hooks, and commands and displays them grouped by type.
 
 ### Filter by Type
 
 ```bash
 hub registry list --type skill
-hub registry list --type agent
 hub registry list --type hook
 hub registry list --type command
 ```
@@ -38,7 +37,7 @@ You can combine search with a type filter:
 
 ```bash
 hub registry search "frontend" --type skill
-hub registry search "review" --type agent
+hub registry search "review" --type skill
 ```
 
 ## Installing from the Registry
@@ -47,7 +46,7 @@ Each component type has its own `add` command that accepts a registry name:
 
 ```bash
 hub skills add backend-nestjs
-hub agents add debugger
+hub skills add code-review
 hub hooks add format-on-save
 hub commands add review
 ```
@@ -60,7 +59,7 @@ Add `--global` to install to your home directory so the component is shared acro
 
 ```bash
 hub skills add backend-nestjs --global
-hub agents add debugger --global
+hub skills add code-review --global
 ```
 
 ### Override the Registry

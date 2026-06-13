@@ -4,9 +4,9 @@ description: Coordinate multiple AI agent sessions working together as a team, w
 order: 4
 ---
 
-Agent teams let you coordinate multiple AI agent sessions working together. One session acts as the team lead (the orchestrator), spawning teammates, assigning tasks, and synthesizing results. Teammates work independently, each in its own context window, and communicate directly with each other through a shared messaging system.
+Agent teams let you coordinate multiple AI agent sessions working together. One session acts as the team lead, spawning teammates, assigning tasks, and synthesizing results. Teammates work independently, each in its own context window, and communicate directly with each other through a shared messaging system.
 
-Unlike [sub-agents](/docs/agents), which run within a single session and can only report back to the main agent, teammates are fully independent sessions that can discover tasks, claim work, and message each other without going through the lead.
+Unlike [subagents](/docs/agents), which run within a single session and can only report back to the main agent, teammates are fully independent sessions that can discover tasks, claim work, and message each other without going through the lead.
 
 ## Origin
 
@@ -14,11 +14,11 @@ This feature is inspired by [Anthropic's agent teams for Claude Code](https://co
 
 We took that concept and built it as an editor-agnostic MCP layer. Instead of being locked to a single tool, Repo Hub's agent teams work across every editor we support: Kiro, Cursor, Claude Code, and OpenCode. The coordination happens through shared JSON files on disk and two MCP servers, so any editor that speaks MCP can participate.
 
-## Sub-agents vs Agent Teams
+## Subagents vs Agent Teams
 
-![Sub-agents vs Agent Teams](/agent-teams-diagram.png)
+![Subagents vs Agent Teams](/agent-teams-diagram.png)
 
-|                   | Sub-agents                                       | Agent Teams                                         |
+|                   | Subagents                                       | Agent Teams                                         |
 | :---------------- | :----------------------------------------------- | :-------------------------------------------------- |
 | **Context**       | Own context window; results return to the caller | Own context window; fully independent               |
 | **Communication** | Report results back to the main agent only       | Teammates message each other directly               |
@@ -26,7 +26,7 @@ We took that concept and built it as an editor-agnostic MCP layer. Instead of be
 | **Best for**      | Focused tasks where only the result matters      | Complex work requiring discussion and collaboration |
 | **Token cost**    | Lower: results summarized back to main context   | Higher: each teammate is a separate session         |
 
-Use sub-agents when you need quick, focused workers that report back. Use agent teams when teammates need to share findings, challenge each other, and coordinate on their own.
+Use subagents when you need quick, focused workers that report back. Use agent teams when teammates need to share findings, challenge each other, and coordinate on their own.
 
 ## When to Use Agent Teams
 
@@ -37,7 +37,7 @@ Agent teams are most effective for tasks where parallel exploration adds real va
 - **Debugging with competing hypotheses**: teammates test different theories in parallel and converge faster
 - **Cross-layer coordination**: changes that span frontend, backend, and tests, each owned by a different teammate
 
-Agent teams add coordination overhead and use significantly more tokens than a single session. For sequential tasks, same-file edits, or work with many dependencies, a single session or sub-agents are more effective.
+Agent teams add coordination overhead and use significantly more tokens than a single session. For sequential tasks, same-file edits, or work with many dependencies, a single session or subagents are more effective.
 
 ## Architecture
 
@@ -45,7 +45,7 @@ An agent team consists of two MCP servers that coordinate through shared JSON fi
 
 | Component              | Role                                                                                      |
 | :--------------------- | :---------------------------------------------------------------------------------------- |
-| **agent-teams-lead**   | MCP used by the orchestrator to spawn teams, create tasks, send messages, and monitor     |
+| **agent-teams-lead**   | MCP used by the team lead to spawn teams, create tasks, send messages, and monitor        |
 | **agent-teams-teammate** | MCP injected into each teammate session for claiming tasks, messaging, and publishing artifacts |
 | **Shared Task List**   | `tasks.json` — teammates claim and complete tasks with file-level locking                 |
 | **Mailbox**            | `messages.json` — inter-agent messaging (direct, broadcast, or to lead)                   |
@@ -57,7 +57,7 @@ All state lives in `.agent-teams/` at the workspace root. A `team.log` file capt
 
 Anthropic's implementation is tightly coupled to Claude Code — it uses Claude Code's process model, tmux/iTerm2 for split panes, and Claude Code's internal messaging.
 
-Repo Hub's implementation is built entirely on MCP, which means it works with any editor that supports MCP servers. The lead MCP spawns teammates as CLI processes (e.g., `kiro-cli`, `claude`, `opencode`), and coordination happens through shared files that any process can read and write. When you run `hub generate`, the orchestrator automatically receives team lead instructions — no manual prompt editing needed.
+Repo Hub's implementation is built entirely on MCP, which means it works with any editor that supports MCP servers. The lead MCP spawns teammates as CLI processes (e.g., `kiro-cli`, `claude`, `opencode`), and coordination happens through shared files that any process can read and write. When you run `hub generate`, the agent automatically receives team lead instructions — no manual prompt editing needed.
 
 ## Setup
 
@@ -69,17 +69,17 @@ mcps:
     package: "@arvoretech/agent-teams-lead-mcp"
 ```
 
-Run `hub generate` to regenerate your editor config. The orchestrator will automatically receive instructions on how to use agent teams when the MCP is detected.
+Run `hub generate` to regenerate your editor config. The agent will automatically receive instructions on how to use agent teams when the MCP is detected.
 
 Each teammate gets the `agent-teams-teammate` MCP injected automatically when spawned — no manual configuration needed.
 
 ## Lead Tools
 
-The orchestrator (team lead) has access to these tools via the `agent-teams-lead` MCP:
+The team lead has access to these tools via the `agent-teams-lead` MCP:
 
 | Tool | Description |
 | :--- | :---------- |
-| `spawn_team` | Create a team with an objective and list of teammates (each referencing an agent file) |
+| `spawn_team` | Create a team with an objective and list of teammates (each referencing a role/agent file) |
 | `create_task` | Add a task to the shared list with optional dependencies and exclusive file paths |
 | `add_teammate` | Add a new teammate to an active team |
 | `remove_teammate` | Remove a teammate and stop their process |
@@ -113,9 +113,9 @@ Tasks support dependencies and exclusive file paths to prevent conflicts:
 spawn_team({
   objective: "Implement user profile feature",
   teammates: [
-    { agent: "coding-backend.md" },
-    { agent: "coding-frontend.md" },
-    { agent: "qa-backend.md" }
+    { agent: "backend.md" },
+    { agent: "frontend.md" },
+    { agent: "qa.md" }
   ]
 })
 

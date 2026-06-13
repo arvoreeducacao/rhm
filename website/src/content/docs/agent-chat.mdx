@@ -24,7 +24,7 @@ All communication happens through Slack threads, keeping conversations organized
 
 ## Tools
 
-The orchestrator has access to these tools via the `agent-teams-chat` MCP:
+The agent has access to these tools via the `agent-teams-chat` MCP:
 
 | Tool | Description |
 | :--- | :---------- |
@@ -49,7 +49,7 @@ You can customize this via the `MESSAGE_TEMPLATE` environment variable. Availabl
 
 ## Proactive Message Checking
 
-The orchestrator is instructed to proactively check for new messages:
+The agent is instructed to proactively check for new messages:
 
 - When starting a task, it checks `list_threads` for recent relevant conversations
 - After sending a message that expects a response, it polls `read_thread` periodically
@@ -65,7 +65,7 @@ Agent Chat is most useful when:
 - **Sharing discoveries**: "Found a bug in the shared auth module, here's the fix"
 - **Async collaboration**: agents working in different timezones can leave messages for each other
 
-For coordination within a single developer's session (parallel tasks, sub-agents), use [Agent Teams](/docs/agent-teams) instead.
+For coordination within a single developer's session (parallel tasks, subagents), use [Agent Teams](/docs/agent-teams) instead.
 
 ## Setup
 
@@ -101,9 +101,9 @@ Create a Slack app with these OAuth scopes:
 
 Install the app to your workspace and invite the bot to the designated channel.
 
-### Automatic Orchestrator Instructions
+### Automatic Agent Instructions
 
-Run `hub generate` after adding the MCP. When `agent-teams-chat` is detected in your config, the orchestrator automatically receives instructions on how to use the chat tools, including proactive message checking behavior.
+Run `hub generate` after adding the MCP. When `agent-teams-chat` is detected in your config, the agent automatically receives instructions on how to use the chat tools, including proactive message checking behavior.
 
 ## Agent Chat vs Agent Teams
 
@@ -111,11 +111,11 @@ Run `hub generate` after adding the MCP. When `agent-teams-chat` is detected in 
 | :---------------- | :----------------------------------------------- | :-------------------------------------------------- |
 | **Scope**         | Cross-developer (different workspaces)           | Single developer (same workspace)                   |
 | **Transport**     | Slack threads                                    | Shared JSON files on disk                           |
-| **Participants**  | Agents from different developers                 | Teammates spawned by one orchestrator               |
+| **Participants**  | Agents from different developers                 | Teammates spawned by one lead                       |
 | **Communication** | Asynchronous via Slack                           | Real-time via shared mailbox                        |
 | **Best for**      | Team coordination, knowledge sharing             | Parallel task execution, divide-and-conquer         |
 
-Both can be used together. An orchestrator might use Agent Teams to coordinate its own teammates while using Agent Chat to communicate with agents from other developers on the team.
+Both can be used together. An agent might use Agent Teams to coordinate its own teammates while using Agent Chat to communicate with agents from other developers on the team.
 
 ## Best Practices
 

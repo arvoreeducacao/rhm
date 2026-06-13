@@ -36,7 +36,7 @@ Repo Hub is OSS and doesn't assume you have any specific MCP configured. Pick th
 
 | MCP (example) | What it unlocks | Example use case |
 |---------------|------------------|------------------|
-| Linear MCP | Issue lifecycle automation | Create a ticket, link a PR, and move status during the pipeline |
+| Linear MCP | Issue lifecycle automation | Create a ticket, link a PR, and move status as work progresses |
 | Slack MCP | Team notifications | Post a PR link to `#eng-prs` and status updates to `#releases` |
 | Notion MCP | Documentation automation | Generate/update runbooks, incident notes, or product docs |
 | Datadog MCP | Production debugging | Correlate error logs with traces to find root cause |
@@ -45,7 +45,7 @@ Repo Hub is OSS and doesn't assume you have any specific MCP configured. Pick th
 | Database MCP (MySQL/Postgres) | Schema + data visibility (read-only) | Validate columns/relationships before writing code or migrations |
 | ClickHouse MCP | Analytics validation | Verify an event pipeline by querying the warehouse |
 | npm Registry MCP | Dependency safety | Check adoption and security signals before adding a package |
-| SonarQube MCP | Static analysis feedback | Surface issues directly in the workflow and link to PR findings |
+| SonarQube MCP | Static analysis feedback | Surface issues directly during work and link to PR findings |
 | Playwright MCP | Browser automation | Run smoke flows, take screenshots, and verify UI behavior |
 | TempMail MCP | Email-based flows | Test signup/magic-link flows end-to-end without real inboxes |
 | Context7 MCP | Up-to-date docs | Pull framework/library docs into the agent context before coding |
@@ -122,16 +122,16 @@ Each helper pre-fills the correct `package` name. See [Configuration](/docs/conf
 
 *One of `package`, `url`, or `image` is required.
 
-When you run `hub generate`, these are written to `.cursor/mcp.json` (Cursor), `.mcp.json` (Claude Code), `.kiro/settings/mcp.json` (Kiro), or `opencode.json` (OpenCode), making them available to all agents.
+When you run `hub generate`, these are written to `.cursor/mcp.json` (Cursor), `.mcp.json` (Claude Code), `.kiro/settings/mcp.json` (Kiro), or `opencode.json` (OpenCode), making their tools available to the agent.
 
 ## How Agents Use MCPs
 
-Agents interact with MCPs through tool calls. For example:
+The agent interacts with MCPs through tool calls — the connected tools appear in its tool schema automatically, no listing in the prompt required. For example:
 
-- **Database MCP**: Agent queries the schema to understand table relationships before writing migrations
-- **Datadog MCP**: Debugger agent searches logs and traces to identify the root cause of a production error
-- **Playwright MCP**: QA agent navigates the web app, fills forms, and takes screenshots to verify UI changes
-- **npm Registry MCP**: Coding agent checks package download counts and security signals before adding dependencies
+- **Database MCP**: query the schema to understand table relationships before writing migrations
+- **Datadog MCP**: search logs and traces to identify the root cause of a production error (often while using the `debugging` skill)
+- **Playwright MCP**: navigate the web app, fill forms, and take screenshots to verify UI changes (often while using the `qa-testing` skill)
+- **npm Registry MCP**: check package download counts and security signals before adding dependencies
 
 ## Secret Environment Variables
 

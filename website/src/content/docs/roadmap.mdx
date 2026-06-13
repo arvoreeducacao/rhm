@@ -8,11 +8,11 @@ order: 20
 
 - **Core concept** — The gitignore/cursorignore pattern for cross-repo AI context
 - **Config formats** — `hub.yaml` (YAML) and `hub.config.ts` (TypeScript with type-safe helpers via `defineConfig`, `repo`, `mcp`, `service`)
-- **Interactive TUI** — `hub init` launches a multi-step wizard with editor selection, repo setup, agent/skill selection from the directory registry, MCP picking, and config format choice
+- **Interactive TUI** — `hub init` launches a multi-step wizard with editor selection, repo setup, skill selection from the directory registry, MCP picking, and config format choice
 - **CLI commands** — `init`, `add-repo`, `setup`, `generate`, `env`, `services`, `tools`, `skills`, `registry`, `pull`, `status`, `exec`, `worktree`, `doctor`
-- **Generator targets** — Cursor (`.cursor/rules/`, `.cursor/agents/`, `.cursor/mcp.json`), Claude Code (`CLAUDE.md`), Kiro (`.kiro/steering/`, `.kiro/settings/mcp.json`), OpenCode (`opencode.json`, `.opencode/`), AGENTS.md
-- **Agent templates** — 8 agents (orchestrator, refinement, coding-backend, coding-frontend, code-reviewer, qa-backend, qa-frontend, debugger)
-- **Skills system** — Install from git repos, project and global scopes, per-repo assignment
+- **Generator targets** — Cursor (`.cursor/rules/`, `.cursor/mcp.json`), Claude Code (`CLAUDE.md`), Kiro (`.kiro/steering/`, `.kiro/settings/mcp.json`), OpenCode (`opencode.json`, `.opencode/`), AGENTS.md
+- **Skills system** — Capabilities (refinement, code-review, qa-testing, debugging, per-stack skills) the AI pulls on demand; install from git repos, project and global scopes, per-repo assignment
+- **On-demand subagents** — Spawn a fresh-context subagent that pulls the relevant skill when an independent pass helps (e.g. unbiased review), via the editor's native subagent mechanism
 - **Tool management** — Declare versions in hub.yaml, generate `.mise.toml`, install via mise
 - **Environment management** — Profiles, AWS Secrets Manager, per-repo overrides, per-repo profile override, DATABASE_URL building
 - **Docker services** — Generate `docker-compose.yml`, manage lifecycle (up/down/logs/clean)
@@ -21,22 +21,19 @@ order: 20
 
 ## Short Term
 
-- **Workflow conditions** — Runtime evaluation of `when` expressions
-- **Hub registry** — Community hub for browsing and installing skills, agents, and workflow templates
+- **Hub registry** — Community hub for browsing and installing skills and capability libraries
 - **Windsurf adapter** — `generate --editor windsurf`
 - **Copilot Workspace adapter** — `generate --editor copilot`
 
 ## Medium Term
 
-- **Workflow execution tracking** — Track pipeline progress per task
-- **Agent performance metrics** — Which agents succeed, fail, or need human intervention
+- **Skill usage insights** — Which skills get pulled, where they help, and where coverage is missing
 - **Multi-hub** — Compose multiple hubs (platform team + feature team)
-- **Plugin system** — Third-party generators, MCP wrappers, custom pipeline steps
+- **Plugin system** — Third-party generators, MCP wrappers, custom capabilities
 
 ## Long Term
 
-- **Visual pipeline builder** — Web UI for designing and monitoring workflows
-- **Self-improving skills** — Agents propose skill updates based on recurring patterns
+- **Self-improving skills** — The AI proposes skill updates based on recurring patterns
 - **Cross-team orchestration** — Hub-to-hub communication for platform/product split
 
 ## How to Contribute
@@ -46,6 +43,6 @@ Pick any area and open a PR. For larger items, open an issue first to discuss ap
 **Easiest high-impact contributions:**
 
 1. **Editor adapters** — Windsurf, Copilot Workspace, or any AI editor
-2. **Skills** — Write a SKILL.md for your framework/language (Go, Python/Django, Java/Spring, Vue, Svelte)
-3. **Agent improvements** — Better prompts, new roles, workflow patterns
+2. **Skills** — Write a SKILL.md for your framework/language (Go, Python/Django, Java/Spring, Vue, Svelte) or a cross-cutting capability
+3. **Skill improvements** — Sharper guidance, better triggers, broader coverage
 4. **Documentation** — Guides, tutorials, videos

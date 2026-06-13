@@ -1,201 +1,80 @@
 ---
-title: Agent Orchestration
-description: How specialized AI agents collaborate in structured pipelines.
+title: Skills & Subagents
+description: How the agent gains capabilities through skills and on-demand subagents.
 order: 3
 ---
 
-Repo Hub's agent system transforms your AI editor into a full development team. Specialized agents collaborate in a structured pipeline, each handling a specific part of the development lifecycle.
+Repo Hub gives your AI editor capabilities, not a fixed pipeline. The agent works with whatever the task needs: **skills** for specialized knowledge, **MCPs** for tools, multi-repo context for the big picture — and, when an independent pass helps, **subagents** spawned on demand.
 
-## How It Works
-
-When you run `hub generate`, the CLI produces agent definitions from your config file (`hub.yaml` or `hub.config.ts`). The orchestrator agent reads the pipeline and delegates to sub-agents in order.
+## The model
 
 ```
 Developer: "Implement user profile editing"
     |
     v
-Orchestrator -----> Creates task in Linear
+Agent  --  sees repositories, available skills, and tools
     |
-    v
-Refinement Agent -> Collects requirements, defines contracts
-    |
-    v
-Coding Agents ----> Implement backend + frontend in parallel
-    |
-    v
-Review Agent -----> Reviews code against the requirements
-    |
-    v
-QA Agent ---------> Runs E2E tests with Playwright
-    |
-    v
-Orchestrator -----> Creates PR, posts in Slack, updates Linear
+    +--> pulls the `refinement` skill to clarify the contract
+    +--> implements across api + frontend (stack skills loaded as needed)
+    +--> spawns a fresh-context subagent that pulls `code-review`
+    +--> pulls `qa-testing` to validate with Playwright
+    +--> opens the PR and notifies Slack
     |
     v
 Developer: "PR is ready, tested, and notified"
 ```
 
-**The editor is the runtime.** There is no daemon or separate process. The orchestrator agent follows the pipeline by calling sub-agents through your AI editor's agent mode.
+There is no enforced order. The agent decides what to pull and when, based on the task. **The editor is the runtime** — no daemon, no separate process.
 
-For tasks that benefit from parallel exploration and inter-agent communication, see [Agent Teams](/docs/agent-teams) — a coordination layer where multiple independent sessions share a task list and message each other directly.
+## Skills, not agent files
 
-> **Kiro note:** When generating for Kiro, agent definitions are placed in `.kiro/agents/` as sub-agent files with frontmatter (`name`, `description`, `tools`). The orchestrator delegates to each agent following the pipeline, just like Cursor and Claude Code.
+In earlier versions, each phase was a stack-specialized agent file (`coding-backend`, `qa-frontend`, …) copied into every editor. That is gone. The knowledge those files held now lives in **[skills](/docs/skills)** — lazily-loaded documents the agent pulls when relevant:
 
-> **OpenCode note:** OpenCode has native support for sub-agents via `@mention` and the Task tool. When generating for OpenCode, agents are placed in `.opencode/agents/` as markdown files with `mode: subagent` frontmatter. The orchestrator references agents using `@agent-name` syntax, matching OpenCode's native invocation model.
+| Skill | Replaces |
+|-------|----------|
+| `refinement` | the refinement agent |
+| `code-review` | the code-reviewer agent |
+| `qa-testing` | the qa-backend / qa-frontend agents |
+| `debugging` | the debugger agent |
+| stack skills (`backend-nestjs`, `frontend-nextjs`, …) | the coding-backend / coding-frontend agents |
 
-## Built-in Agents
+Skills are discovered automatically by the editor's native skill index — Repo Hub does **not** list or describe them in the prompt (that would be redundant with what the runtime already provides). It only ensures they are installed.
 
-### Orchestrator
+## On-demand subagents
 
-The main coordinator. It reads the pipeline, manages task state, and delegates to sub-agents in order.
+When you want an independent pass with a clean context — the classic example is an unbiased code review that isn't influenced by the implementation reasoning — spawn a subagent using your editor's native mechanism (e.g. `pi-subagents`, OpenCode's Task tool). The subagent starts fresh and pulls the relevant skill (`code-review`, `qa-testing`).
 
-**Responsibilities:**
-- Create tasks in project management tools (Linear, Jira)
-- Call sub-agents following the pipeline order
-- Validate outputs between steps
-- Create PRs and send notifications when done
+This is the same separation-of-context benefit the old pipeline provided, but by choice rather than by rigid structure. For multi-session coordination, see [Agent Teams](/docs/agent-teams).
 
-### Refinement Agent
+## Installing skills
 
-Gathers requirements and defines technical contracts before any code is written.
-
-**Outputs:**
-- `tasks/<TASK_ID>/refinement.md` with requirements, scope, API contracts, and edge cases
-
-### Coding Agents
-
-Implement the actual code. You can have separate agents per tech stack:
-
-- `coding-backend` — Backend implementation
-- `coding-frontend` — Frontend implementation
-
-**Outputs:**
-- `tasks/<TASK_ID>/code-backend-*.md` with implementation details
-- `tasks/<TASK_ID>/code-frontend-*.md` with implementation details
-
-### Code Review Agent
-
-Reviews all implementations against the refinement requirements.
-
-**Outputs:**
-- `tasks/<TASK_ID>/code-review.md` with review comments and approval status
-
-### QA Agent
-
-Runs tests and validates the implementation.
-
-**Outputs:**
-- `tasks/<TASK_ID>/qa-backend.md` or `qa-frontend.md` with test results
-
-### Debugger Agent
-
-Investigates bugs and production issues. Can coordinate with infrastructure MCPs (AWS, Kubernetes) to gather context.
-
-## Customizing Agents
-
-Agents are defined as Markdown files with structured instructions. You can customize them by:
-
-1. Modifying the generated agent files in `.cursor/agents/`
-2. Adding custom agents in your `hub.yaml` workflow
-3. Creating new agent templates in the `agents/` directory
-
-## Discovering Agents from the Registry
-
-Before installing, you can browse all available agents in the [Registry](/docs/registry):
+Skills are the unit you install and manage. Browse and add them from the [Registry](/docs/registry):
 
 ```bash
-hub registry list --type agent
+hub registry list --type skill
+hub registry search "review" --type skill
+hub skills add code-review
+hub skills add qa-testing
 ```
 
-Or search for a specific agent:
-
-```bash
-hub registry search "debug" --type agent
-hub registry search "review" --type agent
-```
-
-This queries the registry repository and shows each agent's name and description, so you can decide which ones to install.
-
-## Managing Agents with the CLI
-
-### `hub agents list`
-
-List installed agents (project and global):
-
-```bash
-hub agents list
-```
-
-### `hub agents add <source>`
-
-Install agents from the registry, GitHub, a git URL, or a local path:
-
-```bash
-# From the registry (by name)
-hub agents add debugger
-
-# From a GitHub repo
-hub agents add arvoreeducacao/rhm
-
-# Install globally
-hub agents add debugger --global
-```
-
-| Flag | Description |
-|------|-------------|
-| `-a, --agent <name>` | Install a specific agent only |
-| `-g, --global` | Install to global `~/.cursor/agents/` |
-| `-r, --repo <repo>` | Override registry repository |
-
-### `hub agents sync`
-
-Install all agents referenced in your `hub.yaml` workflow pipeline from the registry in a single command:
-
-```bash
-hub agents sync
-```
-
-It reads the pipeline steps, collects every agent name, and downloads the ones that aren't already installed locally. Existing agents are skipped unless you pass `--force`:
-
-```bash
-hub agents sync --force
-hub agents sync --global
-```
-
-| Flag | Description |
-|------|-------------|
-| `-g, --global` | Install to global `~/.cursor/agents/` |
-| `-r, --repo <repo>` | Override registry repository |
-| `-f, --force` | Re-install even if the agent already exists locally |
-
-### `hub agents remove <name>`
-
-Remove an agent:
-
-```bash
-hub agents remove debugger
-hub agents remove debugger --global
-```
-
-## Pipeline Configuration
-
-Pipelines are defined in your config under the `workflow` key:
+Declare workspace-level skills in your config so `hub generate` installs them for the editor:
 
 ```yaml
-workflow:
-  pipeline:
-    - step: refinement
-      agent: refinement
-    - step: coding
-      agents: [coding-backend, coding-frontend]
-      parallel: true
-    - step: review
-      agent: code-reviewer
-    - step: qa
-      agent: qa-frontend
-      tools: [playwright]
-    - step: deliver
-      actions: [create-pr, notify-slack]
+skills: [refinement, code-review, qa-testing, debugging]
+
+repos:
+  - name: api
+    tech: nestjs
+    skills: [backend-nestjs]
+  - name: frontend
+    tech: nextjs
+    skills: [frontend-nextjs]
 ```
 
-Steps run sequentially by default. Use `parallel: true` to run multiple agents simultaneously.
+See [Skills](/docs/skills) for the full management reference.
+
+## Related
+
+- **[Skills](/docs/skills)** — Specialized knowledge the agent pulls on demand
+- **[Conventions](/docs/workflow)** — Optional task-folder and prompt customization
+- **[Agent Teams](/docs/agent-teams)** — Multi-session coordination with a shared task list

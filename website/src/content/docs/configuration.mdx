@@ -42,14 +42,7 @@ export default defineConfig({
     service.redis("cache"),
   ],
 
-  workflow: {
-    pipeline: [
-      { step: "refinement", agent: "refinement" },
-      { step: "coding", agents: ["coding-backend", "coding-frontend"] },
-      { step: "review", agent: "code-reviewer" },
-      { step: "deliver", actions: ["create-pr", "notify-slack"] },
-    ],
-  },
+  skills: ["refinement", "code-review", "qa-testing"],
 });
 ```
 
@@ -79,7 +72,7 @@ name: my-company
 
 This single line gives you:
 
-- **Autocomplete** for all keys and enum values (tech stacks, MCP packages, pipeline steps, actions)
+- **Autocomplete** for all keys and enum values (tech stacks, MCP packages, Pi toggles)
 - **Validation** with real-time errors in the Problems panel
 - **Hover documentation** describing every field
 - **Required field checking** (`name` and `repos` are required)
@@ -204,16 +197,8 @@ workflow:
     sections:
       after_repositories: |
         The API uses a custom auth middleware. See api/docs/auth.md.
-  pipeline:
-    - step: refinement
-      agent: refinement
-    - step: coding
-      agents: [coding-backend, coding-frontend]
-      parallel: true
-    - step: review
-      agent: code-reviewer
-    - step: deliver
-      actions: [create-pr, notify-slack]
+
+skills: [refinement, code-review, qa-testing, debugging]
 ```
 
 ## Schema Sections
@@ -228,7 +213,8 @@ Each section of `hub.yaml` has its own documentation page with full schema refer
 | [`services`](/docs/services) | Docker Compose services for local development |
 | [`mcps`](/docs/mcps) | Model Context Protocol server connections |
 | [`integrations`](/docs/integrations) | Linear, GitHub, Slack, and Playwright |
-| [`workflow`](/docs/workflow) | Agent pipeline, orchestration, and prompt customization |
+| [`skills`](/docs/skills) | Specialized knowledge the agent pulls on demand |
+| [`workflow`](/docs/workflow) | Optional conventions (task folder, fact-checker) and prompt customization |
 | [`hooks`](/docs/hooks) | Editor hooks for automation (Cursor + Claude Code + Kiro) |
 | [`commands`](/docs/commands) | Custom slash commands (Cursor only) |
 | [`steering`](/docs/steering) | Team rules and conventions shared across all editors |
