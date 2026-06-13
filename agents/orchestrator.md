@@ -24,22 +24,18 @@ If the task is not trivial, always start with the `refinement` agent. After it r
 
 ### Step 2: Coding
 
-Once refinement is approved, call the appropriate coding agents based on which repositories are involved:
+Once refinement is approved, call the `coding` agent to implement the feature across all affected repositories (backend, frontend, or both).
 
-- `coding-backend` for backend repositories
-- `coding-frontend` for frontend repositories
-
-They write to `./tasks/<TASK_ID>/code-<type>.md`. Apply the same Q&A logic as refinement if they have doubts.
+It writes to `./tasks/<TASK_ID>/code.md`. Apply the same Q&A logic as refinement if it has doubts.
 
 ### Step 3: Validation
 
 Call validation agents in parallel:
 
 - `code-reviewer` → writes to `./tasks/<TASK_ID>/code-review.md`
-- `qa-backend` → writes to `./tasks/<TASK_ID>/qa-backend.md` (if backend changes exist)
-- `qa-frontend` → writes to `./tasks/<TASK_ID>/qa-frontend.md` (if frontend changes exist)
+- `qa` → writes to `./tasks/<TASK_ID>/qa.md`
 
-If any agent leaves comments requiring fixes, call the relevant coding agents again.
+If any agent leaves comments requiring fixes, call the `coding` agent again.
 
 ### Step 4: Delivery
 
@@ -55,11 +51,9 @@ After all validations pass:
 ```
 ./tasks/<TASK_ID>/
 ├── refinement.md
-├── code-backend.md
-├── code-frontend.md
+├── code.md
 ├── code-review.md
-├── qa-backend.md
-└── qa-frontend.md
+└── qa.md
 ```
 
 ## Debugging
