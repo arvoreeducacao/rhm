@@ -1282,7 +1282,52 @@ function buildGitignoreLines(config: HubConfig): string[] {
   return lines;
 }
 
+const HUB_PI_PACKAGE = "npm:@arvoretech/hub-pi";
+
+async function generatePi(config: HubConfig, hubDir: string) {
+  const gitignoreLines = buildGitignoreLines(config);
+  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
+  console.log(chalk.green("  Generated .gitignore"));
+
+  const piDir = join(hubDir, ".pi");
+  await mkdir(piDir, { recursive: true });
+  const settingsPath = join(piDir, "settings.json");
+
+  let settings: Record<string, unknown> = {};
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
+    } catch {
+      console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched"));
+      settings = {};
+    }
+  }
+
+  const packages = Array.isArray(settings.packages) ? (settings.packages as string[]) : [];
+  if (!packages.includes(HUB_PI_PACKAGE)) {
+    packages.push(HUB_PI_PACKAGE);
+    console.log(chalk.green(`  Registered ${HUB_PI_PACKAGE} in .pi/settings.json`));
+  } else {
+    console.log(chalk.dim("  hub-pi already registered in .pi/settings.json"));
+  }
+  settings.packages = packages;
+
+  const skillsEntries = Array.isArray(settings.skills) ? (settings.skills as string[]) : [];
+  if (!skillsEntries.includes("skills") && !skillsEntries.includes(".pi/skills")) {
+    skillsEntries.push("skills");
+    console.log(chalk.green("  Pointed skills dir to ./skills in .pi/settings.json"));
+  }
+  settings.skills = skillsEntries;
+
+  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf-8");
+
+  console.log(chalk.dim("\n  Pi reads its config from hub-pi at runtime — no AGENTS.md, rules, or mcp.json are generated."));
+  console.log(chalk.dim("  Repositories, policies, skills, and MCP wiring are derived from the config live by the extension."));
+  console.log(chalk.dim("  (Running 'hub generate --editor cursor/kiro/...' would create an AGENTS.md; the extension then defers to it.)"));
+}
+
 export const generators: Record<string, Generator> = {
+  pi: { name: "Pi", generate: generatePi },
   cursor: { name: "Cursor", generate: generateCursor },
   "claude-code": { name: "Claude Code", generate: generateClaudeCode },
   kiro: { name: "Kiro", generate: generateKiro },
@@ -1331,7 +1376,7 @@ async function resolveEditor(opts: { editor?: string; resetEditor?: boolean }): 
 
 export const generateCommand = new Command("generate")
   .description("Generate editor-specific configuration files from hub.yaml")
-  .option("-e, --editor <editor>", "Target editor (cursor, claude-code, kiro, opencode)")
+  .option("-e, --editor <editor>", "Target editor (pi, cursor, claude-code, kiro, opencode)")
   .option("--reset-editor", "Reset saved editor preference and choose again")
   .option("--check", "Check if generated configs are outdated (exit code 1 if outdated)")
   .action(async (opts: { editor?: string; resetEditor?: boolean; check?: boolean }) => {

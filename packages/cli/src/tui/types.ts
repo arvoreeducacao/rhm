@@ -1,4 +1,4 @@
-export type EditorChoice = 'cursor' | 'kiro' | 'claude-code' | 'opencode'
+export type EditorChoice = 'pi' | 'cursor' | 'kiro' | 'claude-code' | 'opencode'
 export type ConfigFormat = 'typescript' | 'yaml'
 
 export interface RepoEntry {
@@ -36,6 +36,7 @@ export type Step =
   | 'done'
 
 export const AVAILABLE_EDITORS: { label: string; value: EditorChoice }[] = [
+  { label: 'Pi', value: 'pi' },
   { label: 'Cursor', value: 'cursor' },
   { label: 'Kiro', value: 'kiro' },
   { label: 'Claude Code', value: 'claude-code' },
