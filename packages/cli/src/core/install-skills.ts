@@ -16,6 +16,12 @@ export function collectConfigSkills(config: HubConfig): string[] {
   return [...names];
 }
 
+const SKILL_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+
+export function isValidSkillName(name: string): boolean {
+  return SKILL_NAME_RE.test(name) && !name.includes("..");
+}
+
 export interface InstallSkillsResult {
   installed: string[];
   skipped: string[];
@@ -32,6 +38,11 @@ export async function installConfigSkills(
   const result: InstallSkillsResult = { installed: [], skipped: [], failed: [] };
 
   for (const name of collectConfigSkills(config)) {
+    if (!isValidSkillName(name)) {
+      result.failed.push(name);
+      console.log(chalk.red(`  ✗ ${name} (invalid skill name — must match [a-zA-Z0-9._-] and not contain '..')`));
+      continue;
+    }
     const dest = join(skillsDir, name);
 
     if (!opts.force && existsSync(join(dest, "SKILL.md"))) {

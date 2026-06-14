@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { stringify } from 'yaml'
 import type { InitState } from './types.js'
 import { downloadDirFromGitHub } from '../commands/registry.js'
+import { isValidSkillName } from '../core/install-skills.js'
 
 const SCHEMA_COMMENT =
   '# yaml-language-server: $schema=https://raw.githubusercontent.com/arvoreeducacao/rhm/main/schemas/hub.schema.json\n'
@@ -195,6 +196,7 @@ export function createWorkspaceTasks(
       run: async () => {
         const skillsDir = join(targetDir, 'skills')
         for (const skill of capabilitySkillsToInstall) {
+          if (!isValidSkillName(skill)) continue
           try {
             await downloadDirFromGitHub(
               'arvoreeducacao/rhm',

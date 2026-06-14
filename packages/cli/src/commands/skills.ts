@@ -329,6 +329,7 @@ export const skillsCommand = new Command("skills")
           config = await loadHubConfig(hubDir);
         } catch {
           console.log(chalk.red("\n  Could not load hub config in the current directory.\n"));
+          process.exitCode = 1;
           return;
         }
         const declared = collectConfigSkills(config);
@@ -346,6 +347,7 @@ export const skillsCommand = new Command("skills")
         ].filter(Boolean).join(", ");
         if (summary) console.log(chalk.green(`  ${summary}`));
         console.log();
+        if (res.failed.length > 0) process.exitCode = 1;
         if (res.installed.length > 0) await checkAndAutoRegenerate(hubDir);
       }),
   )

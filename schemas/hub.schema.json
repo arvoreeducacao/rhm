@@ -411,6 +411,15 @@
           "type": "boolean",
           "default": false,
           "description": "When true, forces the agent to verify any factual claim about external state (PR status, deploy status, branch state, merge status, etc.) by actually checking with the appropriate tool BEFORE stating it to the user. Prevents hallucinated status reports."
+        },
+        "pipeline": {
+          "deprecated": true,
+          "description": "DEPRECATED: removed in the skills-centered model. Ignored at load time (a warning is emitted). Migrate the knowledge it encoded into skills."
+        },
+        "enforce_workflow": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "DEPRECATED: removed in the skills-centered model. Ignored at load time (a warning is emitted)."
         }
       }
     },

@@ -180,6 +180,10 @@ export interface HubConfig {
     task_folder?: string;
     prompt?: PromptCustomization;
     fact_checker?: boolean;
+    /** @deprecated Removed in the skills-centered model. Ignored at load time (a warning is emitted). */
+    pipeline?: unknown;
+    /** @deprecated Removed in the skills-centered model. Ignored at load time (a warning is emitted). */
+    enforce_workflow?: boolean;
   };
 }
 

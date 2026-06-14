@@ -87,6 +87,10 @@ export function onboarding(pi: ExtensionAPI) {
   pi.registerCommand("setup", {
     description: "Check workspace health and fix missing repos, tools, and dependencies",
     handler: async (_args, ctx) => {
+      if (!getSessionState().pi?.onboarding) {
+        ctx.ui.notify("Onboarding is disabled (pi.onboarding=false)", "warning");
+        return;
+      }
       if (!config) {
         ctx.ui.notify("No hub config found", "warning");
         return;
@@ -149,6 +153,10 @@ export function onboarding(pi: ExtensionAPI) {
   pi.registerCommand("env", {
     description: "Switch environment profile: /env <profile>",
     handler: async (args, ctx) => {
+      if (!getSessionState().pi?.onboarding) {
+        ctx.ui.notify("Onboarding is disabled (pi.onboarding=false)", "warning");
+        return;
+      }
       if (!config) {
         ctx.ui.notify("No hub config found", "warning");
         return;
