@@ -271,11 +271,15 @@ MCPs are maintained at [arvore-mcp-servers](https://github.com/arvoreeducacao/ar
 
 | Editor | Status | Command |
 |--------|--------|---------|
+| Pi | Supported | `hub generate --editor pi` (runs via the `hub-pi` runtime extension) |
 | Cursor | Supported | `hub generate --editor cursor` |
 | Claude Code | Supported | `hub generate --editor claude-code` |
 | Kiro | Supported | `hub generate --editor kiro` |
+| OpenCode | Supported | `hub generate --editor opencode` |
 | Windsurf | Planned | — |
 | Copilot Workspace | Planned | — |
+
+> **Pi** is special: it runs the [`@arvoretech/hub-pi`](packages/pi) extension, which reads the config and derives the capabilities prompt, skills, and MCP wiring **at runtime** — no `AGENTS.md` or editor files are generated. `hub generate --editor pi` just registers the extension in `.pi/settings.json`.
 
 ---
 

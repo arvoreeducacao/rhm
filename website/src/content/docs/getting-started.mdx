@@ -10,7 +10,7 @@ Repo Hub gives your AI coding agent everything it needs to ship real features â€
 
 - **Node.js** 18+ installed
 - **Git** configured with SSH access to your repositories
-- **Cursor**, **Kiro**, **OpenCode**, or any AI-powered editor installed
+- **Pi**, **Cursor**, **Kiro**, **Claude Code**, **OpenCode**, or any AI-powered editor installed
 
 ## Quick Start
 
@@ -53,6 +53,7 @@ This clones all repos, starts infrastructure services (databases, caches), and i
 ### 4. Generate editor configuration
 
 ```bash
+hub generate --editor pi          # or
 hub generate --editor cursor      # or
 hub generate --editor kiro         # or
 hub generate --editor claude-code  # or
@@ -61,6 +62,7 @@ hub generate --editor opencode
 
 This reads your config file (`hub.yaml` or `hub.config.ts`) and produces editor-specific files:
 
+- **Pi**: no files generated. Pi runs the `@arvoretech/hub-pi` extension, which derives the capabilities prompt, skills, and MCP wiring from the config **at runtime**. `--editor pi` only registers the extension in `.pi/settings.json` (merge-preserving) and points the skills dir.
 - **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/rules/<steering>.mdc`, `.cursor/skills/hub-docs/`, `.cursor/mcp.json`, `.gitignore` + `.cursorignore`
 - **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/<steering>.md`, `.kiro/skills/hub-docs/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
 - **Claude Code**: `CLAUDE.md` (with steering appended), `.claude/skills/hub-docs/`, `.mcp.json`, `.gitignore`
