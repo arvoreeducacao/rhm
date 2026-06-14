@@ -1298,8 +1298,9 @@ async function generatePi(config: HubConfig, hubDir: string) {
     try {
       settings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
     } catch {
-      console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched"));
-      settings = {};
+      console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched."));
+      console.log(chalk.dim(`  Add "${HUB_PI_PACKAGE}" to its "packages" array manually once the JSON is fixed.`));
+      return;
     }
   }
 
