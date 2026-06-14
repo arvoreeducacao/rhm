@@ -117,6 +117,36 @@ function buildYamlConfig(state: InitState): string {
   return SCHEMA_COMMENT + stringify(config)
 }
 
+function buildPackageJson(state: InitState): string {
+  const pkg = {
+    name: state.hubName,
+    private: true,
+    type: 'module',
+    devDependencies: {
+      '@arvoretech/hub': '^0.24.0',
+    },
+    dependencies: {
+      tsx: '^4.21.0',
+    },
+  }
+  return JSON.stringify(pkg, null, 2) + '\n'
+}
+
+function buildTsConfig(): string {
+  const tsconfig = {
+    compilerOptions: {
+      target: 'ES2022',
+      module: 'ESNext',
+      moduleResolution: 'Bundler',
+      strict: true,
+      esModuleInterop: true,
+      skipLibCheck: true,
+      noEmit: true,
+    },
+    include: ['hub.config.ts', 'config/**/*.ts'],
+  }
+  return JSON.stringify(tsconfig, null, 2) + '\n'
+}
 
 function buildGitignore(state: InitState): string {
   const lines = [
@@ -180,6 +210,16 @@ export function createWorkspaceTasks(
       }
     },
   })
+
+  if (state.configFormat === 'typescript') {
+    tasks.push({
+      label: 'Scaffold TypeScript project (package.json, tsconfig.json)',
+      run: async () => {
+        await writeFile(join(targetDir, 'package.json'), buildPackageJson(state), 'utf-8')
+        await writeFile(join(targetDir, 'tsconfig.json'), buildTsConfig(), 'utf-8')
+      },
+    })
+  }
 
   tasks.push({
     label: 'Write .gitignore and README',

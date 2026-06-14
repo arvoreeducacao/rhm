@@ -68,6 +68,13 @@ export function DoneStep({ state }: Props) {
               <Text color={colors.dim}>cd </Text>
               <Text color={colors.white} bold>{state.hubName}</Text>
             </Box>
+            {state.configFormat === 'typescript' && (
+              <Box>
+                <Text color={colors.brand}>{symbols.arrow} </Text>
+                <Text color={colors.white} bold>pnpm install</Text>
+                <Text color={colors.dim}> (resolves @arvoretech/hub for hub.config.ts)</Text>
+              </Box>
+            )}
             <Box>
               <Text color={colors.brand}>{symbols.arrow} </Text>
               <Text color={colors.dim}>hub </Text>
