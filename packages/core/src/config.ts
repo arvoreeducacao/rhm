@@ -4,7 +4,21 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
-import type { HubConfig } from "./types.js";
+import type { HubConfig, PiConfig } from "./types.js";
+
+export type ResolvedPiConfig = Required<PiConfig>;
+
+export function resolvePiConfig(config: HubConfig): ResolvedPiConfig {
+  const pi = config.pi ?? {};
+  return {
+    headerBanner: pi.headerBanner ?? true,
+    onboarding: pi.onboarding ?? true,
+    autoMcpWiring: pi.autoMcpWiring ?? true,
+    injectCapabilities: pi.injectCapabilities ?? true,
+    hooks: pi.hooks ?? true,
+    persona: pi.persona ?? true,
+  };
+}
 
 const configCache = new Map<string, { hash: string; config: HubConfig }>();
 
@@ -38,7 +52,28 @@ async function loadTypeScriptConfig(configPath: string): Promise<HubConfig> {
   }
 }
 
+const warnedLegacyWorkflow = new Set<string>();
+
+function warnLegacyWorkflow(configPath: string, config: HubConfig): void {
+  const legacy = config.workflow as { pipeline?: unknown; enforce_workflow?: unknown } | undefined;
+  if (!legacy) return;
+  if (legacy.pipeline === undefined && legacy.enforce_workflow === undefined) return;
+  if (warnedLegacyWorkflow.has(configPath)) return;
+  warnedLegacyWorkflow.add(configPath);
+  console.warn(
+    "[hub] 'workflow.pipeline' and 'workflow.enforce_workflow' were removed in the skills-centered model and are ignored. " +
+      "Migrate your agents to skills: hub skills add <name>.",
+  );
+}
+
 export async function loadHubConfig(dir: string): Promise<HubConfig> {
+  const { path: configPath } = resolveConfigPath(dir);
+  const config = await loadHubConfigRaw(dir);
+  warnLegacyWorkflow(configPath, config);
+  return config;
+}
+
+async function loadHubConfigRaw(dir: string): Promise<HubConfig> {
   const { path: configPath, format } = resolveConfigPath(dir);
 
   if (format === "yaml") {

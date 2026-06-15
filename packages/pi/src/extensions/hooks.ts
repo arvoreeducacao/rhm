@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { loadHubConfig, type HookEntry, type HubConfig } from "@arvoretech/hub-core";
+import { type HookEntry } from "@arvoretech/hub-core";
+import { getSessionState } from "./session-state.js";
 
 type PiEvent = "tool_call" | "tool_result" | "agent_end" | "turn_end";
 
@@ -20,17 +21,10 @@ function interpolateVars(command: string, vars: Record<string, string>): string 
 }
 
 export function hooks(pi: ExtensionAPI) {
-  let config: HubConfig | null = null;
-  let hubDir: string = "";
-
-  pi.on("session_start", async (_event, ctx) => {
-    hubDir = ctx.cwd;
-    try {
-      config = await loadHubConfig(hubDir);
-    } catch {
-      return;
-    }
-
+  pi.on("session_start", async () => {
+    const { config, pi: toggles } = getSessionState();
+    if (!config || !toggles) return;
+    if (!toggles.hooks) return;
     if (!config.hooks) return;
 
     for (const [event, entries] of Object.entries(config.hooks)) {

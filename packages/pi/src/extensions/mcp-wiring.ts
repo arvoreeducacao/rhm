@@ -4,23 +4,17 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
-  loadHubConfig,
   buildPiMcpEntry,
   readExistingMcpDisabledState,
   applyDisabledState,
 } from "@arvoretech/hub-core";
+import { getSessionState } from "./session-state.js";
 
 export function mcpWiring(pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
-    const hubDir = ctx.cwd;
-
-    let config;
-    try {
-      config = await loadHubConfig(hubDir);
-    } catch {
-      return;
-    }
-
+    const { hubDir, config, pi: toggles } = getSessionState();
+    if (!config || !toggles) return;
+    if (!toggles.autoMcpWiring) return;
     if (!config.mcps?.length) return;
 
     const mcpConfig: Record<string, Record<string, unknown>> = {};

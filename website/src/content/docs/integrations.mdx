@@ -4,7 +4,7 @@ description: Connect to Linear, GitHub, Slack, and Playwright.
 order: 9
 ---
 
-The `integrations` section configures external services used by the orchestrator agent during the development pipeline — task management, pull requests, notifications, and browser testing.
+The `integrations` section configures external services the agent uses as capabilities — task management, pull requests, notifications, and browser testing.
 
 ## Schema
 
@@ -32,7 +32,7 @@ integrations:
 
 ## Linear
 
-Task management integration. The orchestrator creates and updates tasks in Linear.
+Task management integration. The agent creates and updates tasks in Linear.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -40,7 +40,7 @@ Task management integration. The orchestrator creates and updates tasks in Linea
 | `labels` | string[] | Default labels applied to new tasks |
 | `link_pattern` | string | URL pattern for task links (`{id}` and `{slug}` are replaced) |
 
-When a user requests a feature without a task, the orchestrator automatically creates one in Linear and provides the link.
+When a user requests a feature without a task, the agent can create one in Linear and provide the link.
 
 ## GitHub
 
@@ -91,7 +91,7 @@ Available variables: `{pr_url}`, `{task_id}`, `{repo_name}`, `{branch}`, `{versi
 
 ## Playwright
 
-Browser automation configuration for QA agents.
+Browser automation configuration for testing (used with the `qa-testing` skill).
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -102,13 +102,13 @@ playwright:
   base_url: "http://localhost:3000"
 ```
 
-The QA agent uses this to navigate the application during end-to-end testing.
+The agent uses this to navigate the application during end-to-end testing.
 
 ## How Integrations Work
 
-Integrations are **purely declarative** — there is no CLI code that calls Linear, Slack, or GitHub APIs. Instead, `hub generate` reads the `integrations` section and **injects instructions into the orchestrator rule** (`.cursor/rules/orchestrator.mdc` or `AGENTS.md`).
+Integrations are **purely declarative** — there is no CLI code that calls Linear, Slack, or GitHub APIs. Instead, `hub generate` reads the `integrations` section and **injects instructions into the capabilities prompt** (`.cursor/rules/orchestrator.mdc` or `AGENTS.md`).
 
-The generated orchestrator rule will contain sections like:
+The generated capabilities prompt will contain sections like:
 
 ```markdown
 ## Task Management
@@ -134,7 +134,7 @@ At runtime, the **AI agent reads these instructions** and uses the corresponding
 So the flow is:
 
 ```
-hub.yaml (integrations) → hub generate → orchestrator rule (text) → AI agent → MCPs (execution)
+hub.yaml (integrations) → hub generate → capabilities prompt (text) → AI agent → MCPs (execution)
 ```
 
 This means you need the corresponding MCPs configured in the `mcps` section for integrations to actually work at runtime.

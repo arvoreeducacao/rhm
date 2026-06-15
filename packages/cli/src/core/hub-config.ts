@@ -67,18 +67,6 @@ export interface IntegrationConfig {
   };
 }
 
-export interface WorkflowStep {
-  step: string;
-  agent?: string;
-  agents?: (string | { agent: string; when?: string; output?: string })[];
-  parallel?: boolean;
-  output?: string;
-  tools?: string[];
-  when?: string;
-  actions?: string[];
-  mode?: "plan" | "agent";
-}
-
 export interface SecretRef {
   secret: string;
   profile?: string;
@@ -175,14 +163,25 @@ export interface HubConfig {
   commands?: Record<string, string>;
   commands_dir?: string;
   memory?: MemoryConfig;
+  pi?: {
+    headerBanner?: boolean;
+    onboarding?: boolean;
+    autoMcpWiring?: boolean;
+    injectCapabilities?: boolean;
+    hooks?: boolean;
+    persona?: boolean;
+  };
   remote_sources?: RemoteSource[];
   design?: DesignConfig;
+  skills?: string[];
   workflow?: {
     task_folder?: string;
-    pipeline?: WorkflowStep[];
     prompt?: PromptCustomization;
-    enforce_workflow?: boolean;
     fact_checker?: boolean;
+    /** @deprecated Removed in the skills-centered model. Ignored at load time (a warning is emitted). */
+    pipeline?: unknown;
+    /** @deprecated Removed in the skills-centered model. Ignored at load time (a warning is emitted). */
+    enforce_workflow?: boolean;
   };
 }
 

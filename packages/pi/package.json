@@ -1,6 +1,6 @@
 {
   "name": "@arvoretech/hub-pi",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Pi runtime package for hub.yaml workspaces — interprets config at runtime with no static generation",
   "type": "module",
   "keywords": [
@@ -19,13 +19,14 @@
   },
   "dependencies": {
     "@arvoretech/hub-core": "workspace:*",
+    "typebox": "^1.1.38",
     "yaml": "^2.7.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-coding-agent": "^0.79.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.0.0",
     "eslint": "^10.0.0",

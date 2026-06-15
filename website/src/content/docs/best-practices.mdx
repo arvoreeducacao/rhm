@@ -10,37 +10,32 @@ These are the practices we've refined at Arvore through months of real productio
 
 Not all models are equal for development work. Our stack:
 
-- **Claude Opus 4.6** for complex tasks — multi-file refactors, architecture decisions, agent orchestration, code review. It's the most capable model for sustained, multi-step reasoning across large codebases.
+- **Claude Opus 4.6** for complex tasks — multi-file refactors, architecture decisions, code review, and reasoning across many repos. It's the most capable model for sustained, multi-step work across large codebases.
 - **Faster models** for quick, scoped tasks — simple bug fixes, test generation, single-file changes. Cheaper and lower latency when the task doesn't need deep reasoning.
 
-The orchestrator chooses the model per step. Refinement and review need the best model. A quick lint fix doesn't.
+Match the model to the task. Refinement and review benefit from the best model. A quick lint fix doesn't.
 
 **Key insight:** the model matters less than the context you give it. Opus 4.6 with poor context produces worse results than a smaller model with excellent context. Repo Hub exists to solve the context problem.
 
-## Structure your workflow
+## Give the AI the right capabilities
 
-Ad-hoc prompting produces ad-hoc results. The biggest productivity gain isn't a better model — it's a **structured pipeline**:
+Ad-hoc prompting produces ad-hoc results. The biggest productivity gain isn't a better model — it's giving the AI **the right capabilities and letting it pull what each task needs**:
 
 ```yaml
-workflow:
-  pipeline:
-    - step: refinement
-      agent: refinement
-    - step: coding
-      agents: [coding-backend, coding-frontend]
-      parallel: true
-    - step: review
-      agent: code-reviewer
-    - step: qa
-      agent: qa-frontend
-      tools: [playwright]
-    - step: deliver
-      actions: [create-pr, notify-slack]
+skills: [refinement, code-review, qa-testing, debugging]
+
+repos:
+  - name: api
+    tech: nestjs
+    skills: [backend-nestjs]
+  - name: frontend
+    tech: nextjs
+    skills: [frontend-nextjs]
 ```
 
-Every feature goes through the same steps. The refinement agent collects requirements before any code is written. The review agent checks against those requirements. The QA agent tests with real browser automation.
+The AI pulls the `refinement` skill to clarify a contract before writing code, the relevant stack skills while implementing, and — when an independent pass helps — spawns a fresh-context subagent that pulls `code-review` or `qa-testing` (with real browser automation). No rigid script; the AI applies judgment about what each task needs.
 
-This consistency is what makes "weeks instead of months" possible. Not magic — process.
+This consistency is what makes "weeks instead of months" possible. Not magic — capabilities the AI can reach for, reliably.
 
 ## Encode knowledge in skills
 
@@ -59,9 +54,9 @@ skills/backend-nestjs/SKILL.md
 └── API response format
 ```
 
-When a coding agent starts working on a repo with `skills: [backend-nestjs]`, it reads the skill first. The result is code that matches your existing codebase from the first attempt.
+When the AI works on a repo with `skills: [backend-nestjs]`, the editor surfaces that skill and the AI pulls it before writing code. The result is code that matches your existing codebase from the first attempt.
 
-**Write skills for every framework and convention in your stack.** This is the highest-ROI activity for any team using AI development.
+**Write skills for every framework and convention in your stack — and for cross-cutting capabilities like review, testing, and refinement.** This is the highest-ROI activity for any team using AI development.
 
 ## Connect to real infrastructure
 
@@ -76,7 +71,7 @@ MCPs remove the guessing:
 | Playwright MCP | Browser automation for E2E testing |
 | npm Registry MCP | Package security and adoption signals |
 
-The debugger agent with access to Datadog logs can identify a root cause in minutes instead of hours. The QA agent with Playwright can verify UI changes without manual testing.
+The `debugging` skill plus access to Datadog logs lets the AI identify a root cause in minutes instead of hours. The `qa-testing` skill plus Playwright lets it verify UI changes without manual testing.
 
 **Every piece of infrastructure your team uses should be accessible to AI through MCPs.**
 
@@ -90,16 +85,16 @@ Our product engineers spend most of their time on:
 2. **Architecture decisions** — Should we add this dependency? Is this the right abstraction? Will this scale?
 3. **Code review** — Does this implementation match the requirements? Are there security implications? Is the error handling correct?
 
-The code review agent catches the obvious issues. The human catches the subtle ones. Both are essential.
+The `code-review` skill catches the obvious issues — especially when run in a fresh-context subagent so the review isn't biased by the implementation reasoning. The human catches the subtle ones. Both are essential.
 
 ## Train your team
 
 The framework is only as good as the people using it. Product engineers need to know:
 
 - **How to write effective refinement docs** — Clear requirements produce better code
-- **When to intervene vs. let the pipeline run** — Not every step needs human input
+- **When to intervene vs. let the AI run** — Not every task needs human input at every step
 - **How to write and maintain skills** — The team's knowledge should be encoded, not tribal
-- **How to debug agent behavior** — When an agent produces poor output, the fix is usually better context, not a better prompt
+- **How to debug agent behavior** — When the AI produces poor output, the fix is usually better context or a sharper skill, not a better one-off prompt
 
 We invest in training because the compound returns are enormous. One engineer who masters the workflow produces more output than five who don't.
 
@@ -109,10 +104,9 @@ Don't try to automate everything on day one.
 
 1. Start with **cross-repo context** — the `.gitignore` / `.cursorignore` pattern
 2. Add **one or two MCPs** — database and browser automation
-3. Define **a simple 3-step pipeline** — refinement, coding, review
-4. Write **skills for your primary framework**
-5. Expand from there based on what bottlenecks you hit
+3. Install **a few core skills** — refinement, code-review, and your primary framework
+4. Expand from there based on what bottlenecks you hit
 
-The full setup (11 agents, 19 MCPs, 9 repos) took us months to refine. But the first version — 2 repos, 3 agents, 2 MCPs — was running in a day.
+The full setup (a broad skill library, 19 MCPs, 9 repos) took us months to refine. But the first version — 2 repos, a couple of skills, 2 MCPs — was running in a day.
 
 [Get Started →](/docs/getting-started)

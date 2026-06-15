@@ -6,14 +6,13 @@ const STEP_LABELS: Partial<Record<Step, string>> = {
   name: 'Name',
   editor: 'Editor',
   repos: 'Repositories',
-  agents: 'Agents',
   skills: 'Skills',
   mcps: 'MCPs',
   format: 'Config Format',
   summary: 'Review',
 }
 
-const ORDERED_STEPS: Step[] = ['name', 'editor', 'repos', 'agents', 'skills', 'mcps', 'format', 'summary']
+const ORDERED_STEPS: Step[] = ['name', 'editor', 'repos', 'skills', 'mcps', 'format', 'summary']
 
 interface Props {
   currentStep: Step
