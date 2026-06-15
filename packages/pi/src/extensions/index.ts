@@ -3,6 +3,7 @@ import { initSessionState } from "./session-state.js";
 import { hubRuntime } from "./hub-runtime.js";
 import { mcpWiring } from "./mcp-wiring.js";
 import { repoTools } from "./repo-tools.js";
+import { repoContext } from "./repo-context.js";
 import { persona } from "./persona.js";
 import { delivery } from "./delivery.js";
 import { hooks } from "./hooks.js";
@@ -17,6 +18,7 @@ export default function hubPiPackage(pi: ExtensionAPI) {
   hubRuntime(pi);
   mcpWiring(pi);
   repoTools(pi);
+  repoContext(pi);
   persona(pi);
   delivery(pi);
   hooks(pi);
