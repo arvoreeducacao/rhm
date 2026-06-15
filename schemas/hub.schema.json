@@ -203,7 +203,7 @@
         "context_files": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Markdown files (relative to the repo root) with rich repo context (architecture, conventions, gotchas). Loaded on demand via the hub_repo_context Pi tool, never at startup."
+          "description": "Markdown files (relative to the hub workspace root) with rich repo context (architecture, conventions, gotchas). Loaded on demand via the hub_repo_context Pi tool, never at startup."
         }
       }
     },
