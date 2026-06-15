@@ -58,7 +58,7 @@ export function hubRuntime(pi: ExtensionAPI) {
 
   pi.on("before_agent_start", async (event) => {
     const { hubDir, config, pi: toggles, hasGeneratedOrchestrator } = getSessionState();
-    if (!config || !toggles) return;
+    if (!hubDir || !config || !toggles) return;
     if (!toggles.injectCapabilities) return;
     if (hasGeneratedOrchestrator) return;
 
