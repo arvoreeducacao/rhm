@@ -16,6 +16,7 @@ export interface Repo {
   };
   skills?: string[];
   tools?: Record<string, string>;
+  context_files?: string[];
 }
 
 export interface Service {
@@ -152,6 +153,7 @@ export interface PiConfig {
   injectCapabilities?: boolean;
   hooks?: boolean;
   persona?: boolean;
+  repoContext?: boolean;
 }
 
 export interface HubConfig {

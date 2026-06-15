@@ -17,6 +17,7 @@ export function resolvePiConfig(config: HubConfig): ResolvedPiConfig {
     injectCapabilities: pi.injectCapabilities ?? true,
     hooks: pi.hooks ?? true,
     persona: pi.persona ?? true,
+    repoContext: pi.repoContext ?? true,
   };
 }
 

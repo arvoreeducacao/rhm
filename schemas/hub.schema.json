@@ -199,6 +199,11 @@
           "type": "object",
           "additionalProperties": { "type": "string" },
           "description": "Repo-specific tool overrides"
+        },
+        "context_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Markdown files (relative to the repo root) with rich repo context (architecture, conventions, gotchas). Loaded on demand via the hub_repo_context Pi tool, never at startup."
         }
       }
     },
@@ -348,6 +353,10 @@
         "persona": {
           "type": "boolean",
           "description": "Injects the persona section into the system prompt. Default: true"
+        },
+        "repoContext": {
+          "type": "boolean",
+          "description": "Registers the hub_repo_context tool that loads a repo's context_files on demand, plus steering that nudges the agent to call it before working on a repo. Default: true"
         }
       }
     },
