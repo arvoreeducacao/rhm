@@ -75,7 +75,7 @@ Checks: git, docker, node (required), pnpm, mise, gh, aws (recommended), plus an
 Generate editor configuration files from your config (`hub.yaml` or `hub.config.ts`):
 
 ```bash
-hub generate --editor pi           # Pi (registers hub-pi extension; runtime, no files)
+hub generate --editor pi           # Pi (AGENTS.md + steering, registers hub-pi extension)
 hub generate --editor cursor       # Cursor IDE
 hub generate --editor claude-code  # Claude Code (CLAUDE.md)
 hub generate --editor kiro         # Kiro IDE
@@ -90,7 +90,7 @@ hub generate --check               # Check if configs are outdated (exit 1 if ou
 | `--check` | Check if generated configs are outdated without regenerating. Exits with code 1 if outdated, 0 if up to date. Useful in CI and editor hooks. |
 
 Produces:
-- **Pi**: no generated files. Registers `@arvoretech/hub-pi` in `.pi/settings.json` (merge-preserving existing packages/skills) and points the skills dir. The extension derives the capabilities prompt, skills, and MCP wiring from the config at runtime.
+- **Pi**: `AGENTS.md` (capabilities prompt with steering appended) read natively by Pi at startup. Registers `@arvoretech/hub-pi` in `.pi/settings.json` (merge-preserving existing packages/skills) and points the skills dir. The extension adds MCP wiring, repo tools, persona, and hooks at runtime. Skip the `AGENTS.md` generation by setting `pi.injectCapabilities: false`.
 - **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/rules/<steering>.mdc`, `.cursor/skills/`, `.cursor/skills/hub-docs/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `<name>.code-workspace`, `.gitignore`, `.cursorignore`
 - **Claude Code**: `CLAUDE.md` (with steering appended), `.claude/skills/`, `.claude/skills/hub-docs/`, `.claude/settings.json` (with hooks), `.mcp.json`, `.gitignore`
 - **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/<steering>.md`, `.kiro/skills/`, `.kiro/skills/hub-docs/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`

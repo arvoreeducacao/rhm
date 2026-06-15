@@ -8,7 +8,7 @@ import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig } from ".
 import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
 import { fetchRemoteSources } from "../core/design-sources.js";
 import { loadPersona, buildPersonaEditorFile } from "./persona.js";
-import { buildCapabilitiesPrompt } from "@arvoretech/hub-core";
+import { buildCapabilitiesPrompt, resolvePiConfig } from "@arvoretech/hub-core";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
 
@@ -1322,9 +1322,37 @@ async function generatePi(config: HubConfig, hubDir: string) {
 
   await writeFile(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf-8");
 
-  console.log(chalk.dim("\n  Pi reads its config from hub-pi at runtime — no AGENTS.md, rules, or mcp.json are generated."));
-  console.log(chalk.dim("  Repositories, policies, skills, and MCP wiring are derived from the config live by the extension."));
-  console.log(chalk.dim("  (Running 'hub generate --editor cursor/kiro/...' would create an AGENTS.md; the extension then defers to it.)"));
+  const piToggles = resolvePiConfig(config);
+  if (!piToggles.injectCapabilities) {
+    console.log(chalk.dim("\n  pi.injectCapabilities is disabled — skipping AGENTS.md generation."));
+    console.log(chalk.dim("  The hub-pi extension still wires MCPs, repo tools, persona, hooks, and skills at runtime."));
+    return;
+  }
+
+  const capabilities = buildCapabilitiesPrompt(config, { format: "plain" });
+  const agentsSections: string[] = [];
+  if (capabilities) agentsSections.push(capabilities);
+
+  const hubSteeringDirPi = resolve(hubDir, "steering");
+  try {
+    const steeringFiles = await readdir(hubSteeringDirPi);
+    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
+    for (const file of mdFiles) {
+      const raw = await readFile(join(hubSteeringDirPi, file), "utf-8");
+      const content = stripFrontMatter(raw).trim();
+      if (content) agentsSections.push(content);
+    }
+    if (mdFiles.length > 0) {
+      console.log(chalk.green(`  Appended ${mdFiles.length} steering files to AGENTS.md`));
+    }
+  } catch {
+    // no steering dir
+  }
+
+  await writeFile(join(hubDir, "AGENTS.md"), agentsSections.join("\n\n") + "\n", "utf-8");
+  console.log(chalk.green("  Generated AGENTS.md"));
+
+  console.log(chalk.dim("\n  Pi reads AGENTS.md natively at startup; MCP wiring, repo tools, persona, and hooks are added by the hub-pi extension at runtime."));
 }
 
 export const generators: Record<string, Generator> = {

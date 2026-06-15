@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import {
   loadHubConfig,
   resolvePiConfig,
@@ -11,14 +9,12 @@ interface SessionState {
   hubDir: string;
   config: HubConfig | null;
   pi: ResolvedPiConfig | null;
-  hasGeneratedOrchestrator: boolean;
 }
 
 const state: SessionState = {
   hubDir: "",
   config: null,
   pi: null,
-  hasGeneratedOrchestrator: false,
 };
 
 export async function initSessionState(hubDir: string): Promise<SessionState> {
@@ -33,11 +29,6 @@ export async function initSessionState(hubDir: string): Promise<SessionState> {
     state.config = null;
     state.pi = null;
   }
-
-  state.hasGeneratedOrchestrator =
-    existsSync(join(hubDir, "AGENTS.md")) ||
-    existsSync(join(hubDir, ".kiro", "steering", "orchestrator.md")) ||
-    existsSync(join(hubDir, ".cursor", "rules", "orchestrator.mdc"));
 
   return state;
 }
