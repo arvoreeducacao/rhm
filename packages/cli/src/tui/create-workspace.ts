@@ -153,7 +153,7 @@ function buildGitignore(state: InitState): string {
     'node_modules/',
     '.DS_Store',
     '',
-    ...state.repos.map((r) => r.name),
+    ...state.repos.map((r) => `/${r.name}`),
     '',
     '*_data/',
     '',

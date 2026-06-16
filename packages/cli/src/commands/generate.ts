@@ -1231,7 +1231,7 @@ function buildGitignoreLines(config: HubConfig): string[] {
   ];
 
   for (const repo of config.repos) {
-    lines.push(repo.path.replace("./", ""));
+    lines.push(`/${repo.path.replace(/^\.\//, "")}`);
   }
 
   lines.push(
