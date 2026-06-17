@@ -45,27 +45,10 @@ export function repoTools(pi: ExtensionAPI) {
         }
 
         const cwd = resolve(ctx.cwd, repo.path);
-        const { execSync } = await import("node:child_process");
-
-        try {
-          const output = execSync(cmd, {
-            cwd,
-            encoding: "utf-8",
-            timeout: 120_000,
-            stdio: ["pipe", "pipe", "pipe"],
-          });
-          return {
-            content: [{ type: "text", text: output || "(no output)" }],
-            details: { repo: params.repo, command: params.command, cwd },
-          };
-        } catch (err: unknown) {
-          const error = err as { stderr?: string; stdout?: string; message?: string };
-          const output = error.stderr || error.stdout || error.message || "Command failed";
-          return {
-            content: [{ type: "text", text: output }],
-            isError: true,
-          };
-        }
+        return {
+          content: [{ type: "text", text: `Command: ${cmd}\nDirectory: ${cwd}\n\nRun via bash. Adjust as needed (e.g. append & for background).` }],
+          details: { repo: params.repo, command: params.command, cwd, cmd },
+        };
       },
     });
   });
