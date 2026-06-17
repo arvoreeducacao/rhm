@@ -45,8 +45,47 @@ export function repoTools(pi: ExtensionAPI) {
         }
 
         const cwd = resolve(ctx.cwd, repo.path);
-        const { execSync } = await import("node:child_process");
 
+        const longRunningNames = new Set(["dev", "start", "watch", "serve"]);
+        const longRunningPatterns = /\b(watch|--watch|serve|dev|start)\b/;
+        const isLongRunning = longRunningNames.has(params.command) || longRunningPatterns.test(cmd);
+
+        if (isLongRunning) {
+          const { spawn } = await import("node:child_process");
+          return new Promise((res) => {
+            const child = spawn("sh", ["-c", cmd], {
+              cwd,
+              stdio: ["ignore", "pipe", "pipe"],
+              detached: true,
+            });
+
+            let output = "";
+            const collect = (chunk: Buffer) => { output += chunk.toString(); };
+            child.stdout?.on("data", collect);
+            child.stderr?.on("data", collect);
+
+            const timeout = setTimeout(() => {
+              child.stdout?.removeListener("data", collect);
+              child.stderr?.removeListener("data", collect);
+              child.unref();
+              res({
+                content: [{ type: "text", text: `Background process started (pid ${child.pid}).\n\nInitial output:\n${output || "(none yet)"}` }],
+                details: { repo: params.repo, command: params.command, cwd, pid: child.pid, background: true },
+              });
+            }, 5_000);
+
+            child.on("exit", (code) => {
+              clearTimeout(timeout);
+              res({
+                content: [{ type: "text", text: code === 0 ? output || "(no output)" : `Exited with code ${code}\n${output}` }],
+                isError: code !== 0,
+                details: { repo: params.repo, command: params.command, cwd },
+              });
+            });
+          });
+        }
+
+        const { execSync } = await import("node:child_process");
         try {
           const output = execSync(cmd, {
             cwd,
