@@ -510,7 +510,7 @@ export function buildDesignSection(config: HubConfig): string | null {
   const parts: string[] = [];
   parts.push(`\n## Design System`);
 
-  if (design.enforce && design.skills?.length) {
+  if (design.enforce && design.skills?.length && !design.instructions) {
     const skillList = design.skills.map((s) => `\`${s}\``).join(", ");
     parts.push(`
 **DESIGN ENFORCEMENT — MANDATORY**
