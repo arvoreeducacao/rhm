@@ -85,6 +85,23 @@ export function stripDollarPrefix(env: Record<string, string>): Record<string, s
   return result;
 }
 
+function buildDockerEnvArgs(env: Record<string, string>): {
+  args: string[];
+  passthroughEnv: Record<string, string>;
+} {
+  const args: string[] = [];
+  const passthroughEnv: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (/^\$\{\w+\}$/.test(value)) {
+      args.push("-e", key);
+      passthroughEnv[key] = value;
+    } else {
+      args.push("-e", `${key}=${value}`);
+    }
+  }
+  return { args, passthroughEnv };
+}
+
 interface ProxyUpstreamEntry {
   name: string;
   command: string;
@@ -238,13 +255,19 @@ export function buildPiMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   }
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
+    let passthroughEnv: Record<string, string> | undefined;
     if (env) {
-      for (const [key, value] of Object.entries(env)) {
-        args.push("-e", `${key}=${value}`);
-      }
+      const built = buildDockerEnvArgs(env);
+      args.push(...built.args);
+      if (Object.keys(built.passthroughEnv).length) passthroughEnv = built.passthroughEnv;
     }
     args.push(mcp.image);
-    return { command: "docker", args, ...extra };
+    return {
+      command: "docker",
+      args,
+      ...(passthroughEnv && { env: passthroughEnv }),
+      ...extra,
+    };
   }
   if (mcp.command) {
     return {
