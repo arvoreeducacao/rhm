@@ -245,7 +245,7 @@ export function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Re
 export function buildPiMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   const env = mcp.env ? stripEnvPrefix(mcp.env) : undefined;
   const extra: Record<string, unknown> = {};
-  if (mcp.auth) extra.auth = mcp.auth;
+  if (mcp.auth) extra.auth = typeof mcp.auth === "string" ? mcp.auth : mcp.auth.type;
   if (mcp.lifecycle) extra.lifecycle = mcp.lifecycle;
   if (mcp.idleTimeout !== undefined) extra.idleTimeout = mcp.idleTimeout;
   if (mcp.directTools !== undefined) extra.directTools = mcp.directTools;

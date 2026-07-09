@@ -34,6 +34,17 @@ export interface Service {
   workspace?: string;
 }
 
+export interface MCPOAuthConfig {
+  type: "oauth";
+  clientId?: string;
+  clientSecret?: string;
+  scope?: string;
+  redirectUri?: string;
+  clientName?: string;
+  clientUri?: string;
+  grantType?: "authorization_code" | "client_credentials";
+}
+
 export interface MCPConfig {
   name: string;
   description?: string;
@@ -45,6 +56,7 @@ export interface MCPConfig {
   env?: Record<string, string>;
   upstreams?: string[];
   autoApprove?: boolean | string[];
+  auth?: "bearer" | "oauth" | MCPOAuthConfig;
 }
 
 export interface IntegrationConfig {
