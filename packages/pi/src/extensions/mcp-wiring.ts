@@ -7,8 +7,39 @@ import {
   buildPiMcpEntry,
   readExistingMcpDisabledState,
   applyDisabledState,
+  type MCPConfig,
+  type MCPOAuthConfig,
 } from "@arvoretech/hub-core";
 import { getSessionState } from "./session-state.js";
+
+function resolveEnvRefs(value: string): string {
+  return value
+    .replace(/\$\{env:(\w+)\}/g, (_, name) => process.env[name] ?? "")
+    .replace(/\$\{(\w+)\}/g, (_, name) => process.env[name] ?? "");
+}
+
+export function buildOAuthBlock(auth: MCPOAuthConfig): Record<string, unknown> | undefined {
+  const oauth: Record<string, unknown> = {};
+  const clientId = auth.clientId ? resolveEnvRefs(auth.clientId) : undefined;
+  const clientSecret = auth.clientSecret ? resolveEnvRefs(auth.clientSecret) : undefined;
+  if (clientId) oauth.clientId = clientId;
+  if (clientSecret) oauth.clientSecret = clientSecret;
+  if (auth.scope) oauth.scope = auth.scope;
+  if (auth.redirectUri) oauth.redirectUri = auth.redirectUri;
+  if (auth.clientName) oauth.clientName = auth.clientName;
+  if (auth.clientUri) oauth.clientUri = auth.clientUri;
+  if (auth.grantType) oauth.grantType = auth.grantType;
+  return Object.keys(oauth).length ? oauth : undefined;
+}
+
+export function buildEntry(mcp: MCPConfig): Record<string, unknown> {
+  const entry = buildPiMcpEntry(mcp);
+  if (mcp.auth && typeof mcp.auth !== "string") {
+    const oauth = buildOAuthBlock(mcp.auth);
+    if (oauth) entry.oauth = oauth;
+  }
+  return entry;
+}
 
 export function mcpWiring(pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
@@ -21,7 +52,7 @@ export function mcpWiring(pi: ExtensionAPI) {
 
     for (const mcp of config.mcps) {
       if (mcp.upstreams?.length) continue;
-      mcpConfig[mcp.name] = buildPiMcpEntry(mcp);
+      mcpConfig[mcp.name] = buildEntry(mcp);
     }
 
     const mcpJsonPath = join(hubDir, ".pi", "mcp.json");

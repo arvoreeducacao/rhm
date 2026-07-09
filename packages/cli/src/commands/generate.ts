@@ -1170,10 +1170,16 @@ function extractEnvVarsByMcp(mcps: MCPConfig[]): { name: string; vars: string[] 
   const groups: { name: string; vars: string[] }[] = [];
 
   for (const mcp of mcps) {
-    if (!mcp.env) continue;
+    const values: string[] = [];
+    if (mcp.env) values.push(...Object.values(mcp.env));
+    if (mcp.auth && typeof mcp.auth !== "string") {
+      if (mcp.auth.clientId) values.push(mcp.auth.clientId);
+      if (mcp.auth.clientSecret) values.push(mcp.auth.clientSecret);
+    }
+    if (values.length === 0) continue;
     const vars: string[] = [];
     const seenInGroup = new Set<string>();
-    for (const value of Object.values(mcp.env)) {
+    for (const value of values) {
       const match = envVarPattern.exec(value);
       if (match && !seenInGroup.has(match[1])) {
         seenInGroup.add(match[1]);

@@ -41,11 +41,22 @@ export interface MCPConfig {
   env?: Record<string, string>;
   upstreams?: string[];
   autoApprove?: boolean | string[];
-  auth?: "bearer" | "oauth";
+  auth?: "bearer" | "oauth" | MCPOAuthConfig;
   lifecycle?: "lazy" | "eager" | "keep-alive";
   idleTimeout?: number;
   directTools?: boolean | string[];
   excludeTools?: string[];
+}
+
+export interface MCPOAuthConfig {
+  type: "oauth";
+  clientId?: string;
+  clientSecret?: string;
+  scope?: string;
+  redirectUri?: string;
+  clientName?: string;
+  clientUri?: string;
+  grantType?: "authorization_code" | "client_credentials";
 }
 
 export interface IntegrationConfig {
