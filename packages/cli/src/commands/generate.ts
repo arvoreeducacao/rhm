@@ -1166,7 +1166,7 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
 
 
 function extractEnvVarsByMcp(mcps: MCPConfig[]): { name: string; vars: string[] }[] {
-  const envVarPattern = /\$\{env:([^}]+)\}/;
+  const envVarPattern = /\$\{(?:env:)?(\w+)\}/g;
   const groups: { name: string; vars: string[] }[] = [];
 
   for (const mcp of mcps) {
@@ -1180,10 +1180,11 @@ function extractEnvVarsByMcp(mcps: MCPConfig[]): { name: string; vars: string[] 
     const vars: string[] = [];
     const seenInGroup = new Set<string>();
     for (const value of values) {
-      const match = envVarPattern.exec(value);
-      if (match && !seenInGroup.has(match[1])) {
-        seenInGroup.add(match[1]);
-        vars.push(match[1]);
+      for (const match of value.matchAll(envVarPattern)) {
+        if (!seenInGroup.has(match[1])) {
+          seenInGroup.add(match[1]);
+          vars.push(match[1]);
+        }
       }
     }
     if (vars.length > 0) {

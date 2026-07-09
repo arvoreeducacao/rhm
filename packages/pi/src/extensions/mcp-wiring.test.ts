@@ -33,6 +33,21 @@ describe("buildOAuthBlock", () => {
     expect(oauth).toEqual({ clientSecret: "abc" });
   });
 
+  it("drops fields and reports missing env vars when unset", () => {
+    delete process.env.NONEXISTENT_VAR;
+    const missing = new Set<string>();
+    const oauth = buildOAuthBlock(
+      {
+        type: "oauth",
+        clientId: "static-id",
+        clientSecret: "${env:NONEXISTENT_VAR}",
+      },
+      missing,
+    );
+    expect(oauth).toEqual({ clientId: "static-id" });
+    expect([...missing]).toEqual(["NONEXISTENT_VAR"]);
+  });
+
   it("passes through optional fields", () => {
     const oauth = buildOAuthBlock({
       type: "oauth",
