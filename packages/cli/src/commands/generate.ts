@@ -480,10 +480,11 @@ function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   if (mcp.url) {
     return { type: "http", url: mcp.url };
   }
+  const env = mcp.env ? stripEnvPrefix(mcp.env) : undefined;
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
-    if (mcp.env) {
-      for (const [key, value] of Object.entries(mcp.env)) {
+    if (env) {
+      for (const [key, value] of Object.entries(env)) {
         args.push("-e", `${key}=${value}`);
       }
     }
@@ -493,13 +494,13 @@ function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   return {
     command: "npx",
     args: ["-y", mcp.package!, ...(mcp.args || [])],
-    ...(mcp.env && { env: mcp.env }),
+    ...(env && { env }),
   };
 }
 
 /**
- * Kiro IDE uses `${VAR_NAME}` for env references, while the CLI uses `${env:VAR_NAME}`.
- * This strips the `env:` prefix when generating for the editor/IDE.
+ * Kiro IDE and Claude Code use `${VAR_NAME}` for env references, while the CLI
+ * uses `${env:VAR_NAME}`. This strips the `env:` prefix when generating for them.
  */
 function stripEnvPrefix(env: Record<string, string>): Record<string, string> {
   const result: Record<string, string> = {};
