@@ -54,13 +54,13 @@ frontend
 
 Git sees separate repositories. The AI sees one workspace. Each repo keeps its own history. Zero migration.
 
-But context alone wasn't enough. We needed the AI to **follow a process**, not just answer questions. So we built the agent orchestration layer:
+But context alone wasn't enough. We needed the AI to use the right **capabilities** for each task, not just answer questions. So we built the skills and tooling layer:
 
-1. **One YAML file** declares everything — repos, services, MCPs, workflow pipeline
+1. **One YAML file** declares everything — repos, services, MCPs, skills, conventions
 2. **A CLI** generates editor configs from that YAML
-3. **The editor becomes the runtime** — the orchestrator agent follows the pipeline, calling sub-agents in order
+3. **The editor becomes the runtime** — it exposes the connected tools and installed skills, and the AI pulls what each task needs
 
-No daemon. No server. No platform. The AI editor runs the entire workflow.
+No daemon. No server. No platform. The AI editor does the work.
 
 ## What happened
 
@@ -77,7 +77,7 @@ With 10 engineers and Repo Hub, we didn't just maintain our pace — we accelera
 - 10 product engineers
 - Weeks per feature
 - Automatic cross-repo context
-- Structured agent pipelines with consistent output
+- A shared library of skills the AI pulls on demand for consistent output
 - Most time spent on review, security, and product decisions
 
 The role naturally evolved. Our engineers stopped spending time writing boilerplate and started focusing on what requires human judgment: security, architecture, code review, and product decisions. We started calling them product engineers — because that's what they are.
@@ -90,13 +90,13 @@ We're actively hiring. We want more product engineers who can work this way — 
 
 Role details: [Product Engineer (Hiring) →](/docs/product-engineer)
 
-The tools will keep changing. Editors, models, providers — none of it is permanent. What matters is the discipline: structured workflows, encoded knowledge, connected infrastructure, and human review at every step.
+The tools will keep changing. Editors, models, providers — none of it is permanent. What matters is the discipline: reusable skills, encoded knowledge, connected infrastructure, and human review at every step.
 
 ## Why we open-sourced it
 
 We built Repo Hub to solve our own problem. But the problem isn't unique to Arvore.
 
-Every team using AI coding assistants hits the same wall: context fragmentation, workflow inconsistency, manual overhead. The solution shouldn't be proprietary.
+Every team using AI coding assistants hits the same wall: context fragmentation, inconsistent results, manual overhead. The solution shouldn't be proprietary.
 
 Repo Hub is MIT licensed and designed for adoption. If your team manages multiple repositories and uses AI for development, this framework is for you.
 

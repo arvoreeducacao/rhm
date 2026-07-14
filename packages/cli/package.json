@@ -1,6 +1,6 @@
 {
   "name": "@arvoretech/hub",
-  "version": "0.22.0",
+  "version": "0.25.2",
   "description": "CLI for managing AI-aware multi-repository workspaces",
   "main": "dist/index.js",
   "type": "module",
@@ -27,6 +27,7 @@
     "lint:fix": "eslint src/ --fix"
   },
   "dependencies": {
+    "@arvoretech/hub-core": "workspace:*",
     "chalk": "^5.4.0",
     "commander": "^13.0.0",
     "execa": "^9.5.0",

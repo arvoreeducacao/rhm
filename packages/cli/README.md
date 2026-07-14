@@ -2,7 +2,7 @@
 
 **You describe a feature. Your AI codes it, reviews it, tests it, and opens a pull request.**
 
-Repo Hub is a configuration file (`hub.yaml`) that teaches your AI coding assistant how your company builds software. You declare your repositories, your tools, and your development workflow. The AI follows it — from understanding requirements to delivering a tested PR.
+Repo Hub is a configuration file (`hub.yaml`) that teaches your AI coding assistant how your company builds software. You declare your repositories, your tools, and your skills. The AI uses them — from understanding requirements to delivering a tested PR.
 
 Think of it like a **docker-compose for AI-powered development**. Instead of defining containers, you define how your AI should work.
 
@@ -28,7 +28,7 @@ Built and battle-tested by [Arvore](https://arvore.com.br), where 10 engineers u
 **With Repo Hub**, you write a config file that tells the AI:
 - **Which repos** to work on (and it sees all of them at once)
 - **Which tools** it can use (databases, monitoring, browser testing, etc.)
-- **What workflow** to follow (refine → code → review → test → deliver)
+- **Which skills** it can pull (how you refine, review, test, and build)
 
 One CLI command generates the config your editor needs. Done.
 
@@ -55,14 +55,7 @@ mcps:
   - name: postgresql
   - name: playwright
 
-workflow:
-  pipeline:
-    - step: refinement
-    - step: coding
-    - step: review
-    - step: qa
-    - step: deliver
-      actions: [create-pr, notify-slack]
+skills: [refinement, code-review, qa-testing]
 ```
 
 And the same thing in TypeScript with type-safe helpers:
@@ -80,14 +73,7 @@ export default defineConfig({
     mcp.postgresql("main-db"),
     mcp.playwright(),
   ],
-  workflow: {
-    pipeline: [
-      { step: "refinement", agent: "refinement" },
-      { step: "coding", agents: ["coding-backend", "coding-frontend"] },
-      { step: "review", agent: "code-reviewer" },
-      { step: "deliver", actions: ["create-pr", "notify-slack"] },
-    ],
-  },
+  skills: ["refinement", "code-review", "qa-testing"],
 });
 ```
 
@@ -99,22 +85,20 @@ When you run `hub generate --editor <editor>`, the CLI reads your YAML and produ
 
 ```
 hub generate --editor cursor
-  → .cursor/rules/orchestrator.mdc   (the AI's playbook)
-  → .cursor/agents/*.md              (specialized AI roles)
-  → .cursor/skills/*.md              (coding patterns and conventions)
+  → .cursor/rules/orchestrator.mdc   (the AI's capabilities prompt)
+  → .cursor/skills/*.md              (specialized knowledge, pulled on demand)
   → .cursor/mcp.json                 (tool connections)
 
 hub generate --editor kiro
-  → .kiro/steering/orchestrator.md   (the AI's playbook)
-  → .kiro/steering/agent-*.md        (specialized AI roles)
-  → .kiro/skills/*.md                (coding patterns and conventions)
+  → .kiro/steering/orchestrator.md   (the AI's capabilities prompt)
+  → .kiro/skills/*.md                (specialized knowledge, pulled on demand)
   → .kiro/settings/mcp.json          (tool connections)
   → AGENTS.md                        (standard agents.md)
 ```
 
 ### Your editor is the runtime
 
-There's no server. No daemon. No separate process. Your AI editor (Cursor, Claude Code, Kiro) reads the generated config and follows the workflow automatically when you ask it to build something.
+There's no server. No daemon. No separate process. Your AI editor (Cursor, Claude Code, Kiro) reads the generated config — repositories, conventions, connected tools, installed skills — and works with whatever each task needs.
 
 ---
 
@@ -122,10 +106,10 @@ There's no server. No daemon. No separate process. Your AI editor (Cursor, Claud
 
 | Concept | What it means | Analogy |
 |---------|--------------|---------|
-| **Agents** | Specialized AI roles — one refines, one codes, one reviews, one tests | Team members with specific jobs |
+| **Skills** | Specialized knowledge the AI pulls on demand (how to refine, review, test, or work in a stack) | Onboarding docs for a new hire |
 | **MCPs** | Plugins that connect AI to your tools (databases, monitoring, etc.) | Browser extensions, but for AI |
-| **Skills** | Written docs that teach AI your coding patterns and conventions | Onboarding docs for a new hire |
-| **Pipeline** | The step-by-step workflow the AI follows for every feature | A CI/CD pipeline, but for the entire dev process |
+| **Subagents** | Fresh-context helpers spawned on demand (e.g. an independent review) | A second pair of eyes when you want one |
+| **Capabilities prompt** | The generated instructions: repositories, conventions, and connected tools | A workspace orientation for the AI |
 | **Hub Workspace** | A folder containing all your repos (each keeps its own git) | A VS Code workspace, but for AI |
 
 ### What are MCPs?
@@ -150,7 +134,7 @@ This launches an interactive TUI that walks you through:
 1. Naming your workspace
 2. Choosing your AI editor (Cursor, Kiro, Claude Code, OpenCode)
 3. Adding repositories with tech stack detection
-4. Selecting agents and skills from the registry
+4. Selecting skills from the registry
 5. Picking MCP servers for tool access
 6. Choosing config format (YAML or TypeScript)
 
@@ -281,23 +265,7 @@ integrations:
   linear:
     team: Engineering
 
-workflow:
-  pipeline:
-    - step: refinement
-      agent: refinement
-      output: refinement.md
-    - step: coding
-      agents: [coding-backend, coding-frontend]
-      parallel: true
-    - step: review
-      agent: code-reviewer
-      output: code-review.md
-    - step: qa
-      agents: [qa-backend, qa-frontend]
-      parallel: true
-      tools: [playwright]
-    - step: deliver
-      actions: [create-pr, notify-slack]
+skills: [refinement, code-review, qa-testing, debugging]
 ```
 
 ---
@@ -336,7 +304,7 @@ At Arvore, Repo Hub powers our entire development workflow:
 
 - **10x productivity** with a team 3x smaller
 - **9 repositories** managed as a single AI-aware workspace
-- **11 specialized AI roles** collaborating in structured pipelines
+- **A library of skills** the AI pulls on demand (refine, review, test, per-stack patterns)
 - **19 tool connections** giving AI access to databases, monitoring, secrets, and testing
 
 This is not a demo. We ship production software with this every week.
@@ -348,12 +316,13 @@ This is not a demo. We ship production software with this every week.
 ```
 repo-hub-manifest/
 ├── packages/cli/         # @arvoretech/hub CLI
-├── agents/               # Agent templates
-├── skills/               # Built-in coding pattern libraries
-├── docs/                 # Reference documentation
-└── examples/             # Example configurations
-    ├── arvore/           # Real-world: 9 repos, full pipeline
-    └── nestjs-nextjs/    # Minimal: 2 repos
+├── packages/core/        # shared config + prompt builders
+├── packages/pi/          # Pi runtime extension
+├── skills/               # skill libraries (refinement, code-review, qa-testing, stacks…)
+├── docs/                 # reference documentation
+└── examples/             # example configurations
+    ├── arvore/           # real-world: 9 repos
+    └── nestjs-nextjs/    # minimal: 2 repos
 ```
 
 ---
@@ -363,8 +332,7 @@ repo-hub-manifest/
 We welcome contributions. Areas where help is needed:
 
 - **Editor adapters** — Windsurf, Copilot Workspace
-- **Skills** — More frameworks (Go, Python/Django, Java/Spring, Vue, Svelte)
-- **Agent patterns** — New roles, better prompts, workflow variations
+- **Skills** — More frameworks (Go, Python/Django, Java/Spring, Vue, Svelte) and capabilities
 - **MCPs** — New tool integrations
 - **Documentation** — Guides, tutorials, videos
 

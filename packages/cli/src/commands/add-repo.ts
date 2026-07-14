@@ -45,7 +45,7 @@ export const addRepoCommand = new Command("add-repo")
     await writeFile(configPath, SCHEMA_COMMENT + stringify(config), "utf-8");
 
     const gitignorePath = join(hubDir, ".gitignore");
-    await appendFile(gitignorePath, `${repoName}\n`);
+    await appendFile(gitignorePath, `/${repoName}\n`);
 
     const cursorignorePath = join(hubDir, ".cursorignore");
     if (existsSync(cursorignorePath)) {

@@ -4,10 +4,11 @@ import { mkdir, writeFile, readdir, copyFile, readFile, cp, rm } from "node:fs/p
 import { join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
-import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig, type WorkflowStep } from "../core/hub-config.js";
+import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig } from "../core/hub-config.js";
 import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
 import { fetchRemoteSources } from "../core/design-sources.js";
 import { loadPersona, buildPersonaEditorFile } from "./persona.js";
+import { buildCapabilitiesPrompt, resolvePiConfig } from "@arvoretech/hub-core";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
 
@@ -29,60 +30,6 @@ function getRemoteSkillNames(config: HubConfig): Set<string> {
     if (source.type === "skill") names.add(source.name);
   }
   return names;
-}
-
-function buildDesignSection(config: HubConfig): string | null {
-  const design = config.design;
-  if (!design) return null;
-
-  const hasContent = design.skills?.length || design.libraries?.length || design.icons || design.instructions;
-  if (!hasContent) return null;
-
-  const parts: string[] = [];
-  parts.push(`\n## Design System`);
-
-  if (design.enforce && design.skills?.length) {
-    const skillList = design.skills.map((s) => `\`${s}\``).join(", ");
-    parts.push(`
-**DESIGN ENFORCEMENT — MANDATORY**
-
-Before creating or modifying ANY UI component, page, or visual element:
-1. Consult the design skill(s): ${skillList}
-2. Use ONLY the design tokens, colors, spacing, and typography defined in the design system
-3. Do NOT invent custom styles, colors, or spacing values — always reference the design tokens
-4. If a component exists in the design system or component library, use it instead of creating a new one
-5. After implementing UI changes, verify that the output follows the design system guidelines`);
-  }
-
-  if (design.instructions) {
-    parts.push(`\n${design.instructions.trim()}`);
-  }
-
-  if (design.skills?.length) {
-    parts.push(`\n### Design Skills\n`);
-    parts.push(`The following skills contain design guidelines and should be consulted when working on UI:`);
-    for (const skill of design.skills) {
-      parts.push(`- \`${skill}\``);
-    }
-  }
-
-  if (design.libraries?.length) {
-    parts.push(`\n### UI Libraries\n`);
-    for (const lib of design.libraries) {
-      const refs: string[] = [];
-      if (lib.mcp) refs.push(`docs via \`${lib.mcp}\` MCP`);
-      if (lib.url) refs.push(`[docs](${lib.url})`);
-      if (lib.path) refs.push(`local docs at \`${lib.path}\``);
-      parts.push(`- **${lib.name}**${refs.length ? ` — ${refs.join(", ")}` : ""}`);
-    }
-  }
-
-  if (design.icons) {
-    parts.push(`\n### Icons\n`);
-    parts.push(`Icon library: **${design.icons}**. Always use this library for icons.`);
-  }
-
-  return parts.join("\n");
 }
 
 function stripFrontMatter(content: string): string {
@@ -307,7 +254,6 @@ interface Generator {
 async function generateCursor(config: HubConfig, hubDir: string) {
   const cursorDir = join(hubDir, ".cursor");
   await mkdir(join(cursorDir, "rules"), { recursive: true });
-  await mkdir(join(cursorDir, "agents"), { recursive: true });
 
   const gitignoreLines = buildGitignoreLines(config);
   await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
@@ -348,10 +294,8 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .cursor/rules/orchestrator.mdc"));
 
   const cleanedOrchestratorForAgents = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
-  const skillsSectionCursor = await buildSkillsSection(hubDir, config);
   const personaCursor = await loadPersona(hubDir);
-  const agentsMdCursor = [cleanedOrchestratorForAgents, skillsSectionCursor].filter(Boolean).join("\n");
-  await writeFile(join(hubDir, "AGENTS.md"), agentsMdCursor + "\n", "utf-8");
+  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestratorForAgents + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
 
   if (personaCursor) {
@@ -376,26 +320,6 @@ async function generateCursor(config: HubConfig, hubDir: string) {
     }
   } catch {
     // no steering dir
-  }
-
-  const agentsDir = resolve(hubDir, "agents");
-  try {
-    const agentFiles = await readdir(agentsDir);
-    const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
-    const sandboxSvc = getSandboxMcp(config);
-    for (const file of mdFiles) {
-      if (sandboxSvc) {
-        const agentName = file.replace(/\.md$/, "");
-        const agentContent = await readFile(join(agentsDir, file), "utf-8");
-        const withSandbox = injectSandboxContext(agentName, agentContent, sandboxSvc.port);
-        await writeFile(join(cursorDir, "agents", file), withSandbox, "utf-8");
-      } else {
-        await copyFile(join(agentsDir, file), join(cursorDir, "agents", file));
-      }
-    }
-    console.log(chalk.green(`  Copied ${mdFiles.length} agent definitions`));
-  } catch {
-    console.log(chalk.yellow("  No agents/ directory found, skipping agent copy"));
   }
 
   const skillsDir = resolve(hubDir, "skills");
@@ -454,13 +378,6 @@ interface ProxyUpstreamEntry {
   env?: Record<string, string>;
 }
 
-function getSandboxMcp(config: HubConfig): { port: number } | null {
-  const sandboxMcp = config.mcps?.find((m) => m.name === "sandbox" && m.url);
-  if (!sandboxMcp?.url) return null;
-  const match = sandboxMcp.url.match(/:(\d+)/);
-  return match ? { port: parseInt(match[1], 10) } : { port: 8080 };
-}
-
 function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): { upstreamsJson: string; collectedEnv: Record<string, string> } {
   const upstreamNames = new Set(proxyMcp.upstreams || []);
   const upstreamEntries: ProxyUpstreamEntry[] = [];
@@ -473,7 +390,7 @@ function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): { upstr
     const entry: ProxyUpstreamEntry = {
       name: mcp.name,
       command: "npx",
-      args: ["-y", mcp.package!],
+      args: ["-y", mcp.package!, ...(mcp.args || [])],
     };
 
     if (mcp.env) {
@@ -553,7 +470,7 @@ function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   }
   return {
     command: "npx",
-    args: ["-y", mcp.package!],
+    args: ["-y", mcp.package!, ...(mcp.args || [])],
     ...(mcp.env && { env: mcp.env }),
     ...(autoApprove && { autoApprove }),
   };
@@ -575,7 +492,7 @@ function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   }
   return {
     command: "npx",
-    args: ["-y", mcp.package!],
+    args: ["-y", mcp.package!, ...(mcp.args || [])],
     ...(mcp.env && { env: mcp.env }),
   };
 }
@@ -612,63 +529,10 @@ function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Record<st
   }
   return {
     command: "npx",
-    args: ["-y", mcp.package!],
+    args: ["-y", mcp.package!, ...(mcp.args || [])],
     ...(env && { env }),
     ...(autoApprove && { autoApprove }),
   };
-}
-
-const SANDBOX_AGENT_TARGETS = new Set(["qa-frontend", "qa-backend", "coding-frontend", "coding-backend"]);
-
-function injectSandboxContext(agentName: string, content: string, sandboxPort: number): string {
-  if (!SANDBOX_AGENT_TARGETS.has(agentName)) return content;
-  const section = `
-## Sandbox Environment
-
-A sandboxed execution environment is available via the \`sandbox\` MCP (http://localhost:${sandboxPort}/mcp).
-
-Use it to:
-- Run shell commands: \`shell.exec\`
-- Read/write files: \`file.read\`, \`file.write\`
-- Control a real browser: \`browser.navigate\`, \`browser.screenshot\`, \`browser.click\`
-- Execute code: \`jupyter.execute\`
-
-The sandbox workspace is mounted at \`/home/gem/workspace\`. Prefer running builds, tests, and browser interactions inside the sandbox rather than on the host machine.
-`;
-  return content.trimEnd() + "\n" + section;
-}
-
-function buildKiroAgentContent(rawContent: string): string {
-  const fmMatch = rawContent.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  if (!fmMatch) {
-    return `---\nname: agent\ntools: ["@builtin"]\n---\n\n${rawContent}`;
-  }
-
-  const fmBlock = fmMatch[1];
-  const body = fmMatch[2];
-
-  const attrs: Record<string, string> = {};
-  for (const line of fmBlock.split("\n")) {
-    const match = line.match(/^(\w+):\s*(.+)$/);
-    if (match) attrs[match[1]] = match[2].trim();
-  }
-
-  const lines: string[] = ["---"];
-  if (attrs.name) lines.push(`name: ${attrs.name}`);
-  if (attrs.description) lines.push(`description: ${attrs.description}`);
-
-  if (attrs.tools) {
-    lines.push(`tools: ${attrs.tools}`);
-  } else {
-    lines.push(`tools: ["@builtin"]`);
-  }
-
-  if (attrs.model && attrs.model !== "inherit") {
-    lines.push(`model: ${attrs.model}`);
-  }
-
-  lines.push("---");
-  return `${lines.join("\n")}\n${body}`;
 }
 
 
@@ -697,7 +561,7 @@ function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   }
   return {
     type: "local",
-    command: ["npx", "-y", mcp.package!],
+    command: ["npx", "-y", mcp.package!, ...(mcp.args || [])],
     ...(env && { environment: env }),
   };
 }
@@ -733,31 +597,6 @@ ${handlers.join(",\n")}
 `;
 }
 
-function buildOpenCodeAgentMarkdown(name: string, content: string): string {
-  const existingFrontmatter = content.match(/^---\n([\s\S]*?)\n---/);
-  let description = `Specialized agent for ${name} tasks`;
-  if (existingFrontmatter) {
-    const descMatch = existingFrontmatter[1].match(/^description:\s*["']?(.+?)["']?\s*$/m);
-    if (descMatch) description = descMatch[1];
-  }
-
-  const body = existingFrontmatter
-    ? content.replace(/^---\n[\s\S]*?\n---\n*/, "")
-    : content;
-
-  return `---
-description: "${description}"
-mode: subagent
-tools:
-  write: true
-  edit: true
-  bash: true
----
-
-${body.trim()}
-`;
-}
-
 function buildOpenCodePrimaryAgentMarkdown(description: string, body: string): string {
   return `---
 description: "${description}"
@@ -783,639 +622,8 @@ function hasAgentTeamsLeadMcp(mcps: MCPConfig[] | undefined): boolean {
   return directMatch || upstreamMatch;
 }
 
-function buildAgentTeamsSection(mcps: MCPConfig[] | undefined): string {
-  if (!hasAgentTeamsLeadMcp(mcps)) return "";
-
-  return `
-## Agent Teams
-
-This workspace has agent teams support via the \`agent-teams-lead\` MCP. You can act as a team lead, spawning multiple AI teammates that work in parallel on different tasks.
-
-**When to use agent teams** instead of sub-agents:
-- Tasks that benefit from parallel exploration (research, review, debugging)
-- Cross-layer work (frontend + backend + tests simultaneously)
-- Work where teammates need to communicate and coordinate with each other
-
-**How it works:**
-1. Use \`spawn_team\` to create a team with an objective and list of teammates (each referencing an agent file)
-2. Use \`create_task\` to add tasks to the shared task list (tasks can have dependencies and exclusive file paths)
-3. Teammates automatically claim pending tasks, do the work, and mark them complete
-4. Use \`send_message\` to communicate with teammates (or broadcast to all)
-5. Use \`wait_for_team\` to block until all tasks are resolved or teammates finish
-6. Use \`team_status\` to check progress, task states, and unread messages
-7. Use \`read_artifact\` to read outputs published by teammates
-
-**Available tools:** \`spawn_team\`, \`add_teammate\`, \`remove_teammate\`, \`create_task\`, \`team_status\`, \`send_message\`, \`wait_for_team\`, \`read_artifact\`.
-
-**Best practices:**
-- Create tasks IMMEDIATELY after spawning the team (teammates start looking for tasks right away)
-- Use \`exclusive_paths\` on tasks to prevent file conflicts between teammates
-- Use \`depends_on\` to chain tasks that must run in order
-- Keep 2-3 tasks per teammate for good throughput
-- Send a broadcast message after creating tasks to notify teammates
-- Always call \`wait_for_team\` after creating tasks to monitor completion`;
-}
-
-function hasAgentTeamsChatMcp(mcps: MCPConfig[] | undefined): boolean {
-  if (!mcps) return false;
-  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
-  const directMatch = mcps.some((m) => m.name === "agent-teams-chat");
-  const upstreamMatch = proxyMcp?.upstreams?.includes("agent-teams-chat") ?? false;
-  return directMatch || upstreamMatch;
-}
-
-function buildAgentTeamsChatSection(mcps: MCPConfig[] | undefined): string {
-  if (!hasAgentTeamsChatMcp(mcps)) return "";
-
-  return `
-## Agent Chat (Cross-Developer Communication)
-
-You can communicate with agents from other developers on the team via the \`agent-teams-chat\` MCP. This is NOT the same as agent teams (which coordinates teammates within your own session). Agent chat lets you talk to agents running in other people's workspaces through Slack threads.
-
-**When to use agent chat:**
-- You need context or help from another developer's agent (e.g. "Hey, João's agent — what was the decision on the auth migration?")
-- Coordinating cross-developer work asynchronously (e.g. "I'm changing the API contract, heads up")
-- Sharing decisions, blockers, or discoveries that affect the whole team
-- Asking questions that another developer's agent might already know the answer to
-
-**How it works:**
-1. Use \`open_thread\` to start a new conversation thread about a topic
-2. Use \`reply_to_thread\` to respond in an existing thread
-3. Use \`read_thread\` to catch up on what others have said
-4. Use \`list_threads\` to see recent conversations in the channel
-5. Use \`find_thread\` to search for threads by topic or content
-
-**Available tools:** \`open_thread\`, \`reply_to_thread\`, \`read_thread\`, \`list_threads\`, \`find_thread\`.
-
-**Message format:** Messages are automatically formatted with your identity (e.g. \`🤖 *João's Agent* — your message here\`). Other agents' messages will show their owner's name.
-
-**IMPORTANT — Proactive message checking:**
-- When you open or reply to a thread, periodically check for new replies using \`read_thread\` with the \`since\` parameter set to the last message timestamp you saw
-- After sending a message that expects a response, wait a reasonable time (30-60 seconds) then check for replies
-- At the start of a task, use \`list_threads\` to check if there are recent threads relevant to your current work
-- If you're waiting on another agent's input, poll the thread every 30-60 seconds until you get a response or a reasonable timeout (5 minutes)
-
-**Best practices:**
-- Search for existing threads before opening a new one on the same topic
-- Keep messages concise and actionable
-- Use threads to maintain context — avoid top-level messages for replies
-- Read the thread before replying to avoid repeating what others said
-- When starting a task that touches shared code, check recent threads for relevant context`;
-}
-
-function hasKanbanMcp(mcps: MCPConfig[] | undefined): boolean {
-  if (!mcps) return false;
-  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
-  const directMatch = mcps.some((m) => m.name === "kanban" || m.package === "@arvoretech/kanban-mcp");
-  const upstreamMatch = proxyMcp?.upstreams?.includes("kanban") ?? false;
-  return directMatch || upstreamMatch;
-}
-
-function buildKanbanSection(mcps: MCPConfig[] | undefined): string {
-  if (!hasKanbanMcp(mcps)) return "";
-
-  return `
-## Kanban Board
-
-This workspace has a persistent kanban board via the \`kanban\` MCP. Use it to organize work, track progress across sessions, and coordinate with other chats.
-
-**When to use the kanban:**
-- At the start of a task, check the board for existing cards and active sessions
-- Break complex features into cards before starting implementation
-- Claim cards you're working on so other sessions can see
-- Release cards when done (default status: review)
-- Search for related cards before creating duplicates
-
-**Workflow:**
-1. \`list_boards\` / \`get_board\` — See what's on the board and who's working on what
-2. \`create_card\` — Add new tasks to the appropriate column
-3. \`claim_card\` — Mark a card as being worked on by this session
-4. \`move_card\` — Move cards between columns as work progresses
-5. \`release_card\` — Release when done, with status and detail (e.g. "PR #123 created")
-6. \`search_cards\` — Find cards by meaning (semantic search)
-
-**Available tools:** \`list_boards\`, \`create_board\`, \`get_board\`, \`get_card\`, \`create_card\`, \`update_card\`, \`move_card\`, \`claim_card\`, \`release_card\`, \`search_cards\`, \`archive_card\`, \`delete_card\`.
-
-**Multi-session coordination:**
-- Always \`claim_card\` before starting work — other sessions will see it's taken
-- If a card is already claimed, pick another or use \`force: true\` to override stale sessions
-- Use \`get_board\` to see active sessions with duration (helps identify abandoned claims)
-- When finishing, \`release_card\` with a meaningful detail so the next session has context
-
-**Best practices:**
-- Use subtasks (\`parent_card_id\`) to break down large cards
-- Tag cards consistently for easy filtering
-- Set priority to help triage (urgent > high > medium > low)
-- Check the board at the start of every session — don't start from zero`;
-}
-
-function buildMcpToolsSection(mcps: MCPConfig[] | undefined): string {
-  if (!mcps || mcps.length === 0) return "";
-
-  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
-  const upstreamNames = getUpstreamNames(mcps);
-  const directMcps = mcps.filter((m) => !m.upstreams && !upstreamNames.has(m.name));
-  const mcpByName = new Map(mcps.map((m) => [m.name, m]));
-
-  if (!proxyMcp && directMcps.length === 0) return "";
-
-  const lines: string[] = [];
-  lines.push(`
-## MCP Tools (Model Context Protocol)
-
-This workspace has multiple MCP servers available.`);
-
-  if (proxyMcp) {
-    lines.push(`
-Some MCPs are aggregated behind a proxy (\`${proxyMcp.name}\`). Their tools are NOT directly visible — you must use \`mcp_search\` to discover available tools and \`mcp_call\` to execute them.
-
-**How to use proxied tools:**
-1. \`mcp_search({ query: "your search term" })\` — find tools by name or description
-2. \`mcp_call({ ref: "tool-ref-from-search", args: { ... } })\` — execute the tool
-
-**MCPs available via proxy:**`);
-    for (const name of proxyMcp.upstreams!) {
-      const mcp = mcpByName.get(name);
-      const desc = mcp?.description ? ` — ${mcp.description}` : "";
-      lines.push(`- \`${name}\`${desc}`);
-    }
-  }
-
-  if (directMcps.length > 0) {
-    lines.push(`
-**MCPs available directly:**`);
-    for (const mcp of directMcps) {
-      const desc = mcp.description ? ` — ${mcp.description}` : "";
-      lines.push(`- \`${mcp.name}\`${desc}`);
-    }
-  }
-
-  if (proxyMcp) {
-    lines.push(`
-> When you need a capability and are unsure which tool to use, always try \`mcp_search\` first with relevant keywords. The proxy aggregates tools from all upstream MCPs.`);
-  }
-
-  const mcpsWithInstructions = mcps.filter((m) => m.instructions);
-  if (mcpsWithInstructions.length > 0) {
-    lines.push(`
-### MCP Instructions`);
-    for (const mcp of mcpsWithInstructions) {
-      lines.push(`
-#### ${mcp.name}
-${mcp.instructions!.trim()}`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
-async function buildSkillsSection(hubDir: string, config: HubConfig): Promise<string | null> {
-  const skillsDir = resolve(hubDir, "skills");
-  const skillEntries: { name: string; description: string }[] = [];
-
-  try {
-    const folders = await readdir(skillsDir);
-    for (const folder of folders) {
-      const skillPath = join(skillsDir, folder, "SKILL.md");
-      try {
-        const content = await readFile(skillPath, "utf-8");
-        const fm = parseFrontMatter(content);
-        if (fm?.name) {
-          skillEntries.push({
-            name: fm.name,
-            description: fm.description || "",
-          });
-        }
-      } catch {
-        // skip
-      }
-    }
-  } catch {
-    return null;
-  }
-
-  if (skillEntries.length === 0) return null;
-
-  const repoSkillMap = new Map<string, string[]>();
-  for (const repo of config.repos) {
-    if (repo.skills?.length) {
-      for (const skill of repo.skills) {
-        const repos = repoSkillMap.get(skill) || [];
-        repos.push(repo.path);
-        repoSkillMap.set(skill, repos);
-      }
-    }
-  }
-
-  const parts: string[] = [];
-  parts.push(`
-## Skills
-
-This workspace has skills that provide specialized knowledge for specific domains and repositories.
-Consult the relevant skill before working in an unfamiliar area — they contain patterns, conventions, and project-specific guidance.
-
-| Skill | Description | Repositories |
-|-------|-------------|--------------|`);
-
-  for (const entry of skillEntries) {
-    const repos = repoSkillMap.get(entry.name);
-    const repoCol = repos ? repos.map(r => `\`${r}\``).join(", ") : "—";
-    const desc = entry.description.replace(/\|/g, "\\|").split(".")[0].trim();
-    parts.push(`| \`${entry.name}\` | ${desc} | ${repoCol} |`);
-  }
-
-  parts.push(`
-When to consult a skill:
-- Before writing code in a repository that has an associated skill
-- When making architecture or pattern decisions in a specific domain
-- When unsure about project conventions, libraries, or testing approaches
-- When the user's request touches a domain covered by an available skill
-
-Additional context sources:
-- Use documentation MCPs to check library and framework docs before implementing
-- Use database MCPs to understand schema, query data, and verify state
-- Use package registry MCPs to verify security and versions before installing dependencies
-- Use the repository CLI commands (build, test, lint) to validate changes after implementation
-- Use monitoring MCPs for production debugging and log analysis when available`);
-
-  return parts.join("\n");
-}
-
-function buildFetchCheckerSection(): string {
-  return `
-## Fact Checker — Mandatory Verification
-
-**NEVER state the status of any external resource without verifying it first.**
-
-Before making ANY claim about:
-- PR status (merged, open, closed, approved, changes requested)
-- Branch state (ahead, behind, conflicts, existence)
-- Deploy status (deployed, failed, in progress)
-- CI/CD pipeline results (passed, failed, running)
-- Issue/task status (open, closed, in progress)
-- Service health (up, down, degraded)
-- Any other external state that can change over time
-
-You MUST:
-1. Use the appropriate tool to check the actual current state (GitHub CLI, MCP tools, git commands, etc.)
-2. Only THEN report the result to the user
-3. If you cannot verify, explicitly say "I was unable to verify this — please check manually"
-
-**NEVER assume, guess, or rely on cached/stale information.** Every claim about external state must be backed by a fresh check.
-This applies to ALL agents in the pipeline, not just the orchestrator.`;
-}
-
-function buildMemorySection(config: HubConfig): string {
-  const enforce = config.memory?.enforce ?? false;
-
-  if (enforce) {
-    return `
-## Team Memory — MANDATORY
-
-This workspace has a team memory knowledge base via the \`team-memory\` MCP.
-The MCP automatically generates a steering file (\`team-memories-index\`) with an index of all active memories. This file is always included in your context.
-
-**Use the index first.** You already know what memories exist — check the steering file before calling any MCP tool.
-
-### How to use memories:
-1. **Read the index** — the \`team-memories-index\` steering file lists all active memories with title, category, tags, and ID
-2. **Get full content** — use \`get_memory(id)\` when you need the complete context of a specific memory
-3. **Semantic search** — use \`search_memories\` only when you need fuzzy/semantic matching beyond what the index shows
-4. **Capture knowledge** — use \`add_memory\` when you discover decisions, conventions, gotchas, or domain insights during work
-
-### When completing work:
-- If you discovered something valuable (a decision, a gotcha, a convention, a domain insight, a debugging finding), use \`add_memory\` to capture it
-- Be specific: include context, rationale, and affected areas
-- Use appropriate categories: decisions, conventions, incidents, domain, gotchas
-
-### Why this matters:
-- Memories contain institutional knowledge that prevents repeated mistakes
-- Past decisions explain WHY things are the way they are
-- Conventions ensure consistency across the team
-- Gotchas save hours of debugging
-
-Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`;
-  }
-
-  return `
-## Team Memory
-
-This workspace has a team memory knowledge base available via the \`team-memory\` MCP.
-The MCP automatically generates a steering file (\`team-memories-index\`) with an index of all active memories.
-
-**Check the index first** — use \`get_memory(id)\` for full content, and \`search_memories\` only for semantic search beyond the index.
-
-**After completing a task**, if you discovered something valuable (a decision, a gotcha, a convention, domain insight), use \`add_memory\` to capture it for the team.
-
-Available tools: \`search_memories\`, \`get_memory\`, \`add_memory\`, \`list_memories\`, \`archive_memory\`, \`remove_memory\`.`;
-}
-
-function buildCoreBehaviorSections(): string[] {
-  const sections: string[] = [];
-
-  sections.push(`
-## Core Behavior
-
-Be concise, clear, direct, and useful.
-Prefer technical accuracy over reassurance.
-Do not use hype, flattery, or exaggerated validation.
-Do not repeatedly apologize when something unexpected happens — explain what happened and continue.
-Do not claim actions were performed unless they were actually performed.
-Never invent facts, code behavior, file contents, tool capabilities, or execution outcomes.
-Focus on completing the user's task, not on narrating unnecessary process.`);
-
-  sections.push(`
-## Working Style
-
-Prefer the simplest solution that fully satisfies the request.
-Avoid over-engineering, speculative abstractions, premature generalization, and cleanup outside the requested scope.
-Prefer editing existing files over creating new files.
-Prefer minimal, reversible changes over broad rewrites unless the task explicitly requires a rewrite.
-Ask the user questions only when a real ambiguity materially affects the solution.
-Bias toward finding the answer yourself when the available context and tools are sufficient.`);
-
-  sections.push(`
-## Search, Reading, and Investigation
-
-If you are unsure how to satisfy the user's request, gather more information before answering.
-Prefer discovering answers yourself over asking the user for information that is likely available in the workspace, files, memories, or tools.
-
-When reading code or documents:
-- Read enough surrounding context to avoid missing critical behavior
-- Do not propose modifications to code you have not inspected
-- If partial views may hide important logic, continue reading before deciding
-
-For broader exploration:
-- Use lightweight search first
-- Escalate to deeper exploration or subagents only when the task is broad, ambiguous, or likely to require several search passes`);
-
-  sections.push(`
-## Code Changes
-
-When making code changes:
-- Ensure the produced code is runnable and internally consistent
-- Add required imports, wiring, dependencies, and integration points
-- Preserve the project's existing patterns unless there is a strong reason to change them
-- Read the relevant files or sections before modifying existing code
-- Understand the surrounding code paths and conventions
-- Prefer small, precise edits
-
-If you introduce errors:
-- Try to fix them
-- Do not get stuck in unbounded retry loops (max 3 attempts on the same issue)
-- If repeated fixes fail, explain the remaining problem clearly
-
-Never assume a library is available — check the dependency file or neighboring code first.
-When creating a new component, look at existing components to understand conventions.`);
-
-  sections.push(`
-## Security and Safety
-
-Never hardcode secrets, credentials, tokens, or API keys.
-Flag security risks when noticed.
-Avoid introducing vulnerabilities such as command injection, SQL injection, XSS, insecure secret handling, broken auth flows, unsafe deserialization, SSRF, or privilege escalation.
-Do not expose secrets in code, tests, examples, or logs.`);
-
-  sections.push(`
-## Git and Operational Discipline
-
-Do not commit, push, open pull requests, or notify external systems unless the user asked for it or the workspace flow explicitly requires it.
-
-When handling git work:
-- Inspect status and diff before committing
-- Follow existing repository commit conventions
-- Prefer specific file staging over indiscriminate staging
-- Do not use destructive git commands without explicit user authorization`);
-
-  return sections;
-}
-
 function buildOpenCodeOrchestratorRule(config: HubConfig): string {
-  const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
-  const steps = config.workflow?.pipeline || [];
-  const prompt = config.workflow?.prompt;
-  const enforce = config.workflow?.enforce_workflow ?? false;
-
-  const sections: string[] = [];
-
-  sections.push(`# Orchestrator
-
-## Your Main Responsibility
-
-You are an agent orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end using specialized sub-agents. Use \`@agent-name\` to invoke sub-agents for each phase of the pipeline.`);
-
-  if (enforce) {
-    sections.push(`
-## STRICT WORKFLOW ENFORCEMENT
-
-**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
-
-- NEVER skip a pipeline step, even if the task seems simple or obvious.
-- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
-- ALWAYS call the designated sub-agent for each step. Do not attempt to perform a step yourself if an agent is assigned to it.
-- ALWAYS wait for a step to complete and validate its output before moving to the next step.
-- If a step produces a document, READ the document and confirm it is complete before proceeding.
-- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
-- NEVER jump directly to coding without completing refinement first.
-- NEVER skip review or QA steps, even for small changes.
-- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
-  }
-
-  if (prompt?.prepend) {
-    sections.push(`\n${prompt.prepend.trim()}`);
-  }
-
-  if (config.integrations?.linear) {
-    const linear = config.integrations.linear;
-    sections.push(`
-## Task Management
-
-If the user doesn't have a task in their project management tool, create one using the Linear MCP.${linear.team ? ` Add it to the **${linear.team}** team.` : ""} Provide the link to the user so they can review and modify as needed.`);
-  }
-
-  sections.push(`
-## Repositories
-`);
-  for (const repo of config.repos) {
-    const parts = [`- **${repo.path}**`];
-    if (repo.description) parts.push(`— ${repo.description}`);
-    else if (repo.tech) parts.push(`— ${repo.tech}`);
-    if (repo.skills?.length) parts.push(`(skills: ${repo.skills.join(", ")})`);
-    sections.push(parts.join(" "));
-
-    if (repo.commands) {
-      const cmds = Object.entries(repo.commands)
-        .filter(([, v]) => v)
-        .map(([k, v]) => `\`${k}\`: \`${v}\``)
-        .join(", ");
-      if (cmds) sections.push(`  Commands: ${cmds}`);
-    }
-  }
-
-  if (prompt?.sections?.after_repositories) {
-    sections.push(`\n${prompt.sections.after_repositories.trim()}`);
-  }
-
-  const docStructure = buildDocumentStructure(steps, taskFolder);
-  sections.push(docStructure);
-
-  const pipelineSection = buildOpenCodePipelineSection(steps);
-  sections.push(pipelineSection);
-
-  if (prompt?.sections?.after_pipeline) {
-    sections.push(`\n${prompt.sections.after_pipeline.trim()}`);
-  }
-
-  if (config.integrations?.slack || config.integrations?.github) {
-    sections.push(buildDeliverySection(config));
-  }
-
-  if (prompt?.sections?.after_delivery) {
-    sections.push(`\n${prompt.sections.after_delivery.trim()}`);
-  }
-
-  const mcpToolsSectionOpenCode = buildMcpToolsSection(config.mcps);
-  if (mcpToolsSectionOpenCode) {
-    sections.push(mcpToolsSectionOpenCode);
-  }
-
-  if (config.memory) {
-    sections.push(buildMemorySection(config));
-  }
-
-  if (config.workflow?.fact_checker) {
-    sections.push(buildFetchCheckerSection());
-  }
-
-  const designSectionOpenCode = buildDesignSection(config);
-  if (designSectionOpenCode) sections.push(designSectionOpenCode);
-
-  const agentTeamsSectionOpenCode = buildAgentTeamsSection(config.mcps);
-  if (agentTeamsSectionOpenCode) sections.push(agentTeamsSectionOpenCode);
-
-  const agentTeamsChatSectionOpenCode = buildAgentTeamsChatSection(config.mcps);
-  if (agentTeamsChatSectionOpenCode) sections.push(agentTeamsChatSectionOpenCode);
-
-  const kanbanSectionOpenCode = buildKanbanSection(config.mcps);
-  if (kanbanSectionOpenCode) sections.push(kanbanSectionOpenCode);
-
-  sections.push(`
-## Troubleshooting and Debugging
-
-For bug reports or unexpected behavior, use the \`@debugger\` agent directly.
-It will:
-1. Collect context (symptoms, environment, timeline)
-2. Analyze logs and stack traces
-3. Form and test hypotheses systematically
-4. Identify the root cause
-5. Propose a solution or call coding agents to implement the fix`);
-
-  sections.push(...buildCoreBehaviorSections());
-
-  if (prompt?.sections) {
-    const reservedKeys = new Set(["after_repositories", "after_pipeline", "after_delivery"]);
-    for (const [name, content] of Object.entries(prompt.sections)) {
-      if (reservedKeys.has(name)) continue;
-      const title = name
-        .split(/[-_]/)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-      sections.push(`\n## ${title}\n\n${content.trim()}`);
-    }
-  }
-
-  if (prompt?.append) {
-    sections.push(`\n${prompt.append.trim()}`);
-  }
-
-  return sections.join("\n");
-}
-
-function buildOpenCodePipelineSection(steps: WorkflowStep[]): string {
-  if (steps.length === 0) {
-    return `
-## Development Pipeline
-
-1. Use \`@refinement\` to collect requirements
-2. Use \`@coding-backend\` and/or \`@coding-frontend\` agents to implement
-3. Use \`@code-reviewer\` to review the implementation
-4. Use \`@qa-backend\` and/or \`@qa-frontend\` to test
-5. Create PRs and notify the team`;
-  }
-
-  const parts: string[] = [`
-## Development Pipeline
-`];
-
-  for (const step of steps) {
-    if (step.actions) {
-      parts.push(`### Delivery`);
-      parts.push(`After all validations pass, execute these actions:`);
-      for (const action of step.actions) {
-        parts.push(`- ${formatAction(action)}`);
-      }
-      continue;
-    }
-
-    const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
-    parts.push(`### ${stepTitle}`);
-
-    if (step.mode === "plan") {
-      parts.push(`**This step is a planning phase.** Switch to the Plan agent (Tab key) for collaborative planning with the user before any implementation begins.`);
-      parts.push(``);
-    }
-
-    if (step.agent) {
-      parts.push(`Call \`@${step.agent}\`.${step.output ? ` It writes to \`${step.output}\`.` : ""}`);
-
-      if (step.step === "refinement") {
-        parts.push(`
-After it runs, read the document and validate with the user:
-- If there are unanswered questions, ask the user one at a time
-- If the user requests adjustments, send back to the refinement agent
-- Do not proceed until the document is complete and approved by the user`);
-      }
-    }
-
-    if (Array.isArray(step.agents)) {
-      const agentList = step.agents.map((a) => {
-        if (typeof a === "string") return { agent: a };
-        return a;
-      });
-
-      if (step.parallel) {
-        parts.push(`Call these agents in parallel:`);
-      } else {
-        parts.push(`Call these agents in sequence:`);
-      }
-
-      for (const a of agentList) {
-        let line = `- \`@${a.agent}\``;
-        if (a.output) line += ` → writes to \`${a.output}\``;
-        if (a.when) line += ` (when: ${a.when})`;
-        parts.push(line);
-      }
-
-      if (step.step === "coding" || step.step === "code" || step.step === "implementation") {
-        parts.push(`
-If any coding agent has doubts, they will write questions in their document. Apply the same Q&A logic as refinement — validate with the user before proceeding.`);
-      }
-
-      if (step.step === "validation" || step.step === "review" || step.step === "qa") {
-        parts.push(`
-If any validation agent leaves comments requiring fixes, call the relevant coding agents again to address them.`);
-      }
-    }
-
-    if (step.mode === "plan") {
-      parts.push(`
-**After this step is complete and approved**, switch back to Build agent to proceed with the next step.`);
-    }
-
-    parts.push("");
-  }
-
-  return parts.join("\n");
+  return buildCapabilitiesPrompt(config, { format: "plain" });
 }
 
 
@@ -1439,17 +647,15 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
 
   const orchestratorContent = buildOpenCodeOrchestratorRule(config);
   const orchestratorAgent = buildOpenCodePrimaryAgentMarkdown(
-    "Development orchestrator. Delegates specialized work to subagents following a structured pipeline: refinement, coding, review, QA, and delivery.",
+    "Primary agent. Helps build and operate software across the workspace using skills, tools, and multi-repo context.",
     orchestratorContent
   );
   await writeFile(join(opencodeDir, "agents", "orchestrator.md"), orchestratorAgent, "utf-8");
   console.log(chalk.green("  Generated .opencode/agents/orchestrator.md (primary agent)"));
   await rm(join(opencodeDir, "rules", "orchestrator.md")).catch(() => {});
 
-  const skillsSectionOC = await buildSkillsSection(hubDir, config);
   const personaOC = await loadPersona(hubDir);
-  const agentsMdOC = [orchestratorContent, skillsSectionOC].filter(Boolean).join("\n");
-  await writeFile(join(hubDir, "AGENTS.md"), agentsMdOC + "\n", "utf-8");
+  await writeFile(join(hubDir, "AGENTS.md"), orchestratorContent + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
 
   if (personaOC) {
@@ -1502,22 +708,6 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   );
   console.log(chalk.green("  Generated opencode.json"));
 
-  const agentsDir = resolve(hubDir, "agents");
-  try {
-    const agentFiles = await readdir(agentsDir);
-    const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      if (file === "orchestrator.md") continue;
-      const content = await readFile(join(agentsDir, file), "utf-8");
-      const agentName = file.replace(/\.md$/, "");
-      const converted = buildOpenCodeAgentMarkdown(agentName, content);
-      await writeFile(join(opencodeDir, "agents", file), converted, "utf-8");
-    }
-    console.log(chalk.green(`  Copied ${mdFiles.length} agents to .opencode/agents/`));
-  } catch {
-    console.log(chalk.yellow("  No agents/ directory found, skipping agent copy"));
-  }
-
   const skillsDir = resolve(hubDir, "skills");
   const remoteSkillsOC = getRemoteSkillNames(config);
   try {
@@ -1567,563 +757,25 @@ function buildKiroSteeringContent(content: string, inclusion: "always" | "auto" 
 }
 
 function buildKiroOrchestratorRule(config: HubConfig): string {
-  const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
-  const steps = config.workflow?.pipeline || [];
-  const prompt = config.workflow?.prompt;
-  const enforce = config.workflow?.enforce_workflow ?? false;
-
-  const sections: string[] = [];
-
-  sections.push(`# Orchestrator
-
-## Your Main Responsibility
-
-You are the development orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end by following a structured pipeline. You delegate specialized work to subagents defined in \`.kiro/agents/\`.
-
-> **Note:** This workspace has custom subagents in \`.kiro/agents/\`. Each pipeline step delegates to the appropriate subagent. Use \`/agent-name\` or instruct Kiro to "use the X subagent" to invoke them.`);
-
-  if (enforce) {
-    sections.push(`
-## STRICT WORKFLOW ENFORCEMENT
-
-**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
-
-- NEVER skip a pipeline step, even if the task seems simple or obvious.
-- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
-- ALWAYS use the designated subagent for each step. Do not improvise if a subagent is assigned.
-- ALWAYS wait for a step to complete and validate its output before moving to the next step.
-- If a step produces a document, READ the document and confirm it is complete before proceeding.
-- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
-- NEVER jump directly to coding without completing refinement first.
-- NEVER skip review or QA steps, even for small changes.
-- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
-  }
-
-  if (prompt?.prepend) {
-    sections.push(`\n${prompt.prepend.trim()}`);
-  }
-
-  if (config.integrations?.linear) {
-    const linear = config.integrations.linear;
-    sections.push(`
-## Task Management
-
-If the user doesn't have a task in their project management tool, create one using the Linear MCP.${linear.team ? ` Add it to the **${linear.team}** team.` : ""} Provide the link to the user so they can review and modify as needed.`);
-  }
-
-  sections.push(`
-## Repositories
-`);
-  for (const repo of config.repos) {
-    const parts = [`- **${repo.path}**`];
-    if (repo.description) parts.push(`— ${repo.description}`);
-    else if (repo.tech) parts.push(`— ${repo.tech}`);
-    if (repo.skills?.length) parts.push(`(skills: ${repo.skills.join(", ")})`);
-    sections.push(parts.join(" "));
-
-    if (repo.commands) {
-      const cmds = Object.entries(repo.commands)
-        .filter(([, v]) => v)
-        .map(([k, v]) => `\`${k}\`: \`${v}\``)
-        .join(", ");
-      if (cmds) sections.push(`  Commands: ${cmds}`);
-    }
-  }
-
-  if (prompt?.sections?.after_repositories) {
-    sections.push(`\n${prompt.sections.after_repositories.trim()}`);
-  }
-
-  const docStructure = buildDocumentStructure(steps, taskFolder);
-  sections.push(docStructure);
-
-  const pipelineSection = buildKiroPipelineSection(steps);
-  sections.push(pipelineSection);
-
-  if (prompt?.sections?.after_pipeline) {
-    sections.push(`\n${prompt.sections.after_pipeline.trim()}`);
-  }
-
-  if (config.integrations?.slack || config.integrations?.github) {
-    sections.push(buildDeliverySection(config));
-  }
-
-  if (prompt?.sections?.after_delivery) {
-    sections.push(`\n${prompt.sections.after_delivery.trim()}`);
-  }
-
-  const mcpToolsSectionKiro = buildMcpToolsSection(config.mcps);
-  if (mcpToolsSectionKiro) {
-    sections.push(mcpToolsSectionKiro);
-  }
-
-  if (config.memory) {
-    sections.push(buildMemorySection(config));
-  }
-
-  if (config.workflow?.fact_checker) {
-    sections.push(buildFetchCheckerSection());
-  }
-
-  const designSectionKiro = buildDesignSection(config);
-  if (designSectionKiro) sections.push(designSectionKiro);
-
-  const agentTeamsSectionKiro = buildAgentTeamsSection(config.mcps);
-  if (agentTeamsSectionKiro) sections.push(agentTeamsSectionKiro);
-
-  const agentTeamsChatSectionKiro = buildAgentTeamsChatSection(config.mcps);
-  if (agentTeamsChatSectionKiro) sections.push(agentTeamsChatSectionKiro);
-
-  const kanbanSectionKiro = buildKanbanSection(config.mcps);
-  if (kanbanSectionKiro) sections.push(kanbanSectionKiro);
-
-  sections.push(`
-## Troubleshooting and Debugging
-
-For bug reports or unexpected behavior, follow the debugging process from the \`agent-debugger.md\` steering file (if available), or:
-1. Collect context (symptoms, environment, timeline)
-2. Analyze logs and stack traces
-3. Form and test hypotheses systematically
-4. Identify the root cause
-5. Propose and implement the fix`);
-
-  sections.push(...buildCoreBehaviorSections());
-
-  if (prompt?.sections) {
-    const reservedKeys = new Set(["after_repositories", "after_pipeline", "after_delivery"]);
-    for (const [name, content] of Object.entries(prompt.sections)) {
-      if (reservedKeys.has(name)) continue;
-      const title = name
-        .split(/[-_]/)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-      sections.push(`\n## ${title}\n\n${content.trim()}`);
-    }
-  }
-
-  if (prompt?.append) {
-    sections.push(`\n${prompt.append.trim()}`);
-  }
-
-  return sections.join("\n");
-}
-
-function buildKiroPipelineSection(steps: WorkflowStep[]): string {
-  if (steps.length === 0) {
-    return `
-## Development Pipeline
-
-Follow each step sequentially, delegating to the appropriate subagent:
-
-1. **Refinement** — Use the \`refinement\` subagent to collect requirements. Write output to the task document.
-2. **Coding** — Use the \`coding-backend\` and \`coding-frontend\` subagents to implement the feature.
-3. **Review** — Use the \`code-reviewer\` subagent to review the implementation.
-4. **QA** — Use the \`qa-backend\` and/or \`qa-frontend\` subagents to test.
-5. **Delivery** — Create PRs and notify the team.`;
-  }
-
-  const parts: string[] = [`
-## Development Pipeline
-
-Follow each step sequentially, delegating to the appropriate subagent at each phase.
-`];
-
-  for (const step of steps) {
-    if (step.actions) {
-      parts.push(`### Delivery`);
-      parts.push(`After all validations pass, execute these actions:`);
-      for (const action of step.actions) {
-        parts.push(`- ${formatAction(action)}`);
-      }
-      continue;
-    }
-
-    const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
-    parts.push(`### ${stepTitle}`);
-
-    if (step.mode === "plan") {
-      parts.push(`**This step is a planning phase.** Do NOT make any code changes. Focus on reading, analyzing, and collaborating with the user to define requirements before proceeding.`);
-      parts.push(``);
-    }
-
-    if (step.agent) {
-      parts.push(`Use the \`${step.agent}\` subagent.${step.output ? ` Write output to \`${step.output}\`.` : ""}`);
-
-      if (step.step === "refinement") {
-        parts.push(`
-After completing the refinement, validate with the user:
-- If there are unanswered questions, ask the user one at a time
-- If the user requests adjustments, revisit the refinement
-- Do not proceed until the document is complete and approved by the user`);
-      }
-    }
-
-    if (Array.isArray(step.agents)) {
-      const agentList = step.agents.map((a) => {
-        if (typeof a === "string") return { agent: a };
-        return a;
-      });
-
-      parts.push(`Use these subagents sequentially:`);
-
-      for (const a of agentList) {
-        let line = `- \`${a.agent}\``;
-        if (a.output) line += ` → write to \`${a.output}\``;
-        if (a.when) line += ` (when: ${a.when})`;
-        parts.push(line);
-      }
-
-      if (step.step === "coding" || step.step === "code" || step.step === "implementation") {
-        parts.push(`
-If you encounter doubts during coding, write questions in the task document and validate with the user before proceeding.`);
-      }
-
-      if (step.step === "validation" || step.step === "review" || step.step === "qa") {
-        parts.push(`
-If any validation step reveals issues requiring fixes, go back to the relevant coding step to address them.`);
-      }
-    }
-
-    parts.push("");
-  }
-
-  return parts.join("\n");
+  return buildCapabilitiesPrompt(config, { format: "plain" });
 }
 
 
 function buildOrchestratorRule(config: HubConfig): string {
-  const taskFolder = config.workflow?.task_folder || "./tasks/<TASK_ID>/";
-  const steps = config.workflow?.pipeline || [];
-  const prompt = config.workflow?.prompt;
-  const enforce = config.workflow?.enforce_workflow ?? false;
-
-  const sections: string[] = [];
-
-  sections.push(`---
-description: "Orchestrator agent — coordinates sub-agents through the development pipeline"
-alwaysApply: true
----
-
-# Orchestrator
-
-## Your Main Responsibility
-
-You are an agent orchestrator. Your job is to ensure that any feature or task requested by the user is completed end-to-end using specialized sub-agents.`);
-
-  if (enforce) {
-    sections.push(`
-## STRICT WORKFLOW ENFORCEMENT
-
-**YOU MUST FOLLOW THE PIPELINE DEFINED BELOW. NO EXCEPTIONS.**
-
-- NEVER skip a pipeline step, even if the task seems simple or obvious.
-- ALWAYS execute steps in the exact order defined. Do not reorder, merge, or parallelize steps unless the pipeline explicitly allows it.
-- ALWAYS call the designated sub-agent for each step. Do not attempt to perform a step yourself if an agent is assigned to it.
-- ALWAYS wait for a step to complete and validate its output before moving to the next step.
-- If a step produces a document, READ the document and confirm it is complete before proceeding.
-- If a step has unanswered questions or validation issues, RESOLVE them before advancing.
-- NEVER jump directly to coding without completing refinement first.
-- NEVER skip review or QA steps, even for small changes.
-- If the user asks you to skip a step, explain why the pipeline exists and ask for explicit confirmation before proceeding.`);
-  }
-
-  if (prompt?.prepend) {
-    sections.push(`\n${prompt.prepend.trim()}`);
-  }
-
-  if (config.integrations?.linear) {
-    const linear = config.integrations.linear;
-    sections.push(`
-## Task Management
-
-If the user doesn't have a task in their project management tool, create one using the Linear MCP.${linear.team ? ` Add it to the **${linear.team}** team.` : ""} Provide the link to the user so they can review and modify as needed.`);
-  }
-
-  sections.push(`
-## Repositories
-`);
-  for (const repo of config.repos) {
-    const parts = [`- **${repo.path}**`];
-    if (repo.description) parts.push(`— ${repo.description}`);
-    else if (repo.tech) parts.push(`— ${repo.tech}`);
-    if (repo.skills?.length) parts.push(`(skills: ${repo.skills.join(", ")})`);
-    sections.push(parts.join(" "));
-
-    if (repo.commands) {
-      const cmds = Object.entries(repo.commands)
-        .filter(([, v]) => v)
-        .map(([k, v]) => `\`${k}\`: \`${v}\``)
-        .join(", ");
-      if (cmds) sections.push(`  Commands: ${cmds}`);
-    }
-  }
-
-  if (prompt?.sections?.after_repositories) {
-    sections.push(`\n${prompt.sections.after_repositories.trim()}`);
-  }
-
-  const docStructure = buildDocumentStructure(steps, taskFolder);
-  sections.push(docStructure);
-
-  const pipelineSection = buildPipelineSection(steps);
-  sections.push(pipelineSection);
-
-  if (prompt?.sections?.after_pipeline) {
-    sections.push(`\n${prompt.sections.after_pipeline.trim()}`);
-  }
-
-  if (config.integrations?.slack || config.integrations?.github) {
-    sections.push(buildDeliverySection(config));
-  }
-
-  if (prompt?.sections?.after_delivery) {
-    sections.push(`\n${prompt.sections.after_delivery.trim()}`);
-  }
-
-  const mcpToolsSectionCursor = buildMcpToolsSection(config.mcps);
-  if (mcpToolsSectionCursor) {
-    sections.push(mcpToolsSectionCursor);
-  }
-
-  if (config.memory) {
-    sections.push(buildMemorySection(config));
-  }
-
-  if (config.workflow?.fact_checker) {
-    sections.push(buildFetchCheckerSection());
-  }
-
-  const designSectionCursor = buildDesignSection(config);
-  if (designSectionCursor) sections.push(designSectionCursor);
-
-  const agentTeamsSectionCursor = buildAgentTeamsSection(config.mcps);
-  if (agentTeamsSectionCursor) sections.push(agentTeamsSectionCursor);
-
-  const agentTeamsChatSectionCursor = buildAgentTeamsChatSection(config.mcps);
-  if (agentTeamsChatSectionCursor) sections.push(agentTeamsChatSectionCursor);
-
-  const kanbanSectionCursor = buildKanbanSection(config.mcps);
-  if (kanbanSectionCursor) sections.push(kanbanSectionCursor);
-
-  sections.push(`
-## Troubleshooting and Debugging
-
-For bug reports or unexpected behavior, use the \`debugger\` agent directly.
-It will:
-1. Collect context (symptoms, environment, timeline)
-2. Analyze logs and stack traces
-3. Form and test hypotheses systematically
-4. Identify the root cause
-5. Propose a solution or call coding agents to implement the fix`);
-
-  sections.push(...buildCoreBehaviorSections());
-
-  if (prompt?.sections) {
-    const reservedKeys = new Set(["after_repositories", "after_pipeline", "after_delivery"]);
-    for (const [name, content] of Object.entries(prompt.sections)) {
-      if (reservedKeys.has(name)) continue;
-      const title = name
-        .split(/[-_]/)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-      sections.push(`\n## ${title}\n\n${content.trim()}`);
-    }
-  }
-
-  if (prompt?.append) {
-    sections.push(`\n${prompt.append.trim()}`);
-  }
-
-  return sections.join("\n");
-}
-
-function buildDocumentStructure(steps: WorkflowStep[], taskFolder: string): string {
-  const outputs: string[] = [];
-
-  for (const step of steps) {
-    if (step.output) {
-      outputs.push(step.output);
-    }
-    if (Array.isArray(step.agents)) {
-      for (const a of step.agents) {
-        if (typeof a === "object" && a.output) {
-          outputs.push(a.output);
-        }
-      }
-    }
-  }
-
-  if (outputs.length === 0) {
-    outputs.push("refinement.md", "code-backend.md", "code-frontend.md", "code-review.md", "qa-backend.md", "qa-frontend.md");
-  }
-
-  const tree = outputs.map((o) => `├── ${o}`);
-  if (tree.length > 0) {
-    tree[tree.length - 1] = tree[tree.length - 1].replace("├──", "└──");
-  }
-
-  return `
-## Document Structure
-
-All task documents are stored in \`${taskFolder}\`:
-
-\`\`\`
-${taskFolder}
-${tree.join("\n")}
-\`\`\``;
-}
-
-function buildPipelineSection(steps: WorkflowStep[]): string {
-  if (steps.length === 0) {
-    return `
-## Development Pipeline
-
-1. Use the \`refinement\` agent to collect requirements
-2. Use \`coding-backend\` and/or \`coding-frontend\` agents to implement
-3. Use \`code-reviewer\` to review the implementation
-4. Use \`qa-backend\` and/or \`qa-frontend\` to test
-5. Create PRs and notify the team`;
-  }
-
-  const parts: string[] = [`
-## Development Pipeline
-`];
-
-  for (const step of steps) {
-    if (step.actions) {
-      parts.push(`### Delivery`);
-      parts.push(`After all validations pass, execute these actions:`);
-      for (const action of step.actions) {
-        parts.push(`- ${formatAction(action)}`);
-      }
-      continue;
-    }
-
-    const stepTitle = step.step.charAt(0).toUpperCase() + step.step.slice(1);
-    parts.push(`### ${stepTitle}`);
-
-    if (step.mode === "plan") {
-      parts.push(`**Before starting this step, switch to Plan Mode** by calling \`SwitchMode\` with \`target_mode_id: "plan"\`. This ensures collaborative planning with the user in a read-only context before any implementation begins.`);
-      parts.push(``);
-    }
-
-    if (step.agent) {
-      parts.push(`Call the \`${step.agent}\` agent.${step.output ? ` It writes to \`${step.output}\`.` : ""}`);
-
-      if (step.step === "refinement") {
-        parts.push(`
-After it runs, read the document and validate with the user:
-- If there are unanswered questions, ask the user one at a time
-- If the user requests adjustments, send back to the refinement agent
-- Do not proceed until the document is complete and approved by the user`);
-      }
-    }
-
-    if (Array.isArray(step.agents)) {
-      const agentList = step.agents.map((a) => {
-        if (typeof a === "string") return { agent: a };
-        return a;
-      });
-
-      if (step.parallel) {
-        parts.push(`Call these agents${step.parallel ? " in parallel" : ""}:`);
-      } else {
-        parts.push(`Call these agents in sequence:`);
-      }
-
-      for (const a of agentList) {
-        let line = `- \`${a.agent}\``;
-        if (a.output) line += ` → writes to \`${a.output}\``;
-        if (a.when) line += ` (when: ${a.when})`;
-        parts.push(line);
-      }
-
-      if (step.step === "coding" || step.step === "code" || step.step === "implementation") {
-        parts.push(`
-If any coding agent has doubts, they will write questions in their document. Apply the same Q&A logic as refinement — validate with the user before proceeding.`);
-      }
-
-      if (step.step === "validation" || step.step === "review" || step.step === "qa") {
-        parts.push(`
-If any validation agent leaves comments requiring fixes, call the relevant coding agents again to address them.`);
-      }
-    }
-
-    if (step.mode === "plan") {
-      parts.push(`
-**After this step is complete and approved**, switch back to Agent Mode to proceed with the next step.`);
-    }
-
-    parts.push("");
-  }
-
-  return parts.join("\n");
-}
-
-function buildDeliverySection(config: HubConfig): string {
-  const parts: string[] = [`
-## Delivery Details
-`];
-
-  if (config.integrations?.github) {
-    const gh = config.integrations.github;
-    const tool = gh.pr_tool === "mcp" ? "GitHub MCP" : "GitHub CLI";
-    parts.push(`### Pull Requests`);
-    parts.push(`For each repository with changes, push the branch and create a PR using the ${tool}.`);
-    if (gh.pr_branch_pattern) {
-      parts.push(`Branch naming pattern: \`${gh.pr_branch_pattern}\``);
-    }
-  }
-
-  if (config.integrations?.slack) {
-    const slack = config.integrations.slack;
-    if (slack.channels) {
-      parts.push(`\n### Slack Notifications`);
-      for (const [purpose, channel] of Object.entries(slack.channels)) {
-        parts.push(`- **${purpose}**: Post to \`${channel}\``);
-      }
-    }
-    if (slack.templates) {
-      parts.push(`\nMessage templates:`);
-      for (const [name, template] of Object.entries(slack.templates)) {
-        parts.push(`- **${name}**: \`${template}\``);
-      }
-    }
-  }
-
-  if (config.integrations?.linear) {
-    parts.push(`\n### Task Management`);
-    parts.push(`Update the Linear task status after PR creation.`);
-  }
-
-  return parts.join("\n");
-}
-
-function formatAction(action: string): string {
-  const map: Record<string, string> = {
-    "create-pr": "Create pull requests for each repository with changes",
-    "notify-slack": "Send notification to the configured Slack channel",
-    "notify-slack-prs": "Send PR notification to the Slack PRs channel",
-    "update-linear": "Update the Linear task status",
-    "update-linear-status": "Update the Linear task status to Review",
-    "update-jira": "Update the Jira task status",
-  };
-  return map[action] || action;
+  return buildCapabilitiesPrompt(config, { format: "cursor-rule" });
 }
 
 async function generateClaudeCode(config: HubConfig, hubDir: string) {
   const claudeDir = join(hubDir, ".claude");
-  await mkdir(join(claudeDir, "agents"), { recursive: true });
+  await mkdir(claudeDir, { recursive: true });
 
   const orchestratorRule = buildOrchestratorRule(config);
   const cleanedOrchestrator = orchestratorRule
     .replace(/^---[\s\S]*?---\n/m, "")
     .trim();
 
-  const skillsSectionClaude = await buildSkillsSection(hubDir, config);
   const personaClaude = await loadPersona(hubDir);
-  const agentsMdClaude = [cleanedOrchestrator, skillsSectionClaude].filter(Boolean).join("\n");
-  await writeFile(join(hubDir, "AGENTS.md"), agentsMdClaude + "\n", "utf-8");
+  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestrator + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
   if (personaClaude) {
     console.log(chalk.green(`  Applied persona: ${personaClaude.name} (${personaClaude.role})`));
@@ -2131,18 +783,6 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
 
   const claudeMdSections: string[] = [];
   claudeMdSections.push(cleanedOrchestrator);
-
-  const agentsDir = resolve(hubDir, "agents");
-  try {
-    const agentFiles = await readdir(agentsDir);
-    const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      await copyFile(join(agentsDir, file), join(claudeDir, "agents", file));
-    }
-    console.log(chalk.green(`  Copied ${mdFiles.length} agents to .claude/agents/`));
-  } catch {
-    console.log(chalk.yellow("  No agents/ directory found, skipping agent copy"));
-  }
 
   const skillsDir = resolve(hubDir, "skills");
   const remoteSkillsClaude = getRemoteSkillNames(config);
@@ -2333,8 +973,11 @@ function buildCodexMcpBlock(name: string, mcp: MCPConfig): string | null {
     }
     args.push(mcp.image);
     lines.push(`command = 'docker'`, `args = ${tomlArray(args)}`);
+  } else if (mcp.command) {
+    lines.push(`command = ${tomlString(mcp.command)}`);
+    if (mcp.args?.length) lines.push(`args = ${tomlArray(mcp.args)}`);
   } else if (mcp.package) {
-    lines.push(`command = 'npx'`, `args = ${tomlArray(["-y", mcp.package])}`);
+    lines.push(`command = 'npx'`, `args = ${tomlArray(["-y", mcp.package, ...(mcp.args || [])])}`);
   } else {
     return null;
   }
@@ -2354,16 +997,47 @@ function buildCodexMcpBlock(name: string, mcp: MCPConfig): string | null {
 }
 
 async function generateCodex(config: HubConfig, hubDir: string) {
+  const codexDir = join(hubDir, ".codex");
+  await mkdir(codexDir, { recursive: true });
+
   const orchestratorRule = buildOrchestratorRule(config);
   const cleanedOrchestrator = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
-  const skillsSectionCodex = await buildSkillsSection(hubDir, config);
   const personaCodex = await loadPersona(hubDir);
-  const agentsMdCodex = [cleanedOrchestrator, skillsSectionCodex].filter(Boolean).join("\n");
-  await writeFile(join(hubDir, "AGENTS.md"), agentsMdCodex + "\n", "utf-8");
+  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestrator + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
   if (personaCodex) {
     console.log(chalk.green(`  Applied persona: ${personaCodex.name} (${personaCodex.role})`));
   }
+
+  const skillsDir = resolve(hubDir, "skills");
+  const remoteSkillsCodex = getRemoteSkillNames(config);
+  try {
+    const skillFolders = await readdir(skillsDir);
+    const codexSkillsDir = join(codexDir, "skills");
+    await mkdir(codexSkillsDir, { recursive: true });
+    let count = 0;
+    for (const folder of skillFolders) {
+      if (remoteSkillsCodex.has(folder)) continue;
+      const skillFile = join(skillsDir, folder, "SKILL.md");
+      try {
+        await readFile(skillFile);
+        await cp(join(skillsDir, folder), join(codexSkillsDir, folder), { recursive: true });
+        count++;
+      } catch {
+        // skip
+      }
+    }
+    if (count > 0) {
+      console.log(chalk.green(`  Copied ${count} skills to .codex/skills/`));
+    }
+  } catch {
+    // no skills dir
+  }
+
+  const codexSkillsDirForDocs = join(codexDir, "skills");
+  await mkdir(codexSkillsDirForDocs, { recursive: true });
+  await fetchHubDocsSkill(codexSkillsDirForDocs);
+  await syncRemoteSources(config, hubDir, join(codexDir, "skills"), join(codexDir, "steering"));
 
   if (config.mcps?.length) {
     const upstreamSet = getUpstreamNames(config.mcps);
@@ -2389,8 +1063,6 @@ async function generateCodex(config: HubConfig, hubDir: string) {
       }
       blocks.push(block, "");
     }
-    const codexDir = join(hubDir, ".codex");
-    await mkdir(codexDir, { recursive: true });
     await writeFile(
       join(codexDir, "config.toml"),
       blocks.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n",
@@ -2436,11 +1108,9 @@ async function generateKiro(config: HubConfig, hubDir: string) {
   console.log(chalk.green("  Generated .gitignore"));
 
   const kiroRule = buildKiroOrchestratorRule(config);
-  const skillsSection = await buildSkillsSection(hubDir, config);
   const personaKiro = await loadPersona(hubDir);
-  const kiroRuleWithSkills = [kiroRule, skillsSection].filter(Boolean).join("\n");
 
-  await writeFile(join(hubDir, "AGENTS.md"), kiroRuleWithSkills + "\n", "utf-8");
+  await writeFile(join(hubDir, "AGENTS.md"), kiroRule + "\n", "utf-8");
   console.log(chalk.green("  Generated AGENTS.md"));
 
   if (personaKiro) {
@@ -2498,25 +1168,6 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     }
   } catch {
     // no steering dir
-  }
-
-  const agentsDir = resolve(hubDir, "agents");
-  try {
-    const kiroAgentsDir = join(kiroDir, "agents");
-    await mkdir(kiroAgentsDir, { recursive: true });
-    const agentFiles = await readdir(agentsDir);
-    const mdFiles = agentFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const agentContent = await readFile(join(agentsDir, file), "utf-8");
-      const agentName = file.replace(/\.md$/, "");
-      const sandboxSvc = getSandboxMcp(config);
-      const withSandbox = sandboxSvc ? injectSandboxContext(agentName, agentContent, sandboxSvc.port) : agentContent;
-      const kiroAgent = buildKiroAgentContent(withSandbox);
-      await writeFile(join(kiroAgentsDir, file), kiroAgent, "utf-8");
-    }
-    console.log(chalk.green(`  Copied ${mdFiles.length} agents to .kiro/agents/`));
-  } catch {
-    console.log(chalk.yellow("  No agents/ directory found, skipping agent copy"));
   }
 
   const skillsDir = resolve(hubDir, "skills");
@@ -2677,18 +1328,25 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
 
 
 function extractEnvVarsByMcp(mcps: MCPConfig[]): { name: string; vars: string[] }[] {
-  const envVarPattern = /\$\{env:([^}]+)\}/;
+  const envVarPattern = /\$\{(?:env:)?(\w+)\}/g;
   const groups: { name: string; vars: string[] }[] = [];
 
   for (const mcp of mcps) {
-    if (!mcp.env) continue;
+    const values: string[] = [];
+    if (mcp.env) values.push(...Object.values(mcp.env));
+    if (mcp.auth && typeof mcp.auth !== "string") {
+      if (mcp.auth.clientId) values.push(mcp.auth.clientId);
+      if (mcp.auth.clientSecret) values.push(mcp.auth.clientSecret);
+    }
+    if (values.length === 0) continue;
     const vars: string[] = [];
     const seenInGroup = new Set<string>();
-    for (const value of Object.values(mcp.env)) {
-      const match = envVarPattern.exec(value);
-      if (match && !seenInGroup.has(match[1])) {
-        seenInGroup.add(match[1]);
-        vars.push(match[1]);
+    for (const value of values) {
+      for (const match of value.matchAll(envVarPattern)) {
+        if (!seenInGroup.has(match[1])) {
+          seenInGroup.add(match[1]);
+          vars.push(match[1]);
+        }
       }
     }
     if (vars.length > 0) {
@@ -2742,7 +1400,7 @@ function buildGitignoreLines(config: HubConfig): string[] {
   ];
 
   for (const repo of config.repos) {
-    lines.push(repo.path.replace("./", ""));
+    lines.push(`/${repo.path.replace(/^\.\//, "")}`);
   }
 
   lines.push(
@@ -2794,7 +1452,81 @@ function buildGitignoreLines(config: HubConfig): string[] {
   return lines;
 }
 
+const HUB_PI_PACKAGE = "npm:@arvoretech/hub-pi";
+
+async function generatePi(config: HubConfig, hubDir: string) {
+  const gitignoreLines = buildGitignoreLines(config);
+  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
+  console.log(chalk.green("  Generated .gitignore"));
+
+  const piDir = join(hubDir, ".pi");
+  await mkdir(piDir, { recursive: true });
+  const settingsPath = join(piDir, "settings.json");
+
+  let settings: Record<string, unknown> = {};
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
+    } catch {
+      console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched."));
+      console.log(chalk.dim(`  Add "${HUB_PI_PACKAGE}" to its "packages" array manually once the JSON is fixed.`));
+      return;
+    }
+  }
+
+  const packages = Array.isArray(settings.packages) ? (settings.packages as string[]) : [];
+  if (!packages.includes(HUB_PI_PACKAGE)) {
+    packages.push(HUB_PI_PACKAGE);
+    console.log(chalk.green(`  Registered ${HUB_PI_PACKAGE} in .pi/settings.json`));
+  } else {
+    console.log(chalk.dim("  hub-pi already registered in .pi/settings.json"));
+  }
+  settings.packages = packages;
+
+  const skillsEntries = Array.isArray(settings.skills) ? (settings.skills as string[]) : [];
+  if (!skillsEntries.includes("skills") && !skillsEntries.includes(".pi/skills")) {
+    skillsEntries.push("skills");
+    console.log(chalk.green("  Pointed skills dir to ./skills in .pi/settings.json"));
+  }
+  settings.skills = skillsEntries;
+
+  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf-8");
+
+  const piToggles = resolvePiConfig(config);
+  if (!piToggles.injectCapabilities) {
+    console.log(chalk.dim("\n  pi.injectCapabilities is disabled — skipping AGENTS.md generation."));
+    console.log(chalk.dim("  The hub-pi extension still wires MCPs, repo tools, persona, hooks, and skills at runtime."));
+    return;
+  }
+
+  const capabilities = buildCapabilitiesPrompt(config, { format: "plain" });
+  const agentsSections: string[] = [];
+  if (capabilities) agentsSections.push(capabilities);
+
+  const hubSteeringDirPi = resolve(hubDir, "steering");
+  try {
+    const steeringFiles = await readdir(hubSteeringDirPi);
+    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
+    for (const file of mdFiles) {
+      const raw = await readFile(join(hubSteeringDirPi, file), "utf-8");
+      const content = stripFrontMatter(raw).trim();
+      if (content) agentsSections.push(content);
+    }
+    if (mdFiles.length > 0) {
+      console.log(chalk.green(`  Appended ${mdFiles.length} steering files to AGENTS.md`));
+    }
+  } catch {
+    // no steering dir
+  }
+
+  await writeFile(join(hubDir, "AGENTS.md"), agentsSections.join("\n\n") + "\n", "utf-8");
+  console.log(chalk.green("  Generated AGENTS.md"));
+
+  console.log(chalk.dim("\n  Pi reads AGENTS.md natively at startup; MCP wiring, repo tools, persona, and hooks are added by the hub-pi extension at runtime."));
+}
+
 export const generators: Record<string, Generator> = {
+  pi: { name: "Pi", generate: generatePi },
   cursor: { name: "Cursor", generate: generateCursor },
   "claude-code": { name: "Claude Code", generate: generateClaudeCode },
   kiro: { name: "Kiro", generate: generateKiro },
@@ -2844,7 +1576,7 @@ async function resolveEditor(opts: { editor?: string; resetEditor?: boolean }): 
 
 export const generateCommand = new Command("generate")
   .description("Generate editor-specific configuration files from hub.yaml")
-  .option("-e, --editor <editor>", "Target editor (cursor, claude-code, kiro, opencode, codex)")
+  .option("-e, --editor <editor>", "Target editor (pi, cursor, claude-code, kiro, opencode, codex)")
   .option("--reset-editor", "Reset saved editor preference and choose again")
   .option("--check", "Check if generated configs are outdated (exit code 1 if outdated)")
   .action(async (opts: { editor?: string; resetEditor?: boolean; check?: boolean }) => {

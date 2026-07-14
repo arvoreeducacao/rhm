@@ -1,199 +1,72 @@
 ---
-title: Workflow
-description: Define the agent pipeline for end-to-end development.
+title: Conventions
+description: Optional workspace conventions and prompt customization (no enforced pipeline).
 order: 10
 ---
 
-The `workflow` section defines the development pipeline that the orchestrator agent follows. Each step calls one or more specialized [agents](/docs/agents) in order.
+Repo Hub is **capability-centered**, not pipeline-centered. The agent is given capabilities — [skills](/docs/skills) (specialized knowledge), [MCPs](/docs/mcps) (tools), and multi-repo context — and decides which to use for each task, applying its own judgment. There is no fixed sequence of phases the agent must march through.
+
+The optional `workflow` section no longer defines a pipeline. It carries two things: where task documents live, and free-form prompt customization injected into the generated capabilities prompt.
 
 ## Schema
 
 ```yaml
 workflow:
   task_folder: "./tasks/{task_id}/"
-  pipeline:
-    - step: refinement
-      agent: refinement
-      output: refinement.md
-
-    - step: coding
-      agents:
-        - agent: coding-backend
-          output: code-backend.md
-          when: repos_include(api, backend)
-        - agent: coding-frontend
-          output: code-frontend.md
-          when: repos_include(frontend)
-      parallel: true
-
-    - step: review
-      agent: code-reviewer
-      output: code-review.md
-
-    - step: qa
-      agents: [qa-backend, qa-frontend]
-      parallel: true
-      tools: [playwright]
-
-    - step: deliver
-      actions: [create-pr, notify-slack, update-linear]
-```
-
-## Pipeline Steps
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `step` | string | Yes | Step name (used as section header) |
-| `agent` | string | No | Single agent to execute |
-| `agents` | array | No | Multiple agents (string names or objects) |
-| `parallel` | boolean | No | Run agents in parallel (default: sequential) |
-| `output` | string | No | Document filename for agent output |
-| `tools` | string[] | No | MCP tools available to this step |
-| `when` | string | No | Condition for executing this step |
-| `actions` | string[] | No | Built-in actions to execute |
-
-## Task Folder
-
-All task documents are stored in the `task_folder`. Default: `./tasks/{task_id}/`
-
-```
-./tasks/ENG-123/
-├── refinement.md
-├── code-backend.md
-├── code-frontend.md
-├── code-review.md
-├── qa-backend.md
-└── qa-frontend.md
-```
-
-## Agent Steps
-
-### Single Agent
-
-```yaml
-- step: refinement
-  agent: refinement
-  output: refinement.md
-```
-
-### Multiple Agents (Parallel)
-
-```yaml
-- step: coding
-  agents: [coding-backend, coding-frontend]
-  parallel: true
-```
-
-### Multiple Agents (with conditions)
-
-```yaml
-- step: coding
-  agents:
-    - agent: coding-backend
-      output: code-backend.md
-      when: repos_include(api)
-    - agent: coding-frontend
-      output: code-frontend.md
-      when: repos_include(frontend)
-  parallel: true
-```
-
-## Delivery Actions
-
-The `actions` field triggers built-in delivery behaviors:
-
-| Action | Description |
-|--------|-------------|
-| `create-pr` | Create pull requests for each repo with changes |
-| `notify-slack` | Send notification to the configured Slack channel |
-| `notify-slack-prs` | Send PR links to the Slack PRs channel |
-| `update-linear` | Update the Linear task status |
-| `update-linear-status` | Update the Linear task to Review status |
-
-```yaml
-- step: deliver
-  actions: [create-pr, notify-slack-prs, update-linear-status]
-```
-
-## How It Runs
-
-1. `hub generate` reads the pipeline from your config and produces orchestrator instructions
-2. You open the project in your AI editor
-3. The orchestrator agent reads the generated rule and follows the pipeline
-4. Each step calls a sub-agent (via the editor's agent mode)
-5. Agents write output documents to the task folder
-6. The orchestrator validates between steps — asking the user for approval when needed
-
-**The editor is the runtime.** No daemon, no server, no separate process.
-
-## Enforcing the Pipeline
-
-By default, the orchestrator follows the pipeline but may occasionally take shortcuts for simple tasks. Set `enforce_workflow: true` to add strict enforcement rules to the generated prompt:
-
-```yaml
-workflow:
-  enforce_workflow: true
-  pipeline:
-    - step: refinement
-      agent: refinement
-    # ...
-```
-
-When enabled, the orchestrator will:
-
-- **Never skip a step**, even for small or "obvious" changes
-- **Always execute steps in order** — no reordering, merging, or ad-hoc parallelization
-- **Always delegate to the designated agent** instead of attempting the work itself
-- **Always validate outputs** before moving to the next step
-- **Ask for confirmation** if the user explicitly requests skipping a step
-
-This is recommended for teams that want a consistent, auditable development process on every task.
-
-## Prompt Customization
-
-You can inject custom content into the generated orchestrator prompt using the `prompt` field. This lets you add company-specific instructions, guidelines, or context without editing generated files.
-
-```yaml
-workflow:
+  fact_checker: true
   prompt:
     prepend: |
       Always respond in Portuguese.
-      Follow the coding standards documented at docs/standards.md.
     append: |
       When in doubt, ask the user before proceeding.
     sections:
       after_repositories: |
-        The API uses a custom auth middleware. See api/docs/auth.md for details.
-      after_pipeline: |
-        Always run linting before committing changes.
+        The API uses a custom auth middleware. See api/docs/auth.md.
       coding_guidelines: |
-        Use functional programming patterns where possible.
-        Prefer composition over inheritance.
+        Use functional patterns. Prefer composition over inheritance.
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `task_folder` | string | Optional convention for where task documents go (default: `./tasks`). Nothing forces their creation. |
+| `fact_checker` | boolean | When true, requires the agent to verify external state (PR/deploy/branch status) with a tool before stating it. |
+| `prompt` | object | Free-form text injected into the capabilities prompt. |
+
+## Prompt Customization
+
+The `prompt` field injects company-specific instructions into the generated capabilities prompt without editing generated files.
 
 | Field | Description |
 |-------|-------------|
-| `prepend` | Injected right after the orchestrator introduction |
+| `prepend` | Injected right after the introduction |
 | `append` | Added at the very end of the generated prompt |
 | `sections.after_repositories` | Injected after the repositories list |
-| `sections.after_pipeline` | Injected after the pipeline section |
 | `sections.after_delivery` | Injected after the delivery section |
-| `sections.<custom_name>` | Any other key becomes a new `## Section Name` at the end |
+| `sections.<custom_name>` | Any other key becomes a new `## Section Name` |
 
 Custom section keys are converted to title case (e.g., `coding_guidelines` becomes `## Coding Guidelines`).
 
-## Validation Flow
+## Why no pipeline?
 
-Between steps, the orchestrator:
+Earlier versions of Repo Hub modeled development as a fixed pipeline (refine → code → review → qa → deliver) executed by stack-specialized agents. Modern models don't need a stack-specialized "backend agent" vs "frontend agent", and a rigid pipeline gets in the way more than it helps. Two things replaced it:
 
-1. **Reads the output document** from the previous step
-2. **Checks for unanswered questions** — asks the user one at a time
-3. **Validates completeness** — ensures all required sections are filled
-4. **Gets user approval** before proceeding to the next step
+- **Skills** encapsulate *how* to do something well (how to review code, how to test, how to refine requirements). The agent pulls the relevant skill when the task calls for it — see [Skills](/docs/skills).
+- **Subagents**, when you want an independent, fresh-context pass (e.g. an unbiased code review), are spawned on demand using your editor's native subagent mechanism — not pre-declared as files.
 
-If any validation agent (review, QA) leaves comments, the orchestrator calls the relevant coding agents again to address them before proceeding.
+If you previously declared `workflow.pipeline` or `workflow.enforce_workflow`, those fields are ignored (the CLI warns and continues). Move the knowledge they encoded into skills.
+
+## How It Runs
+
+1. `hub generate` reads your config and produces a **capabilities prompt** (repositories, policies, conventions) plus connects your MCPs and installs your skills.
+2. You open the project in your AI editor.
+3. The editor exposes MCP tools (in the tool schema) and skills (in the native skill index) to the agent automatically.
+4. The agent reads the capabilities prompt, sees the available skills and tools, and works — pulling skills and spawning subagents as the task requires.
+
+**The editor is the runtime.** No daemon, no server, no separate process.
 
 ## Related
 
-- **[Hooks](/docs/hooks)** — Automate workflows with editor lifecycle hooks (format on save, block dangerous commands, session init)
-- **[Commands](/docs/commands)** — Create reusable slash commands for your AI editor
+- **[Skills](/docs/skills)** — Specialized knowledge the agent pulls on demand
+- **[MCPs](/docs/mcps)** — Tools the agent uses (databases, browser, monitoring)
+- **[Hooks](/docs/hooks)** — Automate editor lifecycle events
+- **[Commands](/docs/commands)** — Reusable slash commands

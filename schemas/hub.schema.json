@@ -148,6 +148,12 @@
       "items": { "$ref": "#/definitions/remoteSource" }
     },
     "design": { "$ref": "#/definitions/design" },
+    "pi": { "$ref": "#/definitions/pi" },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Workspace-level skills to install and register (specialized knowledge the agent can pull on demand)"
+    },
     "workflow": { "$ref": "#/definitions/workflow" }
   },
   "definitions": {
@@ -193,6 +199,11 @@
           "type": "object",
           "additionalProperties": { "type": "string" },
           "description": "Repo-specific tool overrides"
+        },
+        "context_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Markdown files (relative to the hub workspace root) with rich repo context (architecture, conventions, gotchas). Loaded on demand via the hub_repo_context Pi tool, never at startup."
         }
       }
     },
@@ -314,6 +325,41 @@
         }
       }
     },
+    "pi": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pi runtime extension toggles. Each module of the @arvoretech/hub-pi extension can be enabled or disabled individually. All default to true (full behavior).",
+      "properties": {
+        "headerBanner": {
+          "type": "boolean",
+          "description": "Replaces the Pi UI header with the HUB ASCII banner. Default: true"
+        },
+        "onboarding": {
+          "type": "boolean",
+          "description": "Workspace health checks at session start and /setup, /env commands. Default: true"
+        },
+        "autoMcpWiring": {
+          "type": "boolean",
+          "description": "Automatically rewrites .pi/mcp.json from config on every session start. Disable to manage mcp.json manually. Default: true"
+        },
+        "injectCapabilities": {
+          "type": "boolean",
+          "description": "Injects the capabilities prompt (repositories, policies, conventions) into the system prompt at runtime. Disable when AGENTS.md/steering already provide it to avoid double injection. Default: true"
+        },
+        "hooks": {
+          "type": "boolean",
+          "description": "Registers config-defined tool_call hooks. Default: true"
+        },
+        "persona": {
+          "type": "boolean",
+          "description": "Injects the persona section into the system prompt. Default: true"
+        },
+        "repoContext": {
+          "type": "boolean",
+          "description": "Registers the hub_repo_context tool that loads a repo's context_files on demand, plus steering that nudges the agent to call it before working on a repo. Default: true"
+        }
+      }
+    },
     "designLibrary": {
       "type": "object",
       "required": ["name"],
@@ -357,14 +403,9 @@
     "workflow": {
       "type": "object",
       "additionalProperties": false,
-      "description": "AI development workflow",
+      "description": "Optional workspace conventions (no enforced pipeline)",
       "properties": {
         "task_folder": { "type": "string", "description": "Task documents directory (default: ./tasks)" },
-        "pipeline": {
-          "type": "array",
-          "description": "Ordered pipeline steps",
-          "items": { "$ref": "#/definitions/pipelineStep" }
-        },
         "prompt": {
           "type": "object",
           "description": "Prompt customization",
@@ -375,47 +416,19 @@
           },
           "additionalProperties": false
         },
-        "enforce_workflow": {
-          "type": "boolean",
-          "default": false,
-          "description": "When true, adds strict enforcement rules to the orchestrator prompt — the AI must follow every pipeline step in order, never skip steps, and always validate outputs before proceeding."
-        },
         "fact_checker": {
           "type": "boolean",
           "default": false,
           "description": "When true, forces the agent to verify any factual claim about external state (PR status, deploy status, branch state, merge status, etc.) by actually checking with the appropriate tool BEFORE stating it to the user. Prevents hallucinated status reports."
-        }
-      }
-    },
-    "pipelineStep": {
-      "type": "object",
-      "required": ["step"],
-      "additionalProperties": false,
-      "description": "A pipeline step",
-      "properties": {
-        "step": {
-          "type": "string",
-          "description": "Step name",
-          "enum": ["refinement", "coding", "review", "qa", "deliver"]
         },
-        "agent": { "type": "string", "description": "Single agent for this step" },
-        "agents": { "type": "array", "description": "Multiple agents" },
-        "parallel": { "type": "boolean", "description": "Run agents in parallel" },
-        "output": { "type": "string", "description": "Output filename" },
-        "tools": { "type": "array", "items": { "type": "string" }, "description": "Tools for this step" },
-        "when": { "type": "string", "description": "Condition" },
-        "mode": {
-          "type": "string",
-          "enum": ["plan", "agent"],
-          "description": "Cursor interaction mode for this step. 'plan' switches to read-only collaborative planning mode before executing the step. 'agent' (default) uses the standard agent mode."
+        "pipeline": {
+          "deprecated": true,
+          "description": "DEPRECATED: removed in the skills-centered model. Ignored at load time (a warning is emitted). Migrate the knowledge it encoded into skills."
         },
-        "actions": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": ["create-pr", "notify-slack", "update-linear", "run-tests"]
-          },
-          "description": "Actions to execute"
+        "enforce_workflow": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "DEPRECATED: removed in the skills-centered model. Ignored at load time (a warning is emitted)."
         }
       }
     },

@@ -221,6 +221,6 @@ When running, the sandbox exposes:
 When a sandbox service is configured, `hub generate` automatically:
 
 1. Adds a `sandbox` MCP entry to the editor config (Cursor, Kiro)
-2. Injects a "Sandbox Environment" section into QA and coding agent prompts (`qa-frontend`, `qa-backend`, `coding-frontend`, `coding-backend`)
+2. Makes the sandbox available to the relevant skills and subagents (e.g. `code-review`, `qa-testing`, and stack work), so they prefer running builds, tests, and browser automation inside the sandbox
 
-This lets agents run shell commands, execute code, control a browser, and read/write files inside the sandbox without touching the host machine.
+This lets the agent run shell commands, execute code, control a browser, and read/write files inside the sandbox without touching the host machine.

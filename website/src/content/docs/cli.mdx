@@ -18,17 +18,17 @@ hub init my-hub
 
 Launches a multi-step wizard that guides you through:
 1. Naming your workspace
-2. Choosing your AI editor (Cursor, Kiro, Claude Code, OpenCode)
+2. Choosing your AI editor (Pi, Cursor, Kiro, Claude Code, OpenCode)
 3. Adding repositories with tech stack detection
-4. Selecting agents and skills from the [directory registry](https://hub.arvore.com.br)
+4. Selecting skills from the [directory registry](https://hub.arvore.com.br)
 5. Picking MCP servers for infrastructure access
 6. Choosing config format (YAML or TypeScript)
 
-Creates a directory with the config file (`hub.yaml` or `hub.config.ts`), `.gitignore`, `README.md`, and installs selected agents and skills from the registry.
+Creates a directory with the config file (`hub.yaml` or `hub.config.ts`), `.gitignore`, `README.md`, and installs selected skills from the registry.
 
 ### `hub setup`
 
-Full workspace setup — clone repos, start services, install tools, generate env files, install dependencies:
+Full workspace setup — clone repos, start services, install tools, generate env files, install dependencies, and install declared skills:
 
 ```bash
 hub setup
@@ -75,7 +75,8 @@ Checks: git, docker, node (required), pnpm, mise, gh, aws (recommended), plus an
 Generate editor configuration files from your config (`hub.yaml` or `hub.config.ts`):
 
 ```bash
-hub generate --editor cursor       # Cursor IDE (default)
+hub generate --editor pi           # Pi (AGENTS.md + steering, registers hub-pi extension)
+hub generate --editor cursor       # Cursor IDE
 hub generate --editor claude-code  # Claude Code (CLAUDE.md)
 hub generate --editor kiro         # Kiro IDE
 hub generate --editor opencode      # OpenCode CLI
@@ -84,15 +85,16 @@ hub generate --check               # Check if configs are outdated (exit 1 if ou
 
 | Flag | Description |
 |------|-------------|
-| `-e, --editor <editor>` | Target editor (cursor, claude-code, kiro, opencode) |
+| `-e, --editor <editor>` | Target editor (pi, cursor, claude-code, kiro, opencode) |
 | `--reset-editor` | Reset saved editor preference and choose again |
 | `--check` | Check if generated configs are outdated without regenerating. Exits with code 1 if outdated, 0 if up to date. Useful in CI and editor hooks. |
 
 Produces:
-- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/rules/<steering>.mdc`, `.cursor/agents/`, `.cursor/skills/`, `.cursor/skills/hub-docs/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `<name>.code-workspace`, `.gitignore`, `.cursorignore`
-- **Claude Code**: `CLAUDE.md` (with steering appended), `.claude/agents/`, `.claude/skills/`, `.claude/skills/hub-docs/`, `.claude/settings.json` (with hooks), `.mcp.json`, `.gitignore`
-- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/<steering>.md`, `.kiro/agents/`, `.kiro/skills/`, `.kiro/skills/hub-docs/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
-- **OpenCode**: `opencode.json`, `.opencode/rules/orchestrator.md`, `.opencode/rules/<steering>.md`, `.opencode/agents/`, `.opencode/skills/`, `.opencode/skills/hub-docs/`, `.opencode/commands/`, `.opencode/plugins/hub-hooks.js`, `.gitignore`
+- **Pi**: `AGENTS.md` (capabilities prompt with steering appended) read natively by Pi at startup. Registers `@arvoretech/hub-pi` in `.pi/settings.json` (merge-preserving existing packages/skills) and points the skills dir. The extension adds MCP wiring, repo tools, persona, and hooks at runtime. Skip the `AGENTS.md` generation by setting `pi.injectCapabilities: false`.
+- **Cursor**: `.cursor/rules/orchestrator.mdc`, `.cursor/rules/<steering>.mdc`, `.cursor/skills/`, `.cursor/skills/hub-docs/`, `.cursor/commands/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `<name>.code-workspace`, `.gitignore`, `.cursorignore`
+- **Claude Code**: `CLAUDE.md` (with steering appended), `.claude/skills/`, `.claude/skills/hub-docs/`, `.claude/settings.json` (with hooks), `.mcp.json`, `.gitignore`
+- **Kiro**: `.kiro/steering/orchestrator.md`, `.kiro/steering/<steering>.md`, `.kiro/skills/`, `.kiro/skills/hub-docs/`, `.kiro/settings/mcp.json`, `AGENTS.md`, `<name>.code-workspace`, `.gitignore`
+- **OpenCode**: `opencode.json`, `.opencode/rules/orchestrator.md`, `.opencode/rules/<steering>.md`, `.opencode/skills/`, `.opencode/skills/hub-docs/`, `.opencode/commands/`, `.opencode/plugins/hub-hooks.js`, `.gitignore`
 
 All editors get steering files from the `steering/` directory copied in their native format, and a `hub-docs` skill auto-fetched from hub.arvore.com.br.
 
@@ -233,7 +235,6 @@ Each resource type also has its own `find` subcommand:
 
 ```bash
 hub skills find react             # Browse skills
-hub agents find aws               # Browse agents
 hub hooks find                    # Browse hooks
 hub commands find                 # Browse commands
 ```
@@ -245,6 +246,7 @@ hub commands find                 # Browse commands
 Manage agent skills. Browse curated skills in the [Directory](/directory).
 
 ```bash
+hub skills sync                                            # Install all skills declared in the config
 hub skills list                                            # List installed skills
 hub skills find react                                      # Browse curated skills in the directory
 hub skills add backend-nestjs                              # Install from registry (by name)
@@ -266,30 +268,7 @@ hub skills remove backend-nestjs                           # Remove a skill
 
 See [Skills](/docs/skills) for more details.
 
-## Agents
-
-### `hub agents [subcommand]`
-
-Manage agent definitions:
-
-```bash
-hub agents list                    # List installed agents
-hub agents add debugger            # Install from registry (by name)
-hub agents add arvoreeducacao/rhm  # Install from GitHub repo
-hub agents add debugger --global   # Install globally
-hub agents remove debugger         # Remove an agent
-hub agents sync                    # Install all agents from hub.yaml pipeline
-hub agents sync --force            # Re-install all, even if they exist
-```
-
-| Flag | Description |
-|------|-------------|
-| `-a, --agent <name>` | Install a specific agent only |
-| `-g, --global` | Install to/remove from global `~/.cursor/agents/` |
-| `-r, --repo <repo>` | Override registry repository |
-| `-f, --force` | Re-install even if already installed (sync only) |
-
-See [Agents](/docs/agents) for more details.
+> **Deprecated: `hub agents`.** Agents were replaced by skills in the skills-centered model. The command now prints a migration notice and exits. Use `hub skills` instead, and declare capabilities under `skills:` in your config.
 
 ## Hooks
 

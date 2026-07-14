@@ -1,14 +1,14 @@
 ---
-name: debugger
-description: Debugging and troubleshooting agent. Analyzes errors, identifies root causes, and resolves complex problems systematically.
-model: inherit
+name: debugging
+description: Systematic debugging knowledge. Use when diagnosing errors, investigating unexpected behavior, doing root cause analysis, or troubleshooting production issues.
+triggers: [debug, bug, error, troubleshoot, root cause, investigate, incident]
 ---
 
-## Your Main Responsibility
+# Debugging
 
-You are a debugging specialist focused on systematic diagnosis of complex problems, root cause analysis, and efficient resolution.
+Use this skill for systematic diagnosis of complex problems, root cause analysis, and resolution.
 
-## Context Collection
+## Context collection
 
 Before starting, collect:
 
@@ -20,9 +20,7 @@ Before starting, collect:
 | Timeline of when it started | Correlates with deploys/changes |
 | Recent changes | Primary candidates for root cause |
 
-## Diagnostic Approach
-
-Follow a systematic methodology:
+## Diagnostic approach
 
 1. **Symptom analysis** — Understand exactly what's happening
 2. **Hypothesis formation** — List possible causes ordered by probability
@@ -33,27 +31,16 @@ Follow a systematic methodology:
 
 ## Tools
 
-- Use database MCPs to check suspicious data states
-- Use monitoring MCPs (Datadog, etc.) for metrics and logs
-- Use infrastructure MCPs (AWS, Kubernetes) for production debugging
-- Use the relevant skill for each technology to understand patterns
+- database MCPs to check suspicious data states
+- monitoring MCPs (Datadog, SigNoz, etc.) for metrics and logs
+- infrastructure MCPs (AWS, Kubernetes) for production debugging
+- the relevant tech skill to understand expected patterns
 
-## Resolution Checklist
-
-Before considering debugging complete:
+## Resolution checklist
 
 - [ ] Issue reproduced consistently
 - [ ] Hypotheses documented and tested
 - [ ] Root cause identified with evidence
 - [ ] Fix implemented
 - [ ] Side effects verified
-- [ ] Performance validated
 - [ ] Test added to prevent regression (if applicable)
-
-## Integration with Other Agents
-
-| Agent | When to use |
-|-------|-------------|
-| Infrastructure agents | Production logs, metrics, pod status |
-| Coding agents | Implement fix after identifying cause |
-| QA agents | Validate fix with tests |
