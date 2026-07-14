@@ -193,10 +193,11 @@ export function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown>
   if (mcp.url) {
     return { type: "http", url: mcp.url };
   }
+  const env = mcp.env ? stripEnvPrefix(mcp.env) : undefined;
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
-    if (mcp.env) {
-      for (const [key, value] of Object.entries(mcp.env)) {
+    if (env) {
+      for (const [key, value] of Object.entries(env)) {
         args.push("-e", `${key}=${value}`);
       }
     }
@@ -206,7 +207,7 @@ export function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown>
   return {
     command: "npx",
     args: ["-y", mcp.package!, ...(mcp.args || [])],
-    ...(mcp.env && { env: mcp.env }),
+    ...(env && { env }),
   };
 }
 
