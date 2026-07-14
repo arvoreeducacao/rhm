@@ -926,40 +926,62 @@ function tomlArray(values: string[]): string {
   return `[${values.map((v) => tomlString(v)).join(", ")}]`;
 }
 
-const ENV_PLACEHOLDER = /^\$\{env:([A-Z0-9_]+)\}$/;
+const ENV_PLACEHOLDER = /^\$\{env:([A-Za-z0-9_]+)\}$/;
+const ANY_ENV_PLACEHOLDER = /^\$\{env:.+\}$/;
 
 /**
  * Codex CLI stores MCP servers in `.codex/config.toml` using snake_case
  * `[mcp_servers.<id>]` tables. Unlike Claude/Cursor, Codex does not expand
  * `${env:VAR}` inside the `env` map — host env vars must be whitelisted via
  * `env_vars` and are forwarded by name instead.
+ *
+ * A placeholder can only be forwarded when it references the exact same name as
+ * its key (`FOO: ${env:FOO}`). Mismatched (`FOO: ${env:BAR}`) or malformed
+ * placeholders cannot be represented in Codex's model, so they are reported as
+ * warnings instead of being written literally (which Codex would not expand).
  */
-function splitEnvForCodex(env: Record<string, string> | undefined): {
+export function splitEnvForCodex(env: Record<string, string> | undefined): {
   literal: Record<string, string>;
   forwarded: string[];
+  warnings: string[];
 } {
   const literal: Record<string, string> = {};
   const forwarded: string[] = [];
+  const warnings: string[] = [];
   for (const [key, raw] of Object.entries(env ?? {})) {
     const match = ENV_PLACEHOLDER.exec(raw);
     if (match && match[1] === key) {
       forwarded.push(key);
+    } else if (ANY_ENV_PLACEHOLDER.test(raw)) {
+      warnings.push(
+        `env "${key}": placeholder "${raw}" cannot be forwarded (Codex only supports \${env:${key}}); omitting it`
+      );
     } else {
       literal[key] = raw;
     }
   }
-  return { literal, forwarded };
+  return { literal, forwarded, warnings };
 }
 
-function buildCodexMcpBlock(name: string, mcp: MCPConfig): string | null {
+export function buildCodexMcpBlock(
+  name: string,
+  mcp: MCPConfig
+): { block: string; warnings: string[] } | null {
   const lines: string[] = [`[mcp_servers.${name}]`];
+  const warnings: string[] = [];
 
   if (mcp.url) {
     lines.push(`url = ${tomlString(mcp.url)}`);
-    return lines.join("\n");
+    if (mcp.auth) {
+      warnings.push(
+        `"${name}": auth is configured but Codex needs a bearer_token_env_var; set it manually in .codex/config.toml`
+      );
+    }
+    return { block: lines.join("\n"), warnings };
   }
 
-  const { literal, forwarded } = splitEnvForCodex(mcp.env);
+  const { literal, forwarded, warnings: envWarnings } = splitEnvForCodex(mcp.env);
+  warnings.push(...envWarnings.map((w) => `"${name}": ${w}`));
 
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
@@ -993,7 +1015,7 @@ function buildCodexMcpBlock(name: string, mcp: MCPConfig): string | null {
     }
   }
 
-  return lines.join("\n");
+  return { block: lines.join("\n"), warnings };
 }
 
 async function generateCodex(config: HubConfig, hubDir: string) {
@@ -1056,12 +1078,15 @@ async function generateCodex(config: HubConfig, hubDir: string) {
         const { upstreamsJson, collectedEnv } = buildProxyUpstreams(mcp, config.mcps);
         resolved = { ...mcp, env: { MCP_PROXY_UPSTREAMS: upstreamsJson, ...collectedEnv } };
       }
-      const block = buildCodexMcpBlock(mcp.name, resolved);
-      if (block === null) {
+      const result = buildCodexMcpBlock(mcp.name, resolved);
+      if (result === null) {
         console.log(chalk.yellow(`  Skipping MCP "${mcp.name}": no url, image, or package configured`));
         continue;
       }
-      blocks.push(block, "");
+      for (const warning of result.warnings) {
+        console.log(chalk.yellow(`  ${warning}`));
+      }
+      blocks.push(result.block, "");
     }
     await writeFile(
       join(codexDir, "config.toml"),
