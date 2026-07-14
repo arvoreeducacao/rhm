@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { splitEnvForCodex, buildCodexMcpBlock } from "./generate.js";
+import { splitEnvForCodex, buildCodexMcpBlock } from "./codex-config.js";
 import type { MCPConfig } from "../core/hub-config.js";
 
 describe("splitEnvForCodex", () => {
