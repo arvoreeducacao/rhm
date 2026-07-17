@@ -1,6 +1,6 @@
 {
   "name": "@arvoretech/hub-pi",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Pi runtime package for hub.yaml workspaces — interprets config at runtime with no static generation",
   "type": "module",
   "keywords": [
@@ -12,7 +12,7 @@
     ]
   },
   "scripts": {
-    "build": "tsup src/extensions/index.ts --format esm --dts --external typebox --external @earendil-works/pi-coding-agent",
+    "build": "tsup --clean src/extensions/index.ts --format esm --dts --external typebox --external @earendil-works/pi-coding-agent",
     "dev": "tsup src/extensions/index.ts --format esm --watch",
     "test": "vitest --passWithNoTests",
     "lint": "eslint src/"
