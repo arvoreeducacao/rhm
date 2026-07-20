@@ -6,13 +6,17 @@
   "keywords": [
     "pi-package"
   ],
+  "files": [
+    "dist"
+  ],
   "pi": {
     "extensions": [
-      "./src/extensions"
+      "./dist/index.js"
     ]
   },
   "scripts": {
     "build": "tsup --clean src/extensions/index.ts --format esm --dts --external typebox --external @earendil-works/pi-coding-agent",
+    "prepack": "pnpm build",
     "dev": "tsup src/extensions/index.ts --format esm --watch",
     "test": "vitest --passWithNoTests",
     "lint": "eslint src/"
