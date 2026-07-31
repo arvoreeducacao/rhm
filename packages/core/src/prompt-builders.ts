@@ -109,6 +109,13 @@ interface ProxyUpstreamEntry {
   env?: Record<string, string>;
 }
 
+function resolveStdioCommand(mcp: MCPConfig): { command: string; args: string[] } {
+  if (mcp.command) {
+    return { command: mcp.command, args: mcp.args || [] };
+  }
+  return { command: "npx", args: ["-y", mcp.package!, ...(mcp.args || [])] };
+}
+
 export function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): { upstreamsJson: string; collectedEnv: Record<string, string> } {
   const upstreamNames = new Set(proxyMcp.upstreams || []);
   const upstreamEntries: ProxyUpstreamEntry[] = [];
@@ -118,10 +125,11 @@ export function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): 
     if (!upstreamNames.has(mcp.name)) continue;
     if (mcp.url || mcp.image) continue;
 
+    const stdio = resolveStdioCommand(mcp);
     const entry: ProxyUpstreamEntry = {
       name: mcp.name,
-      command: "npx",
-      args: ["-y", mcp.package!, ...(mcp.args || [])],
+      command: stdio.command,
+      args: stdio.args,
     };
 
     if (mcp.env) {
@@ -181,9 +189,10 @@ export function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
     args.push(mcp.image);
     return { command: "docker", args, ...(autoApprove && { autoApprove }) };
   }
+  const { command, args } = resolveStdioCommand(mcp);
   return {
-    command: "npx",
-    args: ["-y", mcp.package!, ...(mcp.args || [])],
+    command,
+    ...(args.length > 0 && { args }),
     ...(mcp.env && { env: mcp.env }),
     ...(autoApprove && { autoApprove }),
   };
@@ -204,9 +213,10 @@ export function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown>
     args.push(mcp.image);
     return { command: "docker", args };
   }
+  const { command, args } = resolveStdioCommand(mcp);
   return {
-    command: "npx",
-    args: ["-y", mcp.package!, ...(mcp.args || [])],
+    command,
+    ...(args.length > 0 && { args }),
     ...(env && { env }),
   };
 }
@@ -234,9 +244,10 @@ export function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Re
     args.push(mcp.image);
     return { command: "docker", args, ...(autoApprove && { autoApprove }), ...extra };
   }
+  const { command, args } = resolveStdioCommand(mcp);
   return {
-    command: "npx",
-    args: ["-y", mcp.package!, ...(mcp.args || [])],
+    command,
+    ...(args.length > 0 && { args }),
     ...(env && { env }),
     ...(autoApprove && { autoApprove }),
     ...extra,
@@ -270,17 +281,10 @@ export function buildPiMcpEntry(mcp: MCPConfig): Record<string, unknown> {
       ...extra,
     };
   }
-  if (mcp.command) {
-    return {
-      command: mcp.command,
-      ...(mcp.args && { args: mcp.args }),
-      ...(env && { env }),
-      ...extra,
-    };
-  }
+  const { command, args } = resolveStdioCommand(mcp);
   return {
-    command: "npx",
-    args: ["-y", mcp.package!, ...(mcp.args || [])],
+    command,
+    ...(args.length > 0 && { args }),
     ...(env && { env }),
     ...extra,
   };
@@ -301,9 +305,10 @@ export function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
     cmd.push(mcp.image);
     return { type: "local", command: cmd, ...(env && { environment: env }) };
   }
+  const { command, args } = resolveStdioCommand(mcp);
   return {
     type: "local",
-    command: ["npx", "-y", mcp.package!, ...(mcp.args || [])],
+    command: [command, ...args],
     ...(env && { environment: env }),
   };
 }
