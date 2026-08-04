@@ -36,6 +36,24 @@ jobs:
       - name: Build all packages
         run: pnpm build
 
+      - name: Source changes must bump the package version (or the fix never publishes)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --depth=1 origin "$BASE_REF"
+          failed=0
+          for pkg in packages/*/; do
+            if ! git diff --quiet "origin/$BASE_REF" -- "${pkg}src"; then
+              if git diff --quiet "origin/$BASE_REF" -- "${pkg}package.json"; then
+                name=$(node -p "require('./${pkg}package.json').name")
+                echo "::error::${name}: src mudou sem bump de versão — o publish do CI vai pular ('already published') e o fix nunca chega ao npm (ver #77/#80)."
+                failed=1
+              fi
+            fi
+          done
+          exit $failed
+        env:
+          BASE_REF: ${{ github.base_ref }}
+
   publish:
     needs: test
     runs-on: ubuntu-latest
