@@ -378,7 +378,7 @@ export function buildClaudeHooks(hooks: Record<string, HookEntry[]>): Record<str
       const inner: Record<string, unknown> = { type: entry.type };
       if (entry.type === "command" && entry.command) inner.command = entry.command;
       if (entry.type === "prompt" && entry.prompt) inner.prompt = entry.prompt;
-      if (entry.timeout_ms) inner.timeout = entry.timeout_ms;
+      if (entry.timeout_ms) inner.timeout = Math.ceil(entry.timeout_ms / 1000);
       const key = entry.matcher ?? "";
       const bucket = byMatcher.get(key) ?? [];
       bucket.push(inner);

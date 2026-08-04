@@ -130,6 +130,15 @@ describe("claude hooks follow the settings.json nested schema", () => {
     expect(result?.PostToolUse).toHaveLength(1);
   });
 
+  it("converts timeout_ms to whole seconds for claude", () => {
+    const result = buildClaudeHooks({
+      stop: [{ type: "command", command: "lint.mjs", timeout_ms: 200000 }],
+    });
+    expect(result?.Stop).toEqual([
+      { hooks: [{ type: "command", command: "lint.mjs", timeout: 200 }] },
+    ]);
+  });
+
   it("drops events claude does not support and returns null when empty", () => {
     expect(buildClaudeHooks({ before_shell_execution: [{ type: "command", command: "x" }] })).toBeNull();
   });
