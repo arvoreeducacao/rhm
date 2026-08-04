@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildClaudeHooks,
   buildCursorMcpEntry,
   buildClaudeCodeMcpEntry,
   buildKiroMcpEntry,
@@ -96,5 +97,40 @@ describe("stdio MCP entries built from a package", () => {
       type: "local",
       command: ["npx", "-y", "@arvoretech/npm-registry-mcp"],
     });
+  });
+});
+
+describe("claude hooks follow the settings.json nested schema", () => {
+  it("wraps entries in matcher groups with an inner hooks array", () => {
+    expect(
+      buildClaudeHooks({
+        post_tool_use: [
+          { type: "command", command: "node track.mjs", matcher: "Edit|Write" },
+        ],
+        stop: [{ type: "command", command: "node remind.mjs" }],
+      })
+    ).toEqual({
+      PostToolUse: [
+        {
+          matcher: "Edit|Write",
+          hooks: [{ type: "command", command: "node track.mjs" }],
+        },
+      ],
+      Stop: [{ hooks: [{ type: "command", command: "node remind.mjs" }] }],
+    });
+  });
+
+  it("groups entries that share a matcher", () => {
+    const result = buildClaudeHooks({
+      post_tool_use: [
+        { type: "command", command: "a.sh", matcher: "Edit" },
+        { type: "command", command: "b.sh", matcher: "Edit" },
+      ],
+    });
+    expect(result?.PostToolUse).toHaveLength(1);
+  });
+
+  it("drops events claude does not support and returns null when empty", () => {
+    expect(buildClaudeHooks({ before_shell_execution: [{ type: "command", command: "x" }] })).toBeNull();
   });
 });
