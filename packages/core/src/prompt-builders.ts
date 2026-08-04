@@ -373,17 +373,26 @@ export function buildClaudeHooks(hooks: Record<string, HookEntry[]>): Record<str
     const mapped = HOOK_EVENT_MAP[event]?.claude;
     if (!mapped) continue;
 
-    const claudeEntries = entries.map((entry) => {
-      const obj: Record<string, unknown> = { type: entry.type };
-      if (entry.type === "command" && entry.command) obj.command = entry.command;
-      if (entry.type === "prompt" && entry.prompt) obj.prompt = entry.prompt;
-      if (entry.matcher) obj.matcher = entry.matcher;
-      if (entry.timeout_ms) obj.timeout = entry.timeout_ms;
-      return obj;
+    const byMatcher = new Map<string, Record<string, unknown>[]>();
+    for (const entry of entries) {
+      const inner: Record<string, unknown> = { type: entry.type };
+      if (entry.type === "command" && entry.command) inner.command = entry.command;
+      if (entry.type === "prompt" && entry.prompt) inner.prompt = entry.prompt;
+      if (entry.timeout_ms) inner.timeout = entry.timeout_ms;
+      const key = entry.matcher ?? "";
+      const bucket = byMatcher.get(key) ?? [];
+      bucket.push(inner);
+      byMatcher.set(key, bucket);
+    }
+
+    const groups = [...byMatcher.entries()].map(([matcher, inner]) => {
+      const group: Record<string, unknown> = { hooks: inner };
+      if (matcher) group.matcher = matcher;
+      return group;
     });
 
-    if (claudeEntries.length > 0) {
-      claudeHooks[mapped] = claudeEntries;
+    if (groups.length > 0) {
+      claudeHooks[mapped] = groups;
     }
   }
 
