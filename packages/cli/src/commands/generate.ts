@@ -9,7 +9,7 @@ import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache
 import { fetchRemoteSources } from "../core/design-sources.js";
 import { loadPersona, buildPersonaEditorFile } from "./persona.js";
 import { buildCodexMcpBlock } from "./codex-config.js";
-import { buildCapabilitiesPrompt, resolvePiConfig } from "@arvoretech/hub-core";
+import { buildCapabilitiesPrompt, buildClaudeHooks, resolvePiConfig } from "@arvoretech/hub-core";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
 
@@ -158,31 +158,6 @@ function buildCursorHooks(hooks: Record<string, HookEntry[]>): Record<string, un
 
   if (Object.keys(cursorHooks).length === 0) return null;
   return { version: 1, hooks: cursorHooks };
-}
-
-function buildClaudeHooks(hooks: Record<string, HookEntry[]>): Record<string, unknown[]> | null {
-  const claudeHooks: Record<string, unknown[]> = {};
-
-  for (const [event, entries] of Object.entries(hooks)) {
-    const mapped = HOOK_EVENT_MAP[event]?.claude;
-    if (!mapped) continue;
-
-    const claudeEntries = entries.map((entry) => {
-      const obj: Record<string, unknown> = { type: entry.type };
-      if (entry.type === "command" && entry.command) obj.command = entry.command;
-      if (entry.type === "prompt" && entry.prompt) obj.prompt = entry.prompt;
-      if (entry.matcher) obj.matcher = entry.matcher;
-      if (entry.timeout_ms) obj.timeout = entry.timeout_ms;
-      return obj;
-    });
-
-    if (claudeEntries.length > 0) {
-      claudeHooks[mapped] = claudeEntries;
-    }
-  }
-
-  if (Object.keys(claudeHooks).length === 0) return null;
-  return claudeHooks;
 }
 
 async function generateEditorCommands(config: HubConfig, hubDir: string, targetDir: string, editorName: string) {
