@@ -852,8 +852,12 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
   }
 
   if (personaClaude) {
-    claudeMdSections.push(buildPersonaEditorFile(personaClaude, "claude-code"));
-    console.log(chalk.green(`  Generated persona section in CLAUDE.md (${personaClaude.name}, ${personaClaude.role})`));
+    await writeFile(
+      join(hubDir, "CLAUDE.local.md"),
+      buildPersonaEditorFile(personaClaude, "claude-code"),
+      "utf-8"
+    );
+    console.log(chalk.green(`  Generated CLAUDE.local.md persona (${personaClaude.name}, ${personaClaude.role}) — per-machine, gitignored`));
   }
 
   await writeFile(join(hubDir, "CLAUDE.md"), claudeMdSections.join("\n\n"), "utf-8");
@@ -1382,6 +1386,7 @@ function buildGitignoreLines(config: HubConfig): string[] {
     ".cursor/rules/persona.mdc",
     ".opencode/rules/persona.md",
     ".codex/rules/persona.md",
+    "CLAUDE.local.md",
   );
 
   return lines;
