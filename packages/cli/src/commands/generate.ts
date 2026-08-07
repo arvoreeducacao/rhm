@@ -463,7 +463,8 @@ function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
 
 function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   if (mcp.url) {
-    return { type: "http", url: mcp.url };
+    const headers = mcp.headers ? stripEnvPrefix(mcp.headers) : undefined;
+    return { type: "http", url: mcp.url, ...(headers && { headers }) };
   }
   const env = mcp.env ? stripEnvPrefix(mcp.env) : undefined;
   if (mcp.image) {
