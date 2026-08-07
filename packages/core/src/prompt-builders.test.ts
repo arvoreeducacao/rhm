@@ -100,6 +100,44 @@ describe("stdio MCP entries built from a package", () => {
   });
 });
 
+describe("http MCP entries that authenticate through headers", () => {
+  const withHeaders: MCPConfig = {
+    name: "secure",
+    url: "https://mcp.example.com/mcp",
+    headers: {
+      Authorization: "Bearer ${env:SECURE_MCP_TOKEN}",
+      "X-Actor-Email": "${env:SECURE_ACTOR_EMAIL}",
+    },
+  };
+
+  it("keeps the headers for claude code and strips the env: prefix", () => {
+    expect(buildClaudeCodeMcpEntry(withHeaders)).toEqual({
+      type: "http",
+      url: "https://mcp.example.com/mcp",
+      headers: {
+        Authorization: "Bearer ${SECURE_MCP_TOKEN}",
+        "X-Actor-Email": "${SECURE_ACTOR_EMAIL}",
+      },
+    });
+  });
+
+  it("omits headers when the http MCP declares none", () => {
+    expect(buildClaudeCodeMcpEntry({ name: "open", url: "https://mcp.example.com/mcp" })).toEqual({
+      type: "http",
+      url: "https://mcp.example.com/mcp",
+    });
+  });
+
+  it("never inlines a secret — the value stays an env reference", () => {
+    const entry = buildClaudeCodeMcpEntry(withHeaders) as {
+      headers: Record<string, string>;
+    };
+    for (const value of Object.values(entry.headers)) {
+      expect(value).toMatch(/\$\{\w+\}/);
+    }
+  });
+});
+
 describe("claude hooks follow the settings.json nested schema", () => {
   it("wraps entries in matcher groups with an inner hooks array", () => {
     expect(

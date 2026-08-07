@@ -55,6 +55,7 @@ export interface MCPConfig {
   url?: string;
   image?: string;
   env?: Record<string, string>;
+  headers?: Record<string, string>;
   upstreams?: string[];
   autoApprove?: boolean | string[];
   auth?: "bearer" | "oauth" | MCPOAuthConfig;
