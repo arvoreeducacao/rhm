@@ -38,7 +38,7 @@ export async function generateEnvExample(config: HubConfig, hubDir: string): Pro
 
   for (const [name, vars] of Object.entries(config.env?.example_extras || {})) {
     if (vars.length > 0) {
-      groups.push({ name, vars: [...vars].sort() });
+      groups.push({ name, vars: [...new Set(vars)].sort() });
     }
   }
 

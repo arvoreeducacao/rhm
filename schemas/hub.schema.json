@@ -70,7 +70,10 @@
           "description": "Extra variables emitted to the generated .env.example, grouped by section name (for vars not referenced by any MCP)",
           "additionalProperties": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            }
           }
         }
       }

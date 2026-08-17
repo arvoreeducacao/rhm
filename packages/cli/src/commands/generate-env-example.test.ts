@@ -79,6 +79,22 @@ describe("generateEnvExample", () => {
     );
   });
 
+  it("dedupes repeated vars within the same extra group", async () => {
+    const config = baseConfig({
+      env: {
+        example_extras: {
+          scripts: ["REPORTS_API_TOKEN", "REPORTS_API_TOKEN"],
+        },
+      },
+    });
+
+    await generateEnvExample(config, hubDir);
+
+    expect(await readExample()).toBe(
+      ["# scripts", "REPORTS_API_TOKEN=", ""].join("\n")
+    );
+  });
+
   it("writes nothing when there are no vars at all", async () => {
     await generateEnvExample(baseConfig({}), hubDir);
 
