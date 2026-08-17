@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HubConfig } from "../core/hub-config.js";
-import { generateEnvExample } from "./generate.js";
+import { generateEnvExample } from "./env-example.js";
 
 describe("generateEnvExample", () => {
   let hubDir: string;
