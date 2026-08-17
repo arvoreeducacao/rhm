@@ -1272,8 +1272,14 @@ function extractEnvVarsByMcp(mcps: MCPConfig[]): { name: string; vars: string[] 
   return groups;
 }
 
-async function generateEnvExample(config: HubConfig, hubDir: string): Promise<void> {
+export async function generateEnvExample(config: HubConfig, hubDir: string): Promise<void> {
   const groups = extractEnvVarsByMcp(config.mcps || []);
+
+  for (const [name, vars] of Object.entries(config.env?.example_extras || {})) {
+    if (vars.length > 0) {
+      groups.push({ name, vars: [...vars].sort() });
+    }
+  }
 
   let totalVars = 0;
   const lines: string[] = [];

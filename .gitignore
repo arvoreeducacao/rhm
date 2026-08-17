@@ -5,4 +5,4 @@ coverage
 package-lock.json
 test-hub
 .env
-.vercel
+.vercel.worktrees/

@@ -64,6 +64,14 @@
               "additionalProperties": { "type": "string" }
             }
           }
+        },
+        "example_extras": {
+          "type": "object",
+          "description": "Extra variables emitted to the generated .env.example, grouped by section name (for vars not referenced by any MCP)",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         }
       }
     },
