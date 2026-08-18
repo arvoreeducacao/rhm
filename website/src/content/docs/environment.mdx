@@ -107,6 +107,22 @@ overrides:
       AUTOMATIC_ASSESSMENT_SQS_QUEUE_URL: ""
 ```
 
+## Extra Variables in .env.example
+
+`hub generate` writes a `.env.example` at the hub root with every variable referenced as `${env:VAR}` by your MCPs, grouped by MCP name. Variables used outside MCPs — by scripts, hooks, or documented workflows — can be added with `env.example_extras`, grouped by a section name:
+
+```yaml
+env:
+  example_extras:
+    scripts:
+      - REPORTS_API_TOKEN
+    e2e:
+      - SMOKE_TEST_USER
+      - SMOKE_TEST_PASSWORD
+```
+
+Each group renders as a `# <name>` comment followed by empty `VAR=` lines, after the MCP groups. Variables already emitted by an MCP group are deduplicated. Only names go into `.env.example` — values live in each developer's gitignored `.env`.
+
 ## Secret with Profile Override
 
 By default, secrets are fetched using the profile's `aws_profile`. But sometimes a repo needs secrets from a **different** AWS account (e.g., staging uses prod API keys). Use the object form:

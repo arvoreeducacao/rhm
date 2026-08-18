@@ -6,3 +6,4 @@ package-lock.json
 test-hub
 .env
 .vercel
+.worktrees/

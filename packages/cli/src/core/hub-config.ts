@@ -170,6 +170,7 @@ export interface HubConfig {
   env?: {
     profiles?: Record<string, EnvProfile>;
     overrides?: Record<string, Record<string, Record<string, string>>>;
+    example_extras?: Record<string, string[]>;
   };
   mcps?: MCPConfig[];
   integrations?: IntegrationConfig;
