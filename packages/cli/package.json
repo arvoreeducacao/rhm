@@ -24,6 +24,7 @@
     "test": "vitest --passWithNoTests",
     "test:cov": "vitest --coverage --passWithNoTests",
     "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
     "lint:fix": "eslint src/ --fix"
   },
   "dependencies": {
