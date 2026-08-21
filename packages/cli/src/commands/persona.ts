@@ -14,8 +14,6 @@ const SHOW_CURSOR = "\x1B[?25h";
 
 import { loadPersona as coreLoadPersona } from "@arvoretech/hub-core";
 
-export { buildPersonaSection, buildPersonaEditorFile } from "@arvoretech/hub-core";
-
 export async function loadPersona(hubDir: string): Promise<PersonaData | null> {
   return (await coreLoadPersona(hubDir)) as PersonaData | null;
 }

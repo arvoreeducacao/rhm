@@ -2,8 +2,6 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { listRegistryDir, listRegistrySkills } from "@arvoretech/hub-core";
 
-export { downloadDirFromGitHub, listRegistryDir, listRegistrySkills } from "@arvoretech/hub-core";
-
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 const DEFAULT_BRANCH = "main";
 

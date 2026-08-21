@@ -4,7 +4,7 @@ import { mkdir, readdir, readFile, rm, copyFile, writeFile } from "node:fs/promi
 import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
 import chalk from "chalk";
-import { checkAndAutoRegenerate } from "../core/hub-cache.js";
+import { checkAndAutoRegenerate } from "../core/auto-regenerate.js";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 const DEFAULT_BRANCH = "main";

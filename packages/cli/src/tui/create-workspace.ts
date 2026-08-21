@@ -1,10 +1,21 @@
 import { mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
-import { planInitWorkspace } from '@arvoretech/hub-core'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { downloadDirFromGitHub, planInitWorkspace } from '@arvoretech/hub-core'
 import { applyPlannedFiles } from '../core/plan-apply.js'
 import type { InitState } from './types.js'
-import { downloadDirFromGitHub } from '../commands/registry.js'
 import { isValidSkillName } from '../core/install-skills.js'
+
+function currentCliVersionRange(): string | undefined {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url))
+    const pkg = JSON.parse(readFileSync(join(here, '..', '..', 'package.json'), 'utf-8')) as { version?: string }
+    return pkg.version ? `^${pkg.version}` : undefined
+  } catch {
+    return undefined
+  }
+}
 
 export function createWorkspaceTasks(
   state: InitState,
@@ -29,6 +40,7 @@ export function createWorkspaceTasks(
     skills: state.skills,
     configFormat: state.configFormat,
     editor: state.editor ?? undefined,
+    hubCliVersionRange: currentCliVersionRange(),
   })
 
   tasks.push({

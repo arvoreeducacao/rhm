@@ -6,7 +6,7 @@ import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { loadHubConfig } from "../core/hub-config.js";
 import { generateDockerCompose } from "../core/docker-compose.js";
-import { checkAndAutoRegenerate } from "../core/hub-cache.js";
+import { checkAndAutoRegenerate } from "../core/auto-regenerate.js";
 import { collectConfigSkills, installConfigSkills } from "../core/install-skills.js";
 
 function run(cmd: string, cwd?: string) {

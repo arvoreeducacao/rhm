@@ -1,19 +1,6 @@
 import chalk from "chalk";
 import { checkOutdated, loadHubConfig, saveGenerateState } from "@arvoretech/hub-core";
 
-export {
-  readCache,
-  writeCache,
-  getSavedEditor,
-  saveEditor,
-  getKiroMode,
-  saveKiroMode,
-  computeInputsHash,
-  saveGenerateState,
-  checkOutdated,
-} from "@arvoretech/hub-core";
-export type { HubCacheConfig, KiroMode, OutdatedResult } from "@arvoretech/hub-core";
-
 export async function checkAndAutoRegenerate(hubDir: string): Promise<void> {
   try {
     const result = await checkOutdated(hubDir);

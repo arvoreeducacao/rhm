@@ -21,7 +21,7 @@ export { planCodexFiles, buildCodexConfigToml } from "./codex-plan.js";
 export { buildCodexMcpBlock, splitEnvForCodex, tomlString, tomlArray } from "./codex-config.js";
 export { planPiFiles, buildPiSettingsJson, HUB_PI_PACKAGE } from "./pi-plan.js";
 export type { PiPlanInputs } from "./pi-plan.js";
-export { planInitWorkspace, buildInitTypeScriptConfig, buildInitYamlConfig, HUB_CLI_VERSION_RANGE } from "./init-plan.js";
+export { planInitWorkspace, buildInitTypeScriptConfig, buildInitYamlConfig, DEFAULT_HUB_CLI_VERSION_RANGE } from "./init-plan.js";
 export type { InitWorkspaceOptions, InitRepo } from "./init-plan.js";
 export {
   readCache,

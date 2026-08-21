@@ -5,19 +5,26 @@ import { join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig } from "../core/hub-config.js";
-import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
-import { fetchRemoteSources } from "../core/design-sources.js";
 import { loadPersona } from "./persona.js";
 import { applyPlannedFiles, readSteeringInputs } from "../core/plan-apply.js";
 import { generateEnvExample } from "./env-example.js";
 import {
-  planClaudeCodeFiles,
+  checkOutdated,
+  fetchRemoteSources,
+  getKiroMode,
+  getSavedEditor,
   HUB_PI_PACKAGE,
+  planClaudeCodeFiles,
   planCodexFiles,
   planCursorFiles,
   planKiroFiles,
   planOpenCodeFiles,
   planPiFiles,
+  readCache,
+  saveGenerateState,
+  saveKiroMode,
+  writeCache,
+  type KiroMode,
   type KiroSteeringInput,
 } from "@arvoretech/hub-core";
 
