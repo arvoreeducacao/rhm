@@ -1,6 +1,7 @@
-import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
 import { planInitWorkspace } from '@arvoretech/hub-core'
+import { applyPlannedFiles } from '../core/plan-apply.js'
 import type { InitState } from './types.js'
 import { downloadDirFromGitHub } from '../commands/registry.js'
 import { isValidSkillName } from '../core/install-skills.js'
@@ -33,11 +34,7 @@ export function createWorkspaceTasks(
   tasks.push({
     label: `Write ${state.configFormat === 'typescript' ? 'hub.config.ts' : 'hub.yaml'} and project files`,
     run: async () => {
-      for (const file of files) {
-        const target = join(targetDir, file.path)
-        await mkdir(dirname(target), { recursive: true })
-        await writeFile(target, file.content, 'utf-8')
-      }
+      await applyPlannedFiles(targetDir, files)
     },
   })
 
