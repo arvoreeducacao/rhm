@@ -267,8 +267,8 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
 
   const steering = await readSteeringInputs(hubDir);
 
-  const plannedFiles = planClaudeCodeFiles(config, { steering, persona: personaClaude });
-  await applyPlannedFiles(hubDir, plannedFiles);
+  const plan = planClaudeCodeFiles(config, { steering, persona: personaClaude });
+  await applyPlannedFiles(hubDir, plan.files);
 
   if (personaClaude) {
     console.log(chalk.green(`  Applied persona: ${personaClaude.name} (${personaClaude.role}) — CLAUDE.local.md is per-machine, gitignored`));
@@ -412,10 +412,11 @@ async function generateKiro(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(kiroDir, "skills"), steeringDir);
 
-  if (plan.warnings.length > 0) {
+  const hookNotes = plan.notes ?? [];
+  if (hookNotes.length > 0) {
     console.log(chalk.yellow(`  Note: Kiro hooks are managed via the Kiro panel UI.`));
     console.log(chalk.yellow(`  The following hooks should be configured manually:`));
-    for (const note of plan.warnings) {
+    for (const note of hookNotes) {
       console.log(chalk.yellow(`    ${note}`));
     }
   }

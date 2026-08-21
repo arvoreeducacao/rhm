@@ -115,10 +115,11 @@ describe("planKiroFiles", () => {
     expect(file.content).toContain("description: antiga");
   });
 
-  it("returns kiro hook notes as warnings", () => {
+  it("returns kiro hook notes on the plan notes", () => {
     const plan = planKiroFiles(config);
-    expect(plan.warnings.some((w) => w.includes("pre_tool_use"))).toBe(true);
-    expect(plan.warnings.some((w) => w.includes("file_save"))).toBe(true);
+    expect(plan.notes?.some((w) => w.includes("pre_tool_use"))).toBe(true);
+    expect(plan.notes?.some((w) => w.includes("file_save"))).toBe(true);
+    expect(plan.warnings).toEqual([]);
   });
 
   it("parseMcpDisabledState tolerates invalid json", () => {

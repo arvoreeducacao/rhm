@@ -1,11 +1,11 @@
 import type { HubConfig, PersonaData } from "./types.js";
+import type { EditorPlan } from "./plan-types.js";
 import {
   buildCapabilitiesPrompt,
   buildClaudeCodeMcpEntry,
   buildClaudeHooks,
+  buildMcpServerMap,
   buildPersonaEditorFile,
-  buildProxyMcpEntry,
-  getUpstreamNames,
   hasAgentTeamsLeadMcp,
   stripFrontMatter,
 } from "./prompt-builders.js";
@@ -91,16 +91,7 @@ export function buildGitignoreLines(config: HubConfig): string[] {
 export function buildClaudeCodeMcpJson(config: HubConfig): string | null {
   if (!config.mcps?.length) return null;
 
-  const mcpJson: Record<string, Record<string, unknown>> = {};
-  const upstreamSet = getUpstreamNames(config.mcps);
-  for (const mcp of config.mcps) {
-    if (upstreamSet.has(mcp.name)) continue;
-    if (mcp.upstreams?.length) {
-      mcpJson[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildClaudeCodeMcpEntry);
-    } else {
-      mcpJson[mcp.name] = buildClaudeCodeMcpEntry(mcp);
-    }
-  }
+  const mcpJson = buildMcpServerMap(config.mcps, buildClaudeCodeMcpEntry);
   return JSON.stringify({ mcpServers: mcpJson }, null, 2) + "\n";
 }
 
@@ -146,12 +137,10 @@ export function buildClaudeCodeSettings(config: HubConfig): string {
   return JSON.stringify(claudeSettings, null, 2) + "\n";
 }
 
-export function planClaudeCodeFiles(config: HubConfig, inputs: ClaudeCodePlanInputs = {}): PlannedFile[] {
+export function planClaudeCodeFiles(config: HubConfig, inputs: ClaudeCodePlanInputs = {}): EditorPlan {
   const files: PlannedFile[] = [];
 
-  const orchestrator = buildCapabilitiesPrompt(config, { format: "cursor-rule" })
-    .replace(/^---[\s\S]*?---\n/m, "")
-    .trim();
+  const orchestrator = buildCapabilitiesPrompt(config, { format: "plain" }).trim();
 
   files.push({ path: "AGENTS.md", content: orchestrator + "\n", kind: "file" });
 
@@ -179,5 +168,5 @@ export function planClaudeCodeFiles(config: HubConfig, inputs: ClaudeCodePlanInp
 
   files.push({ path: ".gitignore", content: buildGitignoreLines(config).join("\n"), kind: "managed-block" });
 
-  return files;
+  return { files, warnings: [] };
 }

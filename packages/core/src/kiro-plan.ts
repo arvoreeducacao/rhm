@@ -5,11 +5,10 @@ import type { EditorPlan } from "./plan-types.js";
 import {
   applyDisabledState,
   buildKiroMcpEntry,
+  buildMcpServerMap,
   buildKiroOrchestratorRule,
   buildKiroSteeringContent,
   buildPersonaEditorFile,
-  buildProxyMcpEntry,
-  getUpstreamNames,
   parseFrontMatter,
   stripFrontMatter,
   HOOK_EVENT_MAP,
@@ -48,17 +47,7 @@ export function parseMcpDisabledState(json: string | null | undefined): Record<s
 export function buildKiroMcpJson(config: HubConfig, mode: KiroMode, existingMcpJson?: string | null): string | null {
   if (!config.mcps?.length) return null;
 
-  const mcpConfig: Record<string, Record<string, unknown>> = {};
-  const upstreamSet = getUpstreamNames(config.mcps);
-  const buildEntry = (mcp: MCPConfig) => buildKiroMcpEntry(mcp, mode);
-  for (const mcp of config.mcps) {
-    if (upstreamSet.has(mcp.name)) continue;
-    if (mcp.upstreams?.length) {
-      mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildEntry);
-    } else {
-      mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, mode);
-    }
-  }
+  const mcpConfig = buildMcpServerMap(config.mcps, (mcp: MCPConfig) => buildKiroMcpEntry(mcp, mode));
   applyDisabledState(mcpConfig, parseMcpDisabledState(existingMcpJson));
   return JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n";
 }
@@ -138,5 +127,5 @@ export function planKiroFiles(config: HubConfig, inputs: KiroPlanInputs = {}): E
     files.push({ path: ".kiro/settings/mcp.json", content: mcpJson, kind: "file" });
   }
 
-  return { files, warnings: collectKiroHookNotes(config) };
+  return { files, warnings: [], notes: collectKiroHookNotes(config) };
 }

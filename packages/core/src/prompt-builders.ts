@@ -51,6 +51,23 @@ export function parseFrontMatter(content: string): Record<string, string> | null
   return result;
 }
 
+export function buildMcpServerMap(
+  mcps: MCPConfig[],
+  buildEntry: (mcp: MCPConfig) => Record<string, unknown>,
+): Record<string, Record<string, unknown>> {
+  const serverMap: Record<string, Record<string, unknown>> = {};
+  const upstreamSet = getUpstreamNames(mcps);
+  for (const mcp of mcps) {
+    if (upstreamSet.has(mcp.name)) continue;
+    if (mcp.upstreams?.length) {
+      serverMap[mcp.name] = buildProxyMcpEntry(mcp, mcps, buildEntry);
+    } else {
+      serverMap[mcp.name] = buildEntry(mcp);
+    }
+  }
+  return serverMap;
+}
+
 export function getUpstreamNames(mcps: MCPConfig[]): Set<string> {
   const names = new Set<string>();
   for (const mcp of mcps) {

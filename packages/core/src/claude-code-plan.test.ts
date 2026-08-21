@@ -13,19 +13,19 @@ const persona: PersonaData = { name: "Ana", role: "CTO" };
 
 describe("planClaudeCodeFiles", () => {
   it("plans the base set of files for a minimal config", () => {
-    const files = planClaudeCodeFiles(baseConfig);
-    const paths = files.map((f) => f.path);
+    const plan = planClaudeCodeFiles(baseConfig);
+    const paths = plan.files.map((f) => f.path);
 
     expect(paths).toEqual(["AGENTS.md", "CLAUDE.md", ".claude/settings.json", ".gitignore"]);
   });
 
   it("includes .mcp.json when mcps are configured", () => {
-    const files = planClaudeCodeFiles({
+    const plan = planClaudeCodeFiles({
       ...baseConfig,
       mcps: [{ name: "postgresql", package: "@arvoretech/postgresql-mcp" }],
     });
 
-    const mcpFile = files.find((f) => f.path === ".mcp.json");
+    const mcpFile = plan.files.find((f) => f.path === ".mcp.json");
     expect(mcpFile).toBeDefined();
     const parsed = JSON.parse(mcpFile!.content);
     expect(parsed.mcpServers.postgresql).toBeDefined();
@@ -33,39 +33,39 @@ describe("planClaudeCodeFiles", () => {
 
   it("emits CLAUDE.local.md only when a persona is given", () => {
     const without = planClaudeCodeFiles(baseConfig);
-    expect(without.some((f) => f.path === "CLAUDE.local.md")).toBe(false);
+    expect(without.files.some((f) => f.path === "CLAUDE.local.md")).toBe(false);
 
     const withPersona = planClaudeCodeFiles(baseConfig, { persona });
-    const local = withPersona.find((f) => f.path === "CLAUDE.local.md");
+    const local = withPersona.files.find((f) => f.path === "CLAUDE.local.md");
     expect(local?.content).toContain("Persona — Ana");
   });
 
   it("appends steering content to CLAUDE.md with frontmatter stripped", () => {
-    const files = planClaudeCodeFiles(baseConfig, {
+    const plan = planClaudeCodeFiles(baseConfig, {
       steering: [
         { name: "rules.md", content: "---\ntitle: x\n---\nAlways write tests." },
         { name: "empty.md", content: "---\ntitle: y\n---\n" },
       ],
     });
 
-    const claudeMd = files.find((f) => f.path === "CLAUDE.md")!;
+    const claudeMd = plan.files.find((f) => f.path === "CLAUDE.md")!;
     expect(claudeMd.content).toContain("Always write tests.");
     expect(claudeMd.content).not.toContain("title: x");
 
-    const agentsMd = files.find((f) => f.path === "AGENTS.md")!;
+    const agentsMd = plan.files.find((f) => f.path === "AGENTS.md")!;
     expect(agentsMd.content).not.toContain("Always write tests.");
   });
 
   it("marks .gitignore as a managed block listing every repo", () => {
-    const files = planClaudeCodeFiles(baseConfig);
-    const gitignore = files.find((f) => f.path === ".gitignore")!;
+    const plan = planClaudeCodeFiles(baseConfig);
+    const gitignore = plan.files.find((f) => f.path === ".gitignore")!;
 
     expect(gitignore.kind).toBe("managed-block");
     expect(gitignore.content.split("\n")).toContain("/api");
   });
 
   it("allows configured MCP servers and wires hooks into settings", () => {
-    const files = planClaudeCodeFiles({
+    const plan = planClaudeCodeFiles({
       ...baseConfig,
       mcps: [{ name: "postgresql", package: "@arvoretech/postgresql-mcp" }],
       hooks: {
@@ -73,7 +73,7 @@ describe("planClaudeCodeFiles", () => {
       },
     });
 
-    const settings = JSON.parse(files.find((f) => f.path === ".claude/settings.json")!.content);
+    const settings = JSON.parse(plan.files.find((f) => f.path === ".claude/settings.json")!.content);
     expect(settings.permissions.allow).toContain("mcp__postgresql__*");
     expect(settings.hooks.PreToolUse).toBeDefined();
   });

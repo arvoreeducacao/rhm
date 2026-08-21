@@ -43,6 +43,7 @@ export {
   stripFrontMatter,
   parseFrontMatter,
   getUpstreamNames,
+  buildMcpServerMap,
   resolveAutoApprove,
   stripEnvPrefix,
   stripDollarPrefix,

@@ -3,12 +3,12 @@ import type { SteeringInput } from "./claude-code-plan.js";
 import { buildGitignoreLines } from "./claude-code-plan.js";
 import type { EditorPlan } from "./plan-types.js";
 import {
+  buildCapabilitiesPrompt,
   buildCursorHooks,
   buildCursorMcpEntry,
+  buildMcpServerMap,
   buildOrchestratorRule,
   buildPersonaEditorFile,
-  buildProxyMcpEntry,
-  getUpstreamNames,
   stripFrontMatter,
 } from "./prompt-builders.js";
 
@@ -20,16 +20,7 @@ export interface CursorPlanInputs {
 export function buildCursorMcpJson(config: HubConfig): string | null {
   if (!config.mcps?.length) return null;
 
-  const mcpConfig: Record<string, Record<string, unknown>> = {};
-  const upstreamSet = getUpstreamNames(config.mcps);
-  for (const mcp of config.mcps) {
-    if (upstreamSet.has(mcp.name)) continue;
-    if (mcp.upstreams?.length) {
-      mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildCursorMcpEntry);
-    } else {
-      mcpConfig[mcp.name] = buildCursorMcpEntry(mcp);
-    }
-  }
+  const mcpConfig = buildMcpServerMap(config.mcps, buildCursorMcpEntry);
   return JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n";
 }
 
@@ -57,7 +48,7 @@ export function planCursorFiles(config: HubConfig, inputs: CursorPlanInputs = {}
   const orchestratorRule = buildOrchestratorRule(config);
   files.push({ path: ".cursor/rules/orchestrator.mdc", content: orchestratorRule, kind: "file" });
 
-  const cleanedOrchestrator = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
+  const cleanedOrchestrator = buildCapabilitiesPrompt(config, { format: "plain" }).trim();
   files.push({ path: "AGENTS.md", content: cleanedOrchestrator + "\n", kind: "file" });
 
   if (inputs.persona) {
