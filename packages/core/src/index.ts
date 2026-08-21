@@ -1,6 +1,15 @@
 export * from "./types.js";
 export { loadHubConfig, resolveConfigPath, findHubRoot, resolvePiConfig } from "./config.js";
 export type { ResolvedPiConfig } from "./config.js";
+export { validateHubConfig, assertValidHubConfig } from "./validate.js";
+export type { ConfigIssue, ValidationResult } from "./validate.js";
+export {
+  planClaudeCodeFiles,
+  buildClaudeCodeMcpJson,
+  buildClaudeCodeSettings,
+  buildGitignoreLines,
+} from "./claude-code-plan.js";
+export type { PlannedFile, SteeringInput, ClaudeCodePlanInputs } from "./claude-code-plan.js";
 export {
   readCache,
   writeCache,
