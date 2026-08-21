@@ -3,7 +3,7 @@ import { buildGitignoreLines } from "./claude-code-plan.js";
 import type { EditorPlan } from "./plan-types.js";
 import { buildCodexMcpBlock } from "./codex-config.js";
 import {
-  buildOrchestratorRule,
+  buildCapabilitiesPrompt,
   buildProxyUpstreams,
   getUpstreamNames,
 } from "./prompt-builders.js";
@@ -48,8 +48,7 @@ export function planCodexFiles(config: HubConfig): EditorPlan {
   const files: EditorPlan["files"] = [];
   const warnings: string[] = [];
 
-  const orchestratorRule = buildOrchestratorRule(config);
-  const cleanedOrchestrator = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
+  const cleanedOrchestrator = buildCapabilitiesPrompt(config, { format: "plain" }).trim();
   files.push({ path: "AGENTS.md", content: cleanedOrchestrator + "\n", kind: "file" });
 
   const toml = buildCodexConfigToml(config);

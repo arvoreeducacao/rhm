@@ -1,6 +1,6 @@
 import { parse } from "yaml";
 import { describe, expect, it } from "vitest";
-import { planInitWorkspace, HUB_CLI_VERSION_RANGE } from "./init-plan.js";
+import { planInitWorkspace, DEFAULT_HUB_CLI_VERSION_RANGE } from "./init-plan.js";
 
 const options = {
   name: "meu-hub",
@@ -32,7 +32,13 @@ describe("planInitWorkspace", () => {
     expect(config).toContain('skills: ["code-review"]');
 
     const pkg = JSON.parse(files.find((f) => f.path === "package.json")!.content);
-    expect(pkg.devDependencies["@arvoretech/hub"]).toBe(HUB_CLI_VERSION_RANGE);
+    expect(pkg.devDependencies["@arvoretech/hub"]).toBe(DEFAULT_HUB_CLI_VERSION_RANGE);
+  });
+
+  it("pins the CLI version the caller passes", () => {
+    const files = planInitWorkspace({ ...options, hubCliVersionRange: "^9.9.9" });
+    const pkg = JSON.parse(files.find((f) => f.path === "package.json")!.content);
+    expect(pkg.devDependencies["@arvoretech/hub"]).toBe("^9.9.9");
   });
 
   it("plans a yaml workspace that parses and carries the schema comment", () => {

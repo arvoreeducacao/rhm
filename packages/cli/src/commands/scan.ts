@@ -314,8 +314,10 @@ export const scanCommand = new Command("scan")
   .action(async (opts: { yes?: boolean; check?: boolean }) => {
     const hubDir = process.cwd();
 
+    let configPath: string;
+    let format: "yaml" | "typescript";
     try {
-      resolveConfigPath(hubDir);
+      ({ path: configPath, format } = resolveConfigPath(hubDir));
     } catch {
       console.log(chalk.red("No hub.config.ts or hub.yaml found in current directory."));
       process.exit(1);

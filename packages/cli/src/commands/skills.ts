@@ -4,8 +4,8 @@ import { mkdir, readdir, readFile, rm, cp } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
 import chalk from "chalk";
-import { downloadDirFromGitHub } from "./registry.js";
-import { checkAndAutoRegenerate } from "../core/hub-cache.js";
+import { downloadDirFromGitHub } from "@arvoretech/hub-core";
+import { checkAndAutoRegenerate } from "../core/auto-regenerate.js";
 import { loadHubConfig } from "../core/hub-config.js";
 import { collectConfigSkills, installConfigSkills } from "../core/install-skills.js";
 

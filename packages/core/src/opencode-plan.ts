@@ -7,9 +7,8 @@ import {
   buildOpenCodeMcpEntry,
   buildOpenCodeOrchestratorRule,
   buildOpenCodePrimaryAgentMarkdown,
+  buildMcpServerMap,
   buildPersonaEditorFile,
-  buildProxyMcpEntry,
-  getUpstreamNames,
   stripFrontMatter,
 } from "./prompt-builders.js";
 
@@ -28,17 +27,7 @@ export function buildOpenCodeConfigJson(config: HubConfig): string {
   };
 
   if (config.mcps?.length) {
-    const mcpConfig: Record<string, Record<string, unknown>> = {};
-    const upstreamSet = getUpstreamNames(config.mcps);
-    for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      if (mcp.upstreams?.length) {
-        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildOpenCodeMcpEntry);
-      } else {
-        mcpConfig[mcp.name] = buildOpenCodeMcpEntry(mcp);
-      }
-    }
-    opencodeConfig.mcp = mcpConfig;
+    opencodeConfig.mcp = buildMcpServerMap(config.mcps, buildOpenCodeMcpEntry);
   }
 
   opencodeConfig.instructions = [".opencode/rules/*.md"];

@@ -3,7 +3,7 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import chalk from "chalk";
 import type { HubConfig } from "./hub-config.js";
-import { downloadDirFromGitHub } from "../commands/registry.js";
+import { downloadDirFromGitHub } from "@arvoretech/hub-core";
 
 const DEFAULT_REGISTRY_REPO = process.env.HUB_REGISTRY || "arvoreeducacao/rhm";
 

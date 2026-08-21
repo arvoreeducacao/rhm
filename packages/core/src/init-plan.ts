@@ -14,9 +14,10 @@ export interface InitWorkspaceOptions {
   skills?: string[];
   configFormat?: "typescript" | "yaml";
   editor?: string;
+  hubCliVersionRange?: string;
 }
 
-export const HUB_CLI_VERSION_RANGE = "^0.28.0";
+export const DEFAULT_HUB_CLI_VERSION_RANGE = "^0.29.0";
 
 const SCHEMA_COMMENT =
   "# yaml-language-server: $schema=https://raw.githubusercontent.com/arvoreeducacao/rhm/main/schemas/hub.schema.json\n";
@@ -137,7 +138,7 @@ function buildInitPackageJson(options: InitWorkspaceOptions): string {
     private: true,
     type: "module",
     devDependencies: {
-      "@arvoretech/hub": HUB_CLI_VERSION_RANGE,
+      "@arvoretech/hub": options.hubCliVersionRange ?? DEFAULT_HUB_CLI_VERSION_RANGE,
     },
     dependencies: {
       tsx: "^4.21.0",
