@@ -5,27 +5,22 @@ import { join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig } from "../core/hub-config.js";
-import { loadPersona } from "./persona.js";
-import { applyPlannedFiles, readSteeringInputs } from "../core/plan-apply.js";
+import { applyPlannedFiles } from "../core/plan-apply.js";
 import { generateEnvExample } from "./env-example.js";
 import {
+  gatherEditorInputs,
+  planForEditor,
   checkOutdated,
   fetchRemoteSources,
   getKiroMode,
   getSavedEditor,
   HUB_PI_PACKAGE,
-  planClaudeCodeFiles,
-  planCodexFiles,
-  planCursorFiles,
-  planKiroFiles,
-  planOpenCodeFiles,
   planPiFiles,
   readCache,
   saveGenerateState,
   saveKiroMode,
   writeCache,
   type KiroMode,
-  type KiroSteeringInput,
 } from "@arvoretech/hub-core";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
@@ -124,10 +119,11 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   const cursorDir = join(hubDir, ".cursor");
   await mkdir(join(cursorDir, "rules"), { recursive: true });
 
-  const personaCursor = await loadPersona(hubDir);
-  const steering = await readSteeringInputs(hubDir);
+  const inputs = await gatherEditorInputs(hubDir, "cursor");
+  const personaCursor = inputs.persona;
+  const steering = inputs.steering;
 
-  const plan = planCursorFiles(config, { steering, persona: personaCursor });
+  const plan = planForEditor(config, "cursor", inputs);
   await applyPlannedFiles(hubDir, plan.files);
 
   if (personaCursor) {
@@ -181,10 +177,11 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   await mkdir(join(opencodeDir, "commands"), { recursive: true });
   await mkdir(join(opencodeDir, "plugins"), { recursive: true });
 
-  const personaOC = await loadPersona(hubDir);
-  const steering = await readSteeringInputs(hubDir);
+  const inputs = await gatherEditorInputs(hubDir, "opencode");
+  const personaOC = inputs.persona;
+  const steering = inputs.steering;
 
-  const plan = planOpenCodeFiles(config, { steering, persona: personaOC });
+  const plan = planForEditor(config, "opencode", inputs);
   await applyPlannedFiles(hubDir, plan.files);
   await rm(join(opencodeDir, "rules", "orchestrator.md")).catch(() => {});
 
@@ -233,7 +230,8 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
   const claudeDir = join(hubDir, ".claude");
   await mkdir(claudeDir, { recursive: true });
 
-  const personaClaude = await loadPersona(hubDir);
+  const inputs = await gatherEditorInputs(hubDir, "claude-code");
+  const personaClaude = inputs.persona;
 
   const skillsDir = resolve(hubDir, "skills");
   const remoteSkillsClaude = getRemoteSkillNames(config);
@@ -270,9 +268,9 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(claudeDir, "skills"), join(claudeDir, "steering"));
 
-  const steering = await readSteeringInputs(hubDir);
+  const steering = inputs.steering;
 
-  const plan = planClaudeCodeFiles(config, { steering, persona: personaClaude });
+  const plan = planForEditor(config, "claude-code", inputs);
   await applyPlannedFiles(hubDir, plan.files);
 
   if (personaClaude) {
@@ -287,7 +285,7 @@ async function generateCodex(config: HubConfig, hubDir: string) {
   const codexDir = join(hubDir, ".codex");
   await mkdir(codexDir, { recursive: true });
 
-  const personaCodex = await loadPersona(hubDir);
+  const personaCodex = (await gatherEditorInputs(hubDir, "codex")).persona;
 
   const skillsDir = resolve(hubDir, "skills");
   const remoteSkillsCodex = getRemoteSkillNames(config);
@@ -319,7 +317,7 @@ async function generateCodex(config: HubConfig, hubDir: string) {
   await fetchHubDocsSkill(codexSkillsDirForDocs);
   await syncRemoteSources(config, hubDir, join(codexDir, "skills"), join(codexDir, "steering"));
 
-  const plan = planCodexFiles(config);
+  const plan = planForEditor(config, "codex", { steering: [], persona: personaCodex });
   for (const warning of plan.warnings) {
     console.log(chalk.yellow(`  ${warning}`));
   }
@@ -358,23 +356,13 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     console.log(chalk.dim(`  Using saved Kiro mode: ${mode}`));
   }
 
-  const personaKiro = await loadPersona(hubDir);
   await rm(join(steeringDir, "orchestrator.md")).catch(() => {});
 
-  const steering: KiroSteeringInput[] = [];
-  for (const input of await readSteeringInputs(hubDir)) {
-    const destPath = join(steeringDir, input.name);
-    let existingContent: string | null = null;
-    if (existsSync(destPath)) {
-      existingContent = await readFile(destPath, "utf-8");
-    }
-    steering.push({ ...input, existingContent });
-  }
+  const inputs = await gatherEditorInputs(hubDir, "kiro", { kiroMode: mode });
+  const personaKiro = inputs.persona;
+  const steering = inputs.steering;
 
-  const mcpJsonPath = join(settingsDir, "mcp.json");
-  const existingMcpJson = existsSync(mcpJsonPath) ? await readFile(mcpJsonPath, "utf-8") : null;
-
-  const plan = planKiroFiles(config, { steering, persona: personaKiro, mode, existingMcpJson });
+  const plan = planForEditor(config, "kiro", inputs);
   await applyPlannedFiles(hubDir, plan.files);
 
   if (personaKiro) {
@@ -512,23 +500,19 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
 async function generatePi(config: HubConfig, hubDir: string) {
   const piDir = join(hubDir, ".pi");
   await mkdir(piDir, { recursive: true });
-  const settingsPath = join(piDir, "settings.json");
 
-  let existingSettings: Record<string, unknown> | null = null;
-  if (existsSync(settingsPath)) {
-    try {
-      existingSettings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
-    } catch {
-      const gitignoreOnly = planPiFiles(config).files.filter((f) => f.path === ".gitignore");
-      await applyPlannedFiles(hubDir, gitignoreOnly);
-      console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched."));
-      console.log(chalk.dim(`  Add "${HUB_PI_PACKAGE}" to its "packages" array manually once the JSON is fixed.`));
-      return;
-    }
+  const inputs = await gatherEditorInputs(hubDir, "pi");
+  if (inputs.blocked) {
+    const gitignoreOnly = planPiFiles(config).files.filter((f) => f.path === ".gitignore");
+    await applyPlannedFiles(hubDir, gitignoreOnly);
+    console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched."));
+    console.log(chalk.dim(`  Add "${HUB_PI_PACKAGE}" to its "packages" array manually once the JSON is fixed.`));
+    return;
   }
 
-  const steering = await readSteeringInputs(hubDir);
-  const plan = planPiFiles(config, { steering, existingSettings });
+  const existingSettings = inputs.existingSettings ?? null;
+  const steering = inputs.steering;
+  const plan = planForEditor(config, "pi", inputs);
   await applyPlannedFiles(hubDir, plan.files);
 
   const previousPackages = Array.isArray(existingSettings?.packages) ? (existingSettings.packages as string[]) : [];
