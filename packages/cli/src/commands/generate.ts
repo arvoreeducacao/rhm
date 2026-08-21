@@ -8,10 +8,9 @@ import { loadHubConfig, type HubConfig } from "../core/hub-config.js";
 import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
 import { fetchRemoteSources } from "../core/design-sources.js";
 import { loadPersona } from "./persona.js";
-import { applyPlannedFiles, readSteeringInputs, writeManagedFile } from "../core/plan-apply.js";
+import { applyPlannedFiles, readSteeringInputs } from "../core/plan-apply.js";
 import { generateEnvExample } from "./env-example.js";
 import {
-  buildGitignoreLines,
   planClaudeCodeFiles,
   HUB_PI_PACKAGE,
   planCodexFiles,
@@ -20,7 +19,6 @@ import {
   planOpenCodeFiles,
   planPiFiles,
   type KiroSteeringInput,
-  resolvePiConfig,
 } from "@arvoretech/hub-core";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
@@ -514,9 +512,8 @@ async function generatePi(config: HubConfig, hubDir: string) {
     try {
       existingSettings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
     } catch {
-      const gitignoreLines = buildGitignoreLines(config);
-      await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-      console.log(chalk.green("  Generated .gitignore"));
+      const gitignoreOnly = planPiFiles(config).files.filter((f) => f.path === ".gitignore");
+      await applyPlannedFiles(hubDir, gitignoreOnly);
       console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched."));
       console.log(chalk.dim(`  Add "${HUB_PI_PACKAGE}" to its "packages" array manually once the JSON is fixed.`));
       return;
@@ -534,8 +531,7 @@ async function generatePi(config: HubConfig, hubDir: string) {
     console.log(chalk.green(`  Registered ${HUB_PI_PACKAGE} in .pi/settings.json`));
   }
 
-  const piToggles = resolvePiConfig(config);
-  if (!piToggles.injectCapabilities) {
+  if (!plan.files.some((f) => f.path === "AGENTS.md")) {
     console.log(chalk.dim("\n  pi.injectCapabilities is disabled — skipping AGENTS.md generation."));
     console.log(chalk.dim("  The hub-pi extension still wires MCPs, repo tools, persona, hooks, and skills at runtime."));
     return;
