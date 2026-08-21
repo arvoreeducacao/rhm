@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { splitEnvForCodex, buildCodexMcpBlock } from "./codex-config.js";
-import type { MCPConfig } from "../core/hub-config.js";
+import type { MCPConfig } from "./types.js";
 
 describe("splitEnvForCodex", () => {
   it("returns empty result for undefined env", () => {
