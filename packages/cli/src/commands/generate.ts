@@ -14,7 +14,9 @@ import {
   buildCapabilitiesPrompt,
   buildGitignoreLines,
   planClaudeCodeFiles,
+  planCursorFiles,
   resolvePiConfig,
+  type PlannedFile,
   type SteeringInput,
 } from "@arvoretech/hub-core";
 
@@ -142,31 +144,6 @@ const HOOK_EVENT_MAP: Record<string, { cursor?: string; claude?: string; kiro?: 
   teammate_idle:            { cursor: undefined,                 claude: "TeammateIdle",        kiro: undefined,        opencode: undefined },
 };
 
-function buildCursorHooks(hooks: Record<string, HookEntry[]>): Record<string, unknown> | null {
-  const cursorHooks: Record<string, unknown[]> = {};
-
-  for (const [event, entries] of Object.entries(hooks)) {
-    const mapped = HOOK_EVENT_MAP[event]?.cursor;
-    if (!mapped) continue;
-
-    const cursorEntries = entries.map((entry) => {
-      const obj: Record<string, unknown> = { type: entry.type };
-      if (entry.type === "command" && entry.command) obj.command = entry.command;
-      if (entry.type === "prompt" && entry.prompt) obj.prompt = entry.prompt;
-      if (entry.matcher) obj.matcher = entry.matcher;
-      if (entry.timeout_ms) obj.timeout = entry.timeout_ms;
-      return obj;
-    });
-
-    if (cursorEntries.length > 0) {
-      cursorHooks[mapped] = cursorEntries;
-    }
-  }
-
-  if (Object.keys(cursorHooks).length === 0) return null;
-  return { version: 1, hooks: cursorHooks };
-}
-
 async function generateEditorCommands(config: HubConfig, hubDir: string, targetDir: string, editorName: string) {
   const commandsDir = join(targetDir, "commands");
   let count = 0;
@@ -229,6 +206,33 @@ async function writeManagedFile(filePath: string, managedLines: string[]): Promi
   await writeFile(filePath, managedBlock + "\n", "utf-8");
 }
 
+async function readSteeringInputs(hubDir: string): Promise<SteeringInput[]> {
+  const steering: SteeringInput[] = [];
+  const steeringDir = resolve(hubDir, "steering");
+  try {
+    const files = await readdir(steeringDir);
+    for (const file of files.filter((f) => f.endsWith(".md"))) {
+      steering.push({ name: file, content: await readFile(join(steeringDir, file), "utf-8") });
+    }
+  } catch {
+    // no steering dir
+  }
+  return steering;
+}
+
+async function applyPlannedFiles(hubDir: string, files: PlannedFile[]): Promise<void> {
+  for (const file of files) {
+    const target = join(hubDir, file.path);
+    if (file.kind === "managed-block") {
+      await writeManagedFile(target, file.content.split("\n"));
+    } else {
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, file.content, "utf-8");
+    }
+    console.log(chalk.green(`  Generated ${file.path}`));
+  }
+}
+
 interface Generator {
   name: string;
   generate: (config: HubConfig, hubDir: string) => Promise<void>;
@@ -238,71 +242,17 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   const cursorDir = join(hubDir, ".cursor");
   await mkdir(join(cursorDir, "rules"), { recursive: true });
 
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
-
-  const cursorignoreLines = [
-    "# Re-include repositories for AI context",
-  ];
-  for (const repo of config.repos) {
-    const repoDir = repo.path.replace("./", "");
-    cursorignoreLines.push(`!${repoDir}/`);
-  }
-  cursorignoreLines.push("", "# Re-include tasks for agent collaboration", "!tasks/");
-  await writeManagedFile(join(hubDir, ".cursorignore"), cursorignoreLines);
-  console.log(chalk.green("  Generated .cursorignore"));
-
-  if (config.mcps?.length) {
-    const mcpConfig: Record<string, Record<string, unknown>> = {};
-    const upstreamSet = getUpstreamNames(config.mcps);
-    for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      if (mcp.upstreams?.length) {
-        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildCursorMcpEntry);
-      } else {
-        mcpConfig[mcp.name] = buildCursorMcpEntry(mcp);
-      }
-    }
-    await writeFile(
-      join(cursorDir, "mcp.json"),
-      JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n",
-      "utf-8"
-    );
-    console.log(chalk.green("  Generated .cursor/mcp.json"));
-  }
-
-  const orchestratorRule = buildOrchestratorRule(config);
-  await writeFile(join(cursorDir, "rules", "orchestrator.mdc"), orchestratorRule, "utf-8");
-  console.log(chalk.green("  Generated .cursor/rules/orchestrator.mdc"));
-
-  const cleanedOrchestratorForAgents = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
   const personaCursor = await loadPersona(hubDir);
-  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestratorForAgents + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
+  const steering = await readSteeringInputs(hubDir);
+
+  const plan = planCursorFiles(config, { steering, persona: personaCursor });
+  await applyPlannedFiles(hubDir, plan.files);
 
   if (personaCursor) {
-    const personaRuleContent = buildPersonaEditorFile(personaCursor, "cursor");
-    await writeFile(join(cursorDir, "rules", "persona.mdc"), personaRuleContent, "utf-8");
-    console.log(chalk.green(`  Generated .cursor/rules/persona.mdc (${personaCursor.name}, ${personaCursor.role})`));
+    console.log(chalk.green(`  Applied persona: ${personaCursor.name} (${personaCursor.role})`));
   }
-
-  const hubSteeringDirCursor = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDirCursor);
-    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const raw = await readFile(join(hubSteeringDirCursor, file), "utf-8");
-      const content = stripFrontMatter(raw);
-      const mdcName = file.replace(/\.md$/, ".mdc");
-      const mdcContent = `---\ndescription: "${file.replace(/\.md$/, "")}"\nalwaysApply: true\n---\n\n${content}`;
-      await writeFile(join(cursorDir, "rules", mdcName), mdcContent, "utf-8");
-    }
-    if (mdFiles.length > 0) {
-      console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .cursor/rules/`));
-    }
-  } catch {
-    // no steering dir
+  if (steering.length > 0) {
+    console.log(chalk.green(`  Copied ${steering.length} steering files to .cursor/rules/`));
   }
 
   const skillsDir = resolve(hubDir, "skills");
@@ -317,9 +267,7 @@ async function generateCursor(config: HubConfig, hubDir: string) {
       const skillFile = join(skillsDir, folder, "SKILL.md");
       try {
         await readFile(skillFile);
-        const srcDir = join(skillsDir, folder);
-        const targetDir = join(cursorSkillsDir, folder);
-        await cp(srcDir, targetDir, { recursive: true });
+        await cp(join(skillsDir, folder), join(cursorSkillsDir, folder), { recursive: true });
         count++;
       } catch {
         // skip
@@ -338,21 +286,10 @@ async function generateCursor(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(cursorDir, "skills"), join(cursorDir, "rules"));
 
-  if (config.hooks) {
-    const cursorHooks = buildCursorHooks(config.hooks);
-    if (cursorHooks) {
-      await writeFile(
-        join(cursorDir, "hooks.json"),
-        JSON.stringify(cursorHooks, null, 2) + "\n",
-        "utf-8"
-      );
-      console.log(chalk.green("  Generated .cursor/hooks.json"));
-    }
-  }
-
   await generateEditorCommands(config, hubDir, cursorDir, ".cursor/commands/");
   await generateVSCodeSettings(config, hubDir);
 }
+
 
 interface ProxyUpstreamEntry {
   name: string;
@@ -442,30 +379,6 @@ function resolveAutoApprove(mcp: MCPConfig): string[] | undefined {
   if (mcp.autoApprove === true) return ["*"];
   if (Array.isArray(mcp.autoApprove) && mcp.autoApprove.length > 0) return mcp.autoApprove;
   return undefined;
-}
-
-function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
-  const autoApprove = resolveAutoApprove(mcp);
-  if (mcp.url) {
-    return { url: mcp.url, ...(mcp.env && { env: mcp.env }), ...(autoApprove && { autoApprove }) };
-  }
-  if (mcp.image) {
-    const args = ["run", "-i", "--rm"];
-    if (mcp.env) {
-      for (const [key, value] of Object.entries(mcp.env)) {
-        args.push("-e", `${key}=${value}`);
-      }
-    }
-    args.push(mcp.image);
-    return { command: "docker", args, ...(autoApprove && { autoApprove }) };
-  }
-  const { command, args } = resolveStdioCommand(mcp);
-  return {
-    command,
-    ...(args.length > 0 && { args }),
-    ...(mcp.env && { env: mcp.env }),
-    ...(autoApprove && { autoApprove }),
-  };
 }
 
 /**
@@ -771,28 +684,10 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(claudeDir, "skills"), join(claudeDir, "steering"));
 
-  const steering: SteeringInput[] = [];
-  const hubSteeringDirClaude = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDirClaude);
-    for (const file of steeringFiles.filter((f) => f.endsWith(".md"))) {
-      steering.push({ name: file, content: await readFile(join(hubSteeringDirClaude, file), "utf-8") });
-    }
-  } catch {
-    // no steering dir
-  }
+  const steering = await readSteeringInputs(hubDir);
 
   const plannedFiles = planClaudeCodeFiles(config, { steering, persona: personaClaude });
-  for (const file of plannedFiles) {
-    const target = join(hubDir, file.path);
-    if (file.kind === "managed-block") {
-      await writeManagedFile(target, file.content.split("\n"));
-    } else {
-      await mkdir(dirname(target), { recursive: true });
-      await writeFile(target, file.content, "utf-8");
-    }
-    console.log(chalk.green(`  Generated ${file.path}`));
-  }
+  await applyPlannedFiles(hubDir, plannedFiles);
 
   if (personaClaude) {
     console.log(chalk.green(`  Applied persona: ${personaClaude.name} (${personaClaude.role}) — CLAUDE.local.md is per-machine, gitignored`));

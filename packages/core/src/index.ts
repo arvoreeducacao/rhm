@@ -10,6 +10,9 @@ export {
   buildGitignoreLines,
 } from "./claude-code-plan.js";
 export type { PlannedFile, SteeringInput, ClaudeCodePlanInputs } from "./claude-code-plan.js";
+export type { EditorPlan } from "./plan-types.js";
+export { planCursorFiles, buildCursorMcpJson, buildCursorignoreLines } from "./cursor-plan.js";
+export type { CursorPlanInputs } from "./cursor-plan.js";
 export {
   readCache,
   writeCache,
