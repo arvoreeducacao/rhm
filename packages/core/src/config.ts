@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
 import type { HubConfig, PiConfig } from "./types.js";
@@ -153,6 +153,14 @@ async function writeResolvedCache(dir: string, hash: string, config: HubConfig):
   }
 }
 
-export function findHubRoot(startDir: string = process.cwd()): string {
-  return startDir;
+export function findHubRoot(startDir: string = process.cwd()): string | null {
+  let dir = resolvePath(startDir);
+  for (;;) {
+    if (existsSync(join(dir, "hub.config.ts")) || existsSync(join(dir, "hub.yaml"))) {
+      return dir;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
 }

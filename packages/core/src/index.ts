@@ -10,6 +10,19 @@ export {
   buildGitignoreLines,
 } from "./claude-code-plan.js";
 export type { PlannedFile, SteeringInput, ClaudeCodePlanInputs } from "./claude-code-plan.js";
+export type { EditorPlan } from "./plan-types.js";
+export { planCursorFiles, buildCursorMcpJson, buildCursorignoreLines } from "./cursor-plan.js";
+export type { CursorPlanInputs } from "./cursor-plan.js";
+export { planOpenCodeFiles, buildOpenCodeConfigJson } from "./opencode-plan.js";
+export type { OpenCodePlanInputs } from "./opencode-plan.js";
+export { planKiroFiles, buildKiroMcpJson, parseMcpDisabledState, collectKiroHookNotes } from "./kiro-plan.js";
+export type { KiroPlanInputs, KiroSteeringInput } from "./kiro-plan.js";
+export { planCodexFiles, buildCodexConfigToml } from "./codex-plan.js";
+export { buildCodexMcpBlock, splitEnvForCodex, tomlString, tomlArray } from "./codex-config.js";
+export { planPiFiles, buildPiSettingsJson, HUB_PI_PACKAGE } from "./pi-plan.js";
+export type { PiPlanInputs } from "./pi-plan.js";
+export { planInitWorkspace, buildInitTypeScriptConfig, buildInitYamlConfig, HUB_CLI_VERSION_RANGE } from "./init-plan.js";
+export type { InitWorkspaceOptions, InitRepo } from "./init-plan.js";
 export {
   readCache,
   writeCache,

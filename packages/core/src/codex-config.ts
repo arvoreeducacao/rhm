@@ -1,4 +1,4 @@
-import type { MCPConfig } from "../core/hub-config.js";
+import type { MCPConfig } from "./types.js";
 
 export function tomlString(value: string): string {
   if (!value.includes("'") && !value.includes("\n")) {

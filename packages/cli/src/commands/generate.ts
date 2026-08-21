@@ -4,17 +4,23 @@ import { mkdir, writeFile, readdir, copyFile, readFile, cp, rm } from "node:fs/p
 import { dirname, join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
-import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig } from "../core/hub-config.js";
+import { loadHubConfig, type HubConfig } from "../core/hub-config.js";
 import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
 import { fetchRemoteSources } from "../core/design-sources.js";
-import { loadPersona, buildPersonaEditorFile } from "./persona.js";
-import { buildCodexMcpBlock } from "./codex-config.js";
+import { loadPersona } from "./persona.js";
 import { generateEnvExample } from "./env-example.js";
 import {
-  buildCapabilitiesPrompt,
   buildGitignoreLines,
   planClaudeCodeFiles,
+  HUB_PI_PACKAGE,
+  planCodexFiles,
+  planCursorFiles,
+  planKiroFiles,
+  planOpenCodeFiles,
+  planPiFiles,
+  type KiroSteeringInput,
   resolvePiConfig,
+  type PlannedFile,
   type SteeringInput,
 } from "@arvoretech/hub-core";
 
@@ -38,54 +44,6 @@ function getRemoteSkillNames(config: HubConfig): Set<string> {
     if (source.type === "skill") names.add(source.name);
   }
   return names;
-}
-
-function stripFrontMatter(content: string): string {
-  const match = content.match(/^---\n[\s\S]*?\n---\n*/);
-  if (match) return content.slice(match[0].length);
-  return content;
-}
-
-function parseFrontMatter(content: string): Record<string, string> | null {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return null;
-  const result: Record<string, string> = {};
-  for (const line of match[1].split("\n")) {
-    const colonIdx = line.indexOf(":");
-    if (colonIdx === -1) continue;
-    const key = line.slice(0, colonIdx).trim();
-    const value = line.slice(colonIdx + 1).trim();
-    if (key) result[key] = value;
-  }
-  return result;
-}
-
-async function readExistingMcpDisabledState(mcpJsonPath: string): Promise<Record<string, boolean>> {
-  const disabledState: Record<string, boolean> = {};
-  if (!existsSync(mcpJsonPath)) return disabledState;
-  try {
-    const content = JSON.parse(await readFile(mcpJsonPath, "utf-8"));
-    const servers = (content.mcpServers || content.mcp || {}) as Record<string, Record<string, unknown>>;
-    for (const [name, config] of Object.entries(servers)) {
-      if (typeof config.disabled === "boolean") {
-        disabledState[name] = config.disabled;
-      }
-    }
-  } catch {
-    // skip
-  }
-  return disabledState;
-}
-
-function applyDisabledState(
-  mcpConfig: Record<string, Record<string, unknown>>,
-  disabledState: Record<string, boolean>
-): void {
-  for (const [name, entry] of Object.entries(mcpConfig)) {
-    if (name in disabledState) {
-      entry.disabled = disabledState[name];
-    }
-  }
 }
 
 async function fetchHubDocsSkill(skillsDir: string): Promise<void> {
@@ -114,58 +72,6 @@ ${content}`;
 
 const HUB_MARKER_START = "# >>> hub-managed (do not edit this section)";
 const HUB_MARKER_END = "# <<< hub-managed";
-
-const HOOK_EVENT_MAP: Record<string, { cursor?: string; claude?: string; kiro?: string; opencode?: string }> = {
-  session_start:            { cursor: "sessionStart",            claude: "SessionStart",       kiro: undefined,        opencode: "session.created" },
-  session_end:              { cursor: "sessionEnd",              claude: "SessionEnd",          kiro: undefined,        opencode: "session.idle" },
-  pre_tool_use:             { cursor: "preToolUse",              claude: "PreToolUse",          kiro: "pre_tool_use",   opencode: "tool.execute.before" },
-  post_tool_use:            { cursor: "postToolUse",             claude: "PostToolUse",         kiro: "post_tool_use",  opencode: "tool.execute.after" },
-  post_tool_use_failure:    { cursor: undefined,                 claude: "PostToolUseFailure",  kiro: undefined,        opencode: undefined },
-  stop:                     { cursor: "stop",                    claude: "Stop",                kiro: "agent_stop",     opencode: "session.idle" },
-  subagent_start:           { cursor: "subagentStart",           claude: "SubagentStart",       kiro: undefined,        opencode: undefined },
-  subagent_stop:            { cursor: "subagentStop",            claude: "SubagentStop",        kiro: undefined,        opencode: undefined },
-  pre_compact:              { cursor: "preCompact",              claude: "PreCompact",          kiro: undefined,        opencode: "session.compacted" },
-  before_submit_prompt:     { cursor: "beforeSubmitPrompt",      claude: "UserPromptSubmit",    kiro: "prompt_submit",  opencode: undefined },
-  before_shell_execution:   { cursor: "beforeShellExecution",    claude: undefined,             kiro: undefined,        opencode: "tool.execute.before" },
-  after_shell_execution:    { cursor: "afterShellExecution",     claude: undefined,             kiro: undefined,        opencode: "tool.execute.after" },
-  before_mcp_execution:     { cursor: "beforeMCPExecution",      claude: undefined,             kiro: undefined,        opencode: "tool.execute.before" },
-  after_mcp_execution:      { cursor: "afterMCPExecution",       claude: undefined,             kiro: undefined,        opencode: "tool.execute.after" },
-  after_file_edit:          { cursor: "afterFileEdit",           claude: undefined,             kiro: "file_save",      opencode: "file.edited" },
-  before_read_file:         { cursor: "beforeReadFile",          claude: undefined,             kiro: undefined,        opencode: undefined },
-  before_tab_file_read:     { cursor: "beforeTabFileRead",       claude: undefined,             kiro: undefined,        opencode: undefined },
-  after_tab_file_edit:      { cursor: "afterTabFileEdit",        claude: undefined,             kiro: undefined,        opencode: "file.edited" },
-  after_agent_response:     { cursor: "afterAgentResponse",      claude: undefined,             kiro: undefined,        opencode: undefined },
-  after_agent_thought:      { cursor: "afterAgentThought",       claude: undefined,             kiro: undefined,        opencode: undefined },
-  notification:             { cursor: undefined,                 claude: "Notification",        kiro: undefined,        opencode: undefined },
-  permission_request:       { cursor: undefined,                 claude: "PermissionRequest",   kiro: undefined,        opencode: "permission.asked" },
-  task_completed:           { cursor: undefined,                 claude: "TaskCompleted",       kiro: undefined,        opencode: "session.idle" },
-  teammate_idle:            { cursor: undefined,                 claude: "TeammateIdle",        kiro: undefined,        opencode: undefined },
-};
-
-function buildCursorHooks(hooks: Record<string, HookEntry[]>): Record<string, unknown> | null {
-  const cursorHooks: Record<string, unknown[]> = {};
-
-  for (const [event, entries] of Object.entries(hooks)) {
-    const mapped = HOOK_EVENT_MAP[event]?.cursor;
-    if (!mapped) continue;
-
-    const cursorEntries = entries.map((entry) => {
-      const obj: Record<string, unknown> = { type: entry.type };
-      if (entry.type === "command" && entry.command) obj.command = entry.command;
-      if (entry.type === "prompt" && entry.prompt) obj.prompt = entry.prompt;
-      if (entry.matcher) obj.matcher = entry.matcher;
-      if (entry.timeout_ms) obj.timeout = entry.timeout_ms;
-      return obj;
-    });
-
-    if (cursorEntries.length > 0) {
-      cursorHooks[mapped] = cursorEntries;
-    }
-  }
-
-  if (Object.keys(cursorHooks).length === 0) return null;
-  return { version: 1, hooks: cursorHooks };
-}
 
 async function generateEditorCommands(config: HubConfig, hubDir: string, targetDir: string, editorName: string) {
   const commandsDir = join(targetDir, "commands");
@@ -229,6 +135,33 @@ async function writeManagedFile(filePath: string, managedLines: string[]): Promi
   await writeFile(filePath, managedBlock + "\n", "utf-8");
 }
 
+async function readSteeringInputs(hubDir: string): Promise<SteeringInput[]> {
+  const steering: SteeringInput[] = [];
+  const steeringDir = resolve(hubDir, "steering");
+  try {
+    const files = await readdir(steeringDir);
+    for (const file of files.filter((f) => f.endsWith(".md"))) {
+      steering.push({ name: file, content: await readFile(join(steeringDir, file), "utf-8") });
+    }
+  } catch {
+    // no steering dir
+  }
+  return steering;
+}
+
+async function applyPlannedFiles(hubDir: string, files: PlannedFile[]): Promise<void> {
+  for (const file of files) {
+    const target = join(hubDir, file.path);
+    if (file.kind === "managed-block") {
+      await writeManagedFile(target, file.content.split("\n"));
+    } else {
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, file.content, "utf-8");
+    }
+    console.log(chalk.green(`  Generated ${file.path}`));
+  }
+}
+
 interface Generator {
   name: string;
   generate: (config: HubConfig, hubDir: string) => Promise<void>;
@@ -238,71 +171,17 @@ async function generateCursor(config: HubConfig, hubDir: string) {
   const cursorDir = join(hubDir, ".cursor");
   await mkdir(join(cursorDir, "rules"), { recursive: true });
 
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
-
-  const cursorignoreLines = [
-    "# Re-include repositories for AI context",
-  ];
-  for (const repo of config.repos) {
-    const repoDir = repo.path.replace("./", "");
-    cursorignoreLines.push(`!${repoDir}/`);
-  }
-  cursorignoreLines.push("", "# Re-include tasks for agent collaboration", "!tasks/");
-  await writeManagedFile(join(hubDir, ".cursorignore"), cursorignoreLines);
-  console.log(chalk.green("  Generated .cursorignore"));
-
-  if (config.mcps?.length) {
-    const mcpConfig: Record<string, Record<string, unknown>> = {};
-    const upstreamSet = getUpstreamNames(config.mcps);
-    for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      if (mcp.upstreams?.length) {
-        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildCursorMcpEntry);
-      } else {
-        mcpConfig[mcp.name] = buildCursorMcpEntry(mcp);
-      }
-    }
-    await writeFile(
-      join(cursorDir, "mcp.json"),
-      JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n",
-      "utf-8"
-    );
-    console.log(chalk.green("  Generated .cursor/mcp.json"));
-  }
-
-  const orchestratorRule = buildOrchestratorRule(config);
-  await writeFile(join(cursorDir, "rules", "orchestrator.mdc"), orchestratorRule, "utf-8");
-  console.log(chalk.green("  Generated .cursor/rules/orchestrator.mdc"));
-
-  const cleanedOrchestratorForAgents = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
   const personaCursor = await loadPersona(hubDir);
-  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestratorForAgents + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
+  const steering = await readSteeringInputs(hubDir);
+
+  const plan = planCursorFiles(config, { steering, persona: personaCursor });
+  await applyPlannedFiles(hubDir, plan.files);
 
   if (personaCursor) {
-    const personaRuleContent = buildPersonaEditorFile(personaCursor, "cursor");
-    await writeFile(join(cursorDir, "rules", "persona.mdc"), personaRuleContent, "utf-8");
-    console.log(chalk.green(`  Generated .cursor/rules/persona.mdc (${personaCursor.name}, ${personaCursor.role})`));
+    console.log(chalk.green(`  Applied persona: ${personaCursor.name} (${personaCursor.role})`));
   }
-
-  const hubSteeringDirCursor = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDirCursor);
-    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const raw = await readFile(join(hubSteeringDirCursor, file), "utf-8");
-      const content = stripFrontMatter(raw);
-      const mdcName = file.replace(/\.md$/, ".mdc");
-      const mdcContent = `---\ndescription: "${file.replace(/\.md$/, "")}"\nalwaysApply: true\n---\n\n${content}`;
-      await writeFile(join(cursorDir, "rules", mdcName), mdcContent, "utf-8");
-    }
-    if (mdFiles.length > 0) {
-      console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .cursor/rules/`));
-    }
-  } catch {
-    // no steering dir
+  if (steering.length > 0) {
+    console.log(chalk.green(`  Copied ${steering.length} steering files to .cursor/rules/`));
   }
 
   const skillsDir = resolve(hubDir, "skills");
@@ -317,9 +196,7 @@ async function generateCursor(config: HubConfig, hubDir: string) {
       const skillFile = join(skillsDir, folder, "SKILL.md");
       try {
         await readFile(skillFile);
-        const srcDir = join(skillsDir, folder);
-        const targetDir = join(cursorSkillsDir, folder);
-        await cp(srcDir, targetDir, { recursive: true });
+        await cp(join(skillsDir, folder), join(cursorSkillsDir, folder), { recursive: true });
         count++;
       } catch {
         // skip
@@ -338,257 +215,8 @@ async function generateCursor(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(cursorDir, "skills"), join(cursorDir, "rules"));
 
-  if (config.hooks) {
-    const cursorHooks = buildCursorHooks(config.hooks);
-    if (cursorHooks) {
-      await writeFile(
-        join(cursorDir, "hooks.json"),
-        JSON.stringify(cursorHooks, null, 2) + "\n",
-        "utf-8"
-      );
-      console.log(chalk.green("  Generated .cursor/hooks.json"));
-    }
-  }
-
   await generateEditorCommands(config, hubDir, cursorDir, ".cursor/commands/");
   await generateVSCodeSettings(config, hubDir);
-}
-
-interface ProxyUpstreamEntry {
-  name: string;
-  command: string;
-  args: string[];
-  env?: Record<string, string>;
-}
-
-function resolveStdioCommand(mcp: MCPConfig): { command: string; args: string[] } {
-  if (mcp.command) {
-    return { command: mcp.command, args: mcp.args || [] };
-  }
-  return { command: "npx", args: ["-y", mcp.package!, ...(mcp.args || [])] };
-}
-
-function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): { upstreamsJson: string; collectedEnv: Record<string, string> } {
-  const upstreamNames = new Set(proxyMcp.upstreams || []);
-  const upstreamEntries: ProxyUpstreamEntry[] = [];
-  const collectedEnv: Record<string, string> = {};
-
-  for (const mcp of allMcps) {
-    if (!upstreamNames.has(mcp.name)) continue;
-    if (mcp.url || mcp.image) continue;
-
-    const stdio = resolveStdioCommand(mcp);
-    const entry: ProxyUpstreamEntry = {
-      name: mcp.name,
-      command: stdio.command,
-      args: stdio.args,
-    };
-
-    if (mcp.env) {
-      entry.env = {};
-      for (const [key, value] of Object.entries(mcp.env)) {
-        const envRef = value.match(/^\$\{(?:env:)?(\w+)\}$/);
-        if (envRef) {
-          entry.env[key] = `\${${envRef[1]}}`;
-          collectedEnv[envRef[1]] = value;
-        } else {
-          entry.env[key] = value;
-          collectedEnv[key] = value;
-        }
-      }
-    }
-
-    upstreamEntries.push(entry);
-  }
-
-  if (proxyMcp.env) {
-    for (const [key, value] of Object.entries(proxyMcp.env)) {
-      collectedEnv[key] = value;
-    }
-  }
-
-  return {
-    upstreamsJson: JSON.stringify(upstreamEntries),
-    collectedEnv,
-  };
-}
-
-function buildProxyMcpEntry(
-  proxyMcp: MCPConfig,
-  allMcps: MCPConfig[],
-  buildEntry: (mcp: MCPConfig) => Record<string, unknown>
-): Record<string, unknown> {
-  const { upstreamsJson, collectedEnv } = buildProxyUpstreams(proxyMcp, allMcps);
-  const env: Record<string, string> = {
-    MCP_PROXY_UPSTREAMS: upstreamsJson,
-    ...collectedEnv,
-  };
-  return buildEntry({ ...proxyMcp, env });
-}
-
-function getUpstreamNames(mcps: MCPConfig[]): Set<string> {
-  const names = new Set<string>();
-  for (const mcp of mcps) {
-    if (mcp.upstreams) {
-      for (const name of mcp.upstreams) {
-        names.add(name);
-      }
-    }
-  }
-  return names;
-}
-
-function resolveAutoApprove(mcp: MCPConfig): string[] | undefined {
-  if (mcp.autoApprove === true) return ["*"];
-  if (Array.isArray(mcp.autoApprove) && mcp.autoApprove.length > 0) return mcp.autoApprove;
-  return undefined;
-}
-
-function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
-  const autoApprove = resolveAutoApprove(mcp);
-  if (mcp.url) {
-    return { url: mcp.url, ...(mcp.env && { env: mcp.env }), ...(autoApprove && { autoApprove }) };
-  }
-  if (mcp.image) {
-    const args = ["run", "-i", "--rm"];
-    if (mcp.env) {
-      for (const [key, value] of Object.entries(mcp.env)) {
-        args.push("-e", `${key}=${value}`);
-      }
-    }
-    args.push(mcp.image);
-    return { command: "docker", args, ...(autoApprove && { autoApprove }) };
-  }
-  const { command, args } = resolveStdioCommand(mcp);
-  return {
-    command,
-    ...(args.length > 0 && { args }),
-    ...(mcp.env && { env: mcp.env }),
-    ...(autoApprove && { autoApprove }),
-  };
-}
-
-/**
- * Kiro IDE and Claude Code use `${VAR_NAME}` for env references, while the CLI
- * uses `${env:VAR_NAME}`. This strips the `env:` prefix when generating for them.
- */
-function stripEnvPrefix(env: Record<string, string>): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(env)) {
-    result[key] = value.replace(/\$\{env:(\w+)\}/g, "${$1}");
-  }
-  return result;
-}
-
-function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Record<string, unknown> {
-  const env = mcp.env
-    ? mode === "editor" ? stripEnvPrefix(mcp.env) : mcp.env
-    : undefined;
-  const autoApprove = resolveAutoApprove(mcp);
-  if (mcp.url) {
-    return { url: mcp.url, ...(env && { env }), ...(autoApprove && { autoApprove }) };
-  }
-  if (mcp.image) {
-    const args = ["run", "-i", "--rm"];
-    if (env) {
-      for (const [key, value] of Object.entries(env)) {
-        args.push("-e", `${key}=${value}`);
-      }
-    }
-    args.push(mcp.image);
-    return { command: "docker", args, ...(autoApprove && { autoApprove }) };
-  }
-  const { command, args } = resolveStdioCommand(mcp);
-  return {
-    command,
-    ...(args.length > 0 && { args }),
-    ...(env && { env }),
-    ...(autoApprove && { autoApprove }),
-  };
-}
-
-
-function stripDollarPrefix(env: Record<string, string>): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(env)) {
-    result[key] = value.replace(/\$\{env:(\w+)\}/g, "{env:$1}").replace(/\$\{(\w+)\}/g, "{env:$1}");
-  }
-  return result;
-}
-
-function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
-  const env = mcp.env ? stripDollarPrefix(mcp.env) : undefined;
-  if (mcp.url) {
-    return { type: "remote", url: mcp.url };
-  }
-  if (mcp.image) {
-    const cmd = ["docker", "run", "-i", "--rm"];
-    if (env) {
-      for (const [key, value] of Object.entries(env)) {
-        cmd.push("-e", `${key}=${value}`);
-      }
-    }
-    cmd.push(mcp.image);
-    return { type: "local", command: cmd, ...(env && { environment: env }) };
-  }
-  const { command, args } = resolveStdioCommand(mcp);
-  return {
-    type: "local",
-    command: [command, ...args],
-    ...(env && { environment: env }),
-  };
-}
-
-function buildOpenCodeHooksPlugin(hooks: Record<string, HookEntry[]>): string | null {
-  const handlers: string[] = [];
-  const seen = new Set<string>();
-
-  for (const [event, entries] of Object.entries(hooks)) {
-    const mapped = HOOK_EVENT_MAP[event]?.opencode;
-    if (!mapped || seen.has(mapped)) continue;
-    seen.add(mapped);
-
-    const commandEntries = entries.filter((e) => e.type === "command" && e.command);
-    if (commandEntries.length === 0) continue;
-
-    const cmds = commandEntries.map((e) => JSON.stringify(e.command));
-    handlers.push(`    "${mapped}": async (input, output) => {
-      for (const cmd of [${cmds.join(", ")}]) {
-        try { await $\`\${cmd}\`; } catch (e) { console.error("Hook failed:", cmd, e); }
-      }
-    }`);
-  }
-
-  if (handlers.length === 0) return null;
-
-  return `// Auto-generated by hub — maps hub.yaml hooks to OpenCode plugin events
-export const HubHooksPlugin = async ({ $ }) => {
-  return {
-${handlers.join(",\n")}
-  };
-};
-`;
-}
-
-function buildOpenCodePrimaryAgentMarkdown(description: string, body: string): string {
-  return `---
-description: "${description}"
-mode: primary
-tools:
-  write: true
-  edit: true
-  bash: true
-permission:
-  task:
-    "*": allow
----
-
-${body.trim()}
-`;
-}
-
-function buildOpenCodeOrchestratorRule(config: HubConfig): string {
-  return buildCapabilitiesPrompt(config, { format: "plain" });
 }
 
 
@@ -600,78 +228,19 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   await mkdir(join(opencodeDir, "commands"), { recursive: true });
   await mkdir(join(opencodeDir, "plugins"), { recursive: true });
 
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
+  const personaOC = await loadPersona(hubDir);
+  const steering = await readSteeringInputs(hubDir);
 
-  if (config.repos.length > 0) {
-    const ignoreContent = config.repos.map((r) => `!${r.name}`).join("\n") + "\n";
-    await writeFile(join(hubDir, ".ignore"), ignoreContent, "utf-8");
-    console.log(chalk.green("  Generated .ignore"));
-  }
-
-  const orchestratorContent = buildOpenCodeOrchestratorRule(config);
-  const orchestratorAgent = buildOpenCodePrimaryAgentMarkdown(
-    "Primary agent. Helps build and operate software across the workspace using skills, tools, and multi-repo context.",
-    orchestratorContent
-  );
-  await writeFile(join(opencodeDir, "agents", "orchestrator.md"), orchestratorAgent, "utf-8");
-  console.log(chalk.green("  Generated .opencode/agents/orchestrator.md (primary agent)"));
+  const plan = planOpenCodeFiles(config, { steering, persona: personaOC });
+  await applyPlannedFiles(hubDir, plan.files);
   await rm(join(opencodeDir, "rules", "orchestrator.md")).catch(() => {});
 
-  const personaOC = await loadPersona(hubDir);
-  await writeFile(join(hubDir, "AGENTS.md"), orchestratorContent + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
-
   if (personaOC) {
-    const personaRuleContent = buildPersonaEditorFile(personaOC, "opencode");
-    await writeFile(join(opencodeDir, "rules", "persona.md"), personaRuleContent, "utf-8");
-    console.log(chalk.green(`  Generated .opencode/rules/persona.md (${personaOC.name}, ${personaOC.role})`));
+    console.log(chalk.green(`  Applied persona: ${personaOC.name} (${personaOC.role})`));
   }
-
-  const hubSteeringDirOC = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDirOC);
-    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const raw = await readFile(join(hubSteeringDirOC, file), "utf-8");
-      const content = stripFrontMatter(raw);
-      await writeFile(join(opencodeDir, "rules", file), content, "utf-8");
-    }
-    if (mdFiles.length > 0) {
-      console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .opencode/rules/`));
-    }
-  } catch {
-    // no steering dir
+  if (steering.length > 0) {
+    console.log(chalk.green(`  Copied ${steering.length} steering files to .opencode/rules/`));
   }
-
-  const opencodeConfig: Record<string, unknown> = {
-    $schema: "https://opencode.ai/config.json",
-    default_agent: "orchestrator",
-  };
-
-  if (config.mcps?.length) {
-    const mcpConfig: Record<string, Record<string, unknown>> = {};
-    const upstreamSet = getUpstreamNames(config.mcps);
-    for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      if (mcp.upstreams?.length) {
-        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildOpenCodeMcpEntry);
-      } else {
-        mcpConfig[mcp.name] = buildOpenCodeMcpEntry(mcp);
-      }
-    }
-    opencodeConfig.mcp = mcpConfig;
-  }
-
-  opencodeConfig.instructions = [".opencode/rules/*.md"];
-
-  await writeFile(
-    join(hubDir, "opencode.json"),
-    JSON.stringify(opencodeConfig, null, 2) + "\n",
-    "utf-8"
-  );
-  console.log(chalk.green("  Generated opencode.json"));
 
   const skillsDir = resolve(hubDir, "skills");
   const remoteSkillsOC = getRemoteSkillNames(config);
@@ -702,33 +271,10 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
 
   await generateEditorCommands(config, hubDir, opencodeDir, ".opencode/commands/");
 
-  if (config.hooks) {
-    const plugin = buildOpenCodeHooksPlugin(config.hooks);
-    if (plugin) {
-      await writeFile(join(opencodeDir, "plugins", "hub-hooks.js"), plugin, "utf-8");
-      console.log(chalk.green("  Generated .opencode/plugins/hub-hooks.js"));
-    }
-  }
-
   await generateVSCodeSettings(config, hubDir);
 }
 
-function buildKiroSteeringContent(content: string, inclusion: "always" | "auto" = "always", meta?: { name?: string; description?: string }): string {
-  const frontMatter: string[] = ["---", `inclusion: ${inclusion}`];
-  if (meta?.name) frontMatter.push(`name: ${meta.name}`);
-  if (meta?.description) frontMatter.push(`description: ${meta.description}`);
-  frontMatter.push("---");
-  return `${frontMatter.join("\n")}\n\n${content}`;
-}
 
-function buildKiroOrchestratorRule(config: HubConfig): string {
-  return buildCapabilitiesPrompt(config, { format: "plain" });
-}
-
-
-function buildOrchestratorRule(config: HubConfig): string {
-  return buildCapabilitiesPrompt(config, { format: "cursor-rule" });
-}
 
 async function generateClaudeCode(config: HubConfig, hubDir: string) {
   const claudeDir = join(hubDir, ".claude");
@@ -771,28 +317,10 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(claudeDir, "skills"), join(claudeDir, "steering"));
 
-  const steering: SteeringInput[] = [];
-  const hubSteeringDirClaude = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDirClaude);
-    for (const file of steeringFiles.filter((f) => f.endsWith(".md"))) {
-      steering.push({ name: file, content: await readFile(join(hubSteeringDirClaude, file), "utf-8") });
-    }
-  } catch {
-    // no steering dir
-  }
+  const steering = await readSteeringInputs(hubDir);
 
   const plannedFiles = planClaudeCodeFiles(config, { steering, persona: personaClaude });
-  for (const file of plannedFiles) {
-    const target = join(hubDir, file.path);
-    if (file.kind === "managed-block") {
-      await writeManagedFile(target, file.content.split("\n"));
-    } else {
-      await mkdir(dirname(target), { recursive: true });
-      await writeFile(target, file.content, "utf-8");
-    }
-    console.log(chalk.green(`  Generated ${file.path}`));
-  }
+  await applyPlannedFiles(hubDir, plannedFiles);
 
   if (personaClaude) {
     console.log(chalk.green(`  Applied persona: ${personaClaude.name} (${personaClaude.role}) — CLAUDE.local.md is per-machine, gitignored`));
@@ -806,14 +334,7 @@ async function generateCodex(config: HubConfig, hubDir: string) {
   const codexDir = join(hubDir, ".codex");
   await mkdir(codexDir, { recursive: true });
 
-  const orchestratorRule = buildOrchestratorRule(config);
-  const cleanedOrchestrator = orchestratorRule.replace(/^---[\s\S]*?---\n/m, "").trim();
   const personaCodex = await loadPersona(hubDir);
-  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestrator + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
-  if (personaCodex) {
-    console.log(chalk.green(`  Applied persona: ${personaCodex.name} (${personaCodex.role})`));
-  }
 
   const skillsDir = resolve(hubDir, "skills");
   const remoteSkillsCodex = getRemoteSkillNames(config);
@@ -845,45 +366,17 @@ async function generateCodex(config: HubConfig, hubDir: string) {
   await fetchHubDocsSkill(codexSkillsDirForDocs);
   await syncRemoteSources(config, hubDir, join(codexDir, "skills"), join(codexDir, "steering"));
 
-  if (config.mcps?.length) {
-    const upstreamSet = getUpstreamNames(config.mcps);
-    const blocks: string[] = [
-      "# GENERATED by `hub generate -e codex` from hub.yaml — do not edit by hand.",
-      "#",
-      "# Codex only loads this file when the project is trusted:",
-      "#   codex projects trust",
-      "# AGENTS.md and skills/ are read natively and do not need extra config here.",
-      "",
-    ];
-    for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      let resolved: MCPConfig = mcp;
-      if (mcp.upstreams?.length) {
-        const { upstreamsJson, collectedEnv } = buildProxyUpstreams(mcp, config.mcps);
-        resolved = { ...mcp, env: { MCP_PROXY_UPSTREAMS: upstreamsJson, ...collectedEnv } };
-      }
-      const result = buildCodexMcpBlock(mcp.name, resolved);
-      if (result === null) {
-        console.log(chalk.yellow(`  Skipping MCP "${mcp.name}": no url, image, or package configured`));
-        continue;
-      }
-      for (const warning of result.warnings) {
-        console.log(chalk.yellow(`  ${warning}`));
-      }
-      blocks.push(result.block, "");
-    }
-    await writeFile(
-      join(codexDir, "config.toml"),
-      blocks.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n",
-      "utf-8"
-    );
-    console.log(chalk.green("  Generated .codex/config.toml"));
+  const plan = planCodexFiles(config);
+  for (const warning of plan.warnings) {
+    console.log(chalk.yellow(`  ${warning}`));
   }
+  await applyPlannedFiles(hubDir, plan.files);
 
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
+  if (personaCodex) {
+    console.log(chalk.green(`  Applied persona: ${personaCodex.name} (${personaCodex.role})`));
+  }
 }
+
 
 async function generateKiro(config: HubConfig, hubDir: string) {
   const kiroDir = join(hubDir, ".kiro");
@@ -912,71 +405,30 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     console.log(chalk.dim(`  Using saved Kiro mode: ${mode}`));
   }
 
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
-
-  const kiroRule = buildKiroOrchestratorRule(config);
   const personaKiro = await loadPersona(hubDir);
-
-  await writeFile(join(hubDir, "AGENTS.md"), kiroRule + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
-
-  if (personaKiro) {
-    const personaSteeringContent = buildPersonaEditorFile(personaKiro, "kiro");
-    await writeFile(join(steeringDir, "persona.md"), personaSteeringContent, "utf-8");
-    console.log(chalk.green(`  Generated .kiro/steering/persona.md (${personaKiro.name}, ${personaKiro.role})`));
-  }
-
   await rm(join(steeringDir, "orchestrator.md")).catch(() => {});
 
-  const hubSteeringDir = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDir);
-    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const raw = await readFile(join(hubSteeringDir, file), "utf-8");
-      const content = stripFrontMatter(raw);
-
-      const destPath = join(steeringDir, file);
-      let inclusion: "always" | "auto" = "always";
-      let meta: { name?: string; description?: string } | undefined;
-
-      if (existsSync(destPath)) {
-        const existingContent = await readFile(destPath, "utf-8");
-        const existingFm = parseFrontMatter(existingContent);
-        if (existingFm) {
-          if (existingFm.inclusion === "auto" || existingFm.inclusion === "manual" || existingFm.inclusion === "fileMatch") {
-            inclusion = "auto";
-          }
-          if (existingFm.name || existingFm.description) {
-            meta = {};
-            if (existingFm.name) meta.name = existingFm.name;
-            if (existingFm.description) meta.description = existingFm.description;
-          }
-        }
-      }
-
-      const sourceFm = parseFrontMatter(raw);
-      if (sourceFm) {
-        if (sourceFm.inclusion === "auto" || sourceFm.inclusion === "manual" || sourceFm.inclusion === "fileMatch") {
-          inclusion = "auto";
-        }
-        if (sourceFm.name || sourceFm.description) {
-          meta = meta || {};
-          if (sourceFm.name) meta.name = sourceFm.name;
-          if (sourceFm.description) meta.description = sourceFm.description;
-        }
-      }
-
-      const kiroSteering = buildKiroSteeringContent(content, inclusion, meta);
-      await writeFile(destPath, kiroSteering, "utf-8");
+  const steering: KiroSteeringInput[] = [];
+  for (const input of await readSteeringInputs(hubDir)) {
+    const destPath = join(steeringDir, input.name);
+    let existingContent: string | null = null;
+    if (existsSync(destPath)) {
+      existingContent = await readFile(destPath, "utf-8");
     }
-    if (mdFiles.length > 0) {
-      console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .kiro/steering/`));
-    }
-  } catch {
-    // no steering dir
+    steering.push({ ...input, existingContent });
+  }
+
+  const mcpJsonPath = join(settingsDir, "mcp.json");
+  const existingMcpJson = existsSync(mcpJsonPath) ? await readFile(mcpJsonPath, "utf-8") : null;
+
+  const plan = planKiroFiles(config, { steering, persona: personaKiro, mode, existingMcpJson });
+  await applyPlannedFiles(hubDir, plan.files);
+
+  if (personaKiro) {
+    console.log(chalk.green(`  Applied persona: ${personaKiro.name} (${personaKiro.role})`));
+  }
+  if (steering.length > 0) {
+    console.log(chalk.green(`  Copied ${steering.length} steering files to .kiro/steering/`));
   }
 
   const skillsDir = resolve(hubDir, "skills");
@@ -992,9 +444,7 @@ async function generateKiro(config: HubConfig, hubDir: string) {
       const skillFile = join(skillsDir, folder, "SKILL.md");
       try {
         await readFile(skillFile);
-        const srcDir = join(skillsDir, folder);
-        const targetDir = join(kiroSkillsDir, folder);
-        await cp(srcDir, targetDir, { recursive: true });
+        await cp(join(skillsDir, folder), join(kiroSkillsDir, folder), { recursive: true });
         count++;
       } catch {
         // skip
@@ -1014,49 +464,17 @@ async function generateKiro(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(kiroDir, "skills"), steeringDir);
 
-  if (config.mcps?.length) {
-    const mcpConfig: Record<string, Record<string, unknown>> = {};
-    const upstreamSet = getUpstreamNames(config.mcps);
-    const buildEntry = (mcp: MCPConfig) => buildKiroMcpEntry(mcp, mode);
-    for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      if (mcp.upstreams?.length) {
-        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildEntry);
-      } else {
-        mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, mode);
-      }
-    }
-    const mcpJsonPath = join(settingsDir, "mcp.json");
-    const disabledState = await readExistingMcpDisabledState(mcpJsonPath);
-    applyDisabledState(mcpConfig, disabledState);
-    await writeFile(
-      mcpJsonPath,
-      JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n",
-      "utf-8"
-    );
-    console.log(chalk.green("  Generated .kiro/settings/mcp.json"));
-  }
-
-  if (config.hooks) {
-    const hookNotes: string[] = [];
-    for (const [event, entries] of Object.entries(config.hooks)) {
-      const mapped = HOOK_EVENT_MAP[event]?.kiro;
-      if (!mapped) continue;
-      for (const entry of entries) {
-        hookNotes.push(`- **${mapped}**: ${entry.type === "command" ? entry.command : entry.prompt}`);
-      }
-    }
-    if (hookNotes.length > 0) {
-      console.log(chalk.yellow(`  Note: Kiro hooks are managed via the Kiro panel UI.`));
-      console.log(chalk.yellow(`  The following hooks should be configured manually:`));
-      for (const note of hookNotes) {
-        console.log(chalk.yellow(`    ${note}`));
-      }
+  if (plan.warnings.length > 0) {
+    console.log(chalk.yellow(`  Note: Kiro hooks are managed via the Kiro panel UI.`));
+    console.log(chalk.yellow(`  The following hooks should be configured manually:`));
+    for (const note of plan.warnings) {
+      console.log(chalk.yellow(`    ${note}`));
     }
   }
 
   await generateVSCodeSettings(config, hubDir);
 }
+
 
 async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
   const vscodeDir = join(hubDir, ".vscode");
@@ -1137,45 +555,35 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
 
 
 
-const HUB_PI_PACKAGE = "npm:@arvoretech/hub-pi";
-
 async function generatePi(config: HubConfig, hubDir: string) {
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
-
   const piDir = join(hubDir, ".pi");
   await mkdir(piDir, { recursive: true });
   const settingsPath = join(piDir, "settings.json");
 
-  let settings: Record<string, unknown> = {};
+  let existingSettings: Record<string, unknown> | null = null;
   if (existsSync(settingsPath)) {
     try {
-      settings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
+      existingSettings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
     } catch {
+      const gitignoreLines = buildGitignoreLines(config);
+      await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
+      console.log(chalk.green("  Generated .gitignore"));
       console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched."));
       console.log(chalk.dim(`  Add "${HUB_PI_PACKAGE}" to its "packages" array manually once the JSON is fixed.`));
       return;
     }
   }
 
-  const packages = Array.isArray(settings.packages) ? (settings.packages as string[]) : [];
-  if (!packages.includes(HUB_PI_PACKAGE)) {
-    packages.push(HUB_PI_PACKAGE);
-    console.log(chalk.green(`  Registered ${HUB_PI_PACKAGE} in .pi/settings.json`));
-  } else {
+  const steering = await readSteeringInputs(hubDir);
+  const plan = planPiFiles(config, { steering, existingSettings });
+  await applyPlannedFiles(hubDir, plan.files);
+
+  const previousPackages = Array.isArray(existingSettings?.packages) ? (existingSettings.packages as string[]) : [];
+  if (previousPackages.includes(HUB_PI_PACKAGE)) {
     console.log(chalk.dim("  hub-pi already registered in .pi/settings.json"));
+  } else {
+    console.log(chalk.green(`  Registered ${HUB_PI_PACKAGE} in .pi/settings.json`));
   }
-  settings.packages = packages;
-
-  const skillsEntries = Array.isArray(settings.skills) ? (settings.skills as string[]) : [];
-  if (!skillsEntries.includes("skills") && !skillsEntries.includes(".pi/skills")) {
-    skillsEntries.push("skills");
-    console.log(chalk.green("  Pointed skills dir to ./skills in .pi/settings.json"));
-  }
-  settings.skills = skillsEntries;
-
-  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf-8");
 
   const piToggles = resolvePiConfig(config);
   if (!piToggles.injectCapabilities) {
@@ -1184,31 +592,13 @@ async function generatePi(config: HubConfig, hubDir: string) {
     return;
   }
 
-  const capabilities = buildCapabilitiesPrompt(config, { format: "plain" });
-  const agentsSections: string[] = [];
-  if (capabilities) agentsSections.push(capabilities);
-
-  const hubSteeringDirPi = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDirPi);
-    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const raw = await readFile(join(hubSteeringDirPi, file), "utf-8");
-      const content = stripFrontMatter(raw).trim();
-      if (content) agentsSections.push(content);
-    }
-    if (mdFiles.length > 0) {
-      console.log(chalk.green(`  Appended ${mdFiles.length} steering files to AGENTS.md`));
-    }
-  } catch {
-    // no steering dir
+  if (steering.length > 0) {
+    console.log(chalk.green(`  Appended ${steering.length} steering files to AGENTS.md`));
   }
-
-  await writeFile(join(hubDir, "AGENTS.md"), agentsSections.join("\n\n") + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
 
   console.log(chalk.dim("\n  Pi reads AGENTS.md natively at startup; MCP wiring, repo tools, persona, and hooks are added by the hub-pi extension at runtime."));
 }
+
 
 export const generators: Record<string, Generator> = {
   pi: { name: "Pi", generate: generatePi },

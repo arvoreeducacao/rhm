@@ -11,7 +11,7 @@ import {
   saveGenerateState,
   checkOutdated,
   type HubCacheConfig,
-} from "./hub-cache.js";
+} from "./cache.js";
 
 describe("hub-cache", () => {
   let tempDir: string;
