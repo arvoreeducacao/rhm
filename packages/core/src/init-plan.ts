@@ -17,7 +17,7 @@ export interface InitWorkspaceOptions {
   hubCliVersionRange?: string;
 }
 
-export const DEFAULT_HUB_CLI_VERSION_RANGE = "^0.28.0";
+export const DEFAULT_HUB_CLI_VERSION_RANGE = "^0.29.0";
 
 const SCHEMA_COMMENT =
   "# yaml-language-server: $schema=https://raw.githubusercontent.com/arvoreeducacao/rhm/main/schemas/hub.schema.json\n";
