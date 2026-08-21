@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { existsSync } from "node:fs";
 import { mkdir, writeFile, readdir, copyFile, readFile, cp, rm } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type HookEntry, type MCPConfig } from "../core/hub-config.js";
@@ -10,7 +10,13 @@ import { fetchRemoteSources } from "../core/design-sources.js";
 import { loadPersona, buildPersonaEditorFile } from "./persona.js";
 import { buildCodexMcpBlock } from "./codex-config.js";
 import { generateEnvExample } from "./env-example.js";
-import { buildCapabilitiesPrompt, buildClaudeHooks, resolvePiConfig } from "@arvoretech/hub-core";
+import {
+  buildCapabilitiesPrompt,
+  buildGitignoreLines,
+  planClaudeCodeFiles,
+  resolvePiConfig,
+  type SteeringInput,
+} from "@arvoretech/hub-core";
 
 const HUB_DOCS_URL = "https://hub.arvore.com.br/llms-full.txt";
 
@@ -462,30 +468,6 @@ function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   };
 }
 
-function buildClaudeCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
-  if (mcp.url) {
-    const headers = mcp.headers ? stripEnvPrefix(mcp.headers) : undefined;
-    return { type: "http", url: mcp.url, ...(headers && { headers }) };
-  }
-  const env = mcp.env ? stripEnvPrefix(mcp.env) : undefined;
-  if (mcp.image) {
-    const args = ["run", "-i", "--rm"];
-    if (env) {
-      for (const [key, value] of Object.entries(env)) {
-        args.push("-e", `${key}=${value}`);
-      }
-    }
-    args.push(mcp.image);
-    return { command: "docker", args };
-  }
-  const { command, args } = resolveStdioCommand(mcp);
-  return {
-    command,
-    ...(args.length > 0 && { args }),
-    ...(env && { env }),
-  };
-}
-
 /**
  * Kiro IDE and Claude Code use `${VAR_NAME}` for env references, while the CLI
  * uses `${env:VAR_NAME}`. This strips the `env:` prefix when generating for them.
@@ -603,14 +585,6 @@ permission:
 
 ${body.trim()}
 `;
-}
-
-function hasAgentTeamsLeadMcp(mcps: MCPConfig[] | undefined): boolean {
-  if (!mcps) return false;
-  const proxyMcp = mcps.find((m) => m.upstreams && m.upstreams.length > 0);
-  const directMatch = mcps.some((m) => m.name === "agent-teams-lead");
-  const upstreamMatch = proxyMcp?.upstreams?.includes("agent-teams-lead") ?? false;
-  return directMatch || upstreamMatch;
 }
 
 function buildOpenCodeOrchestratorRule(config: HubConfig): string {
@@ -760,20 +734,7 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
   const claudeDir = join(hubDir, ".claude");
   await mkdir(claudeDir, { recursive: true });
 
-  const orchestratorRule = buildOrchestratorRule(config);
-  const cleanedOrchestrator = orchestratorRule
-    .replace(/^---[\s\S]*?---\n/m, "")
-    .trim();
-
   const personaClaude = await loadPersona(hubDir);
-  await writeFile(join(hubDir, "AGENTS.md"), cleanedOrchestrator + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
-  if (personaClaude) {
-    console.log(chalk.green(`  Applied persona: ${personaClaude.name} (${personaClaude.role})`));
-  }
-
-  const claudeMdSections: string[] = [];
-  claudeMdSections.push(cleanedOrchestrator);
 
   const skillsDir = resolve(hubDir, "skills");
   const remoteSkillsClaude = getRemoteSkillNames(config);
@@ -810,103 +771,35 @@ async function generateClaudeCode(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(claudeDir, "skills"), join(claudeDir, "steering"));
 
+  const steering: SteeringInput[] = [];
   const hubSteeringDirClaude = resolve(hubDir, "steering");
   try {
     const steeringFiles = await readdir(hubSteeringDirClaude);
-    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const raw = await readFile(join(hubSteeringDirClaude, file), "utf-8");
-      const content = stripFrontMatter(raw).trim();
-      if (content) {
-        claudeMdSections.push(content);
-      }
-    }
-    if (mdFiles.length > 0) {
-      console.log(chalk.green(`  Appended ${mdFiles.length} steering files to CLAUDE.md`));
+    for (const file of steeringFiles.filter((f) => f.endsWith(".md"))) {
+      steering.push({ name: file, content: await readFile(join(hubSteeringDirClaude, file), "utf-8") });
     }
   } catch {
     // no steering dir
   }
 
+  const plannedFiles = planClaudeCodeFiles(config, { steering, persona: personaClaude });
+  for (const file of plannedFiles) {
+    const target = join(hubDir, file.path);
+    if (file.kind === "managed-block") {
+      await writeManagedFile(target, file.content.split("\n"));
+    } else {
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, file.content, "utf-8");
+    }
+    console.log(chalk.green(`  Generated ${file.path}`));
+  }
+
   if (personaClaude) {
-    await writeFile(
-      join(hubDir, "CLAUDE.local.md"),
-      buildPersonaEditorFile(personaClaude, "claude-code"),
-      "utf-8"
-    );
-    console.log(chalk.green(`  Generated CLAUDE.local.md persona (${personaClaude.name}, ${personaClaude.role}) — per-machine, gitignored`));
+    console.log(chalk.green(`  Applied persona: ${personaClaude.name} (${personaClaude.role}) — CLAUDE.local.md is per-machine, gitignored`));
   }
-
-  await writeFile(join(hubDir, "CLAUDE.md"), claudeMdSections.join("\n\n"), "utf-8");
-  console.log(chalk.green("  Generated CLAUDE.md"));
-
-  if (config.mcps?.length) {
-    const mcpJson: Record<string, Record<string, unknown>> = {};
-    const upstreamSet = getUpstreamNames(config.mcps);
-    for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      if (mcp.upstreams?.length) {
-        mcpJson[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildClaudeCodeMcpEntry);
-      } else {
-        mcpJson[mcp.name] = buildClaudeCodeMcpEntry(mcp);
-      }
-    }
-    await writeFile(
-      join(hubDir, ".mcp.json"),
-      JSON.stringify({ mcpServers: mcpJson }, null, 2) + "\n",
-      "utf-8"
-    );
-    console.log(chalk.green("  Generated .mcp.json"));
+  if (steering.length > 0) {
+    console.log(chalk.green(`  Appended ${steering.length} steering files to CLAUDE.md`));
   }
-
-  const mcpServerNames = config.mcps?.map((m) => m.name) || [];
-  const claudeSettings: Record<string, unknown> = {
-    $schema: "https://json.schemastore.org/claude-code-settings.json",
-    permissions: {
-      allow: [
-        "Read(*)",
-        "Edit(*)",
-        "Write(*)",
-        "Bash(git *)",
-        "Bash(npm *)",
-        "Bash(pnpm *)",
-        "Bash(npx *)",
-        "Bash(ls *)",
-        "Bash(echo *)",
-        "Bash(grep *)",
-        ...mcpServerNames.map((name) => `mcp__${name}__*`),
-      ],
-      deny: [
-        "Read(.env)",
-        "Read(.env.*)",
-        "Read(**/.env)",
-        "Read(**/.env.*)",
-        "Read(**/credentials*)",
-        "Read(**/secrets*)",
-        "Read(**/*.pem)",
-        "Read(**/*.key)",
-      ],
-    },
-    enableAllProjectMcpServers: true,
-  };
-
-  if (config.hooks) {
-    const claudeHooks = buildClaudeHooks(config.hooks);
-    if (claudeHooks) {
-      claudeSettings.hooks = claudeHooks;
-    }
-  }
-
-  await writeFile(
-    join(claudeDir, "settings.json"),
-    JSON.stringify(claudeSettings, null, 2) + "\n",
-    "utf-8"
-  );
-  console.log(chalk.green("  Generated .claude/settings.json"));
-
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
 }
 
 async function generateCodex(config: HubConfig, hubDir: string) {
@@ -1243,68 +1136,6 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
 }
 
 
-
-function buildGitignoreLines(config: HubConfig): string[] {
-  const lines = [
-    "node_modules/",
-    ".DS_Store",
-    "",
-    "# Repositories (managed by hub)",
-  ];
-
-  for (const repo of config.repos) {
-    lines.push(`/${repo.path.replace(/^\.\//, "")}`);
-  }
-
-  lines.push(
-    "",
-    "# Hub local cache",
-    ".hub/",
-    "",
-    "# Docker volumes",
-    "*_data/",
-    "",
-    "# Environment files",
-    "*.env",
-    "*.env.local",
-    "!.env.example",
-    "",
-    "# Generated files",
-    "docker-compose.yml",
-    "",
-    "# Task documents",
-    "tasks/",
-  );
-
-  if (config.memory) {
-    const memPath = (config.memory.path || "memories").replace(/^\.\//, "");
-    lines.push(
-      "",
-      "# Memory vector store (generated from markdown files)",
-      `${memPath}/.lancedb/`,
-    );
-  }
-
-  if (hasAgentTeamsLeadMcp(config.mcps)) {
-    lines.push(
-      "",
-      "# Agent teams runtime data",
-      ".agent-teams/",
-    );
-  }
-
-  lines.push(
-    "",
-    "# Persona (personal, not shared)",
-    ".kiro/steering/persona.md",
-    ".cursor/rules/persona.mdc",
-    ".opencode/rules/persona.md",
-    ".codex/rules/persona.md",
-    "CLAUDE.local.md",
-  );
-
-  return lines;
-}
 
 const HUB_PI_PACKAGE = "npm:@arvoretech/hub-pi";
 
