@@ -19,6 +19,8 @@ export { planKiroFiles, buildKiroMcpJson, parseMcpDisabledState, collectKiroHook
 export type { KiroPlanInputs, KiroSteeringInput } from "./kiro-plan.js";
 export { planCodexFiles, buildCodexConfigToml } from "./codex-plan.js";
 export { buildCodexMcpBlock, splitEnvForCodex, tomlString, tomlArray } from "./codex-config.js";
+export { planPiFiles, buildPiSettingsJson, HUB_PI_PACKAGE } from "./pi-plan.js";
+export type { PiPlanInputs } from "./pi-plan.js";
 export {
   readCache,
   writeCache,

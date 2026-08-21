@@ -10,13 +10,14 @@ import { fetchRemoteSources } from "../core/design-sources.js";
 import { loadPersona } from "./persona.js";
 import { generateEnvExample } from "./env-example.js";
 import {
-  buildCapabilitiesPrompt,
   buildGitignoreLines,
   planClaudeCodeFiles,
+  HUB_PI_PACKAGE,
   planCodexFiles,
   planCursorFiles,
   planKiroFiles,
   planOpenCodeFiles,
+  planPiFiles,
   type KiroSteeringInput,
   resolvePiConfig,
   type PlannedFile,
@@ -43,12 +44,6 @@ function getRemoteSkillNames(config: HubConfig): Set<string> {
     if (source.type === "skill") names.add(source.name);
   }
   return names;
-}
-
-function stripFrontMatter(content: string): string {
-  const match = content.match(/^---\n[\s\S]*?\n---\n*/);
-  if (match) return content.slice(match[0].length);
-  return content;
 }
 
 async function fetchHubDocsSkill(skillsDir: string): Promise<void> {
@@ -560,45 +555,35 @@ async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
 
 
 
-const HUB_PI_PACKAGE = "npm:@arvoretech/hub-pi";
-
 async function generatePi(config: HubConfig, hubDir: string) {
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
-
   const piDir = join(hubDir, ".pi");
   await mkdir(piDir, { recursive: true });
   const settingsPath = join(piDir, "settings.json");
 
-  let settings: Record<string, unknown> = {};
+  let existingSettings: Record<string, unknown> | null = null;
   if (existsSync(settingsPath)) {
     try {
-      settings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
+      existingSettings = JSON.parse(await readFile(settingsPath, "utf-8")) as Record<string, unknown>;
     } catch {
+      const gitignoreLines = buildGitignoreLines(config);
+      await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
+      console.log(chalk.green("  Generated .gitignore"));
       console.log(chalk.yellow("  Existing .pi/settings.json is invalid JSON — leaving it untouched."));
       console.log(chalk.dim(`  Add "${HUB_PI_PACKAGE}" to its "packages" array manually once the JSON is fixed.`));
       return;
     }
   }
 
-  const packages = Array.isArray(settings.packages) ? (settings.packages as string[]) : [];
-  if (!packages.includes(HUB_PI_PACKAGE)) {
-    packages.push(HUB_PI_PACKAGE);
-    console.log(chalk.green(`  Registered ${HUB_PI_PACKAGE} in .pi/settings.json`));
-  } else {
+  const steering = await readSteeringInputs(hubDir);
+  const plan = planPiFiles(config, { steering, existingSettings });
+  await applyPlannedFiles(hubDir, plan.files);
+
+  const previousPackages = Array.isArray(existingSettings?.packages) ? (existingSettings.packages as string[]) : [];
+  if (previousPackages.includes(HUB_PI_PACKAGE)) {
     console.log(chalk.dim("  hub-pi already registered in .pi/settings.json"));
+  } else {
+    console.log(chalk.green(`  Registered ${HUB_PI_PACKAGE} in .pi/settings.json`));
   }
-  settings.packages = packages;
-
-  const skillsEntries = Array.isArray(settings.skills) ? (settings.skills as string[]) : [];
-  if (!skillsEntries.includes("skills") && !skillsEntries.includes(".pi/skills")) {
-    skillsEntries.push("skills");
-    console.log(chalk.green("  Pointed skills dir to ./skills in .pi/settings.json"));
-  }
-  settings.skills = skillsEntries;
-
-  await writeFile(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf-8");
 
   const piToggles = resolvePiConfig(config);
   if (!piToggles.injectCapabilities) {
@@ -607,31 +592,13 @@ async function generatePi(config: HubConfig, hubDir: string) {
     return;
   }
 
-  const capabilities = buildCapabilitiesPrompt(config, { format: "plain" });
-  const agentsSections: string[] = [];
-  if (capabilities) agentsSections.push(capabilities);
-
-  const hubSteeringDirPi = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDirPi);
-    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const raw = await readFile(join(hubSteeringDirPi, file), "utf-8");
-      const content = stripFrontMatter(raw).trim();
-      if (content) agentsSections.push(content);
-    }
-    if (mdFiles.length > 0) {
-      console.log(chalk.green(`  Appended ${mdFiles.length} steering files to AGENTS.md`));
-    }
-  } catch {
-    // no steering dir
+  if (steering.length > 0) {
+    console.log(chalk.green(`  Appended ${steering.length} steering files to AGENTS.md`));
   }
-
-  await writeFile(join(hubDir, "AGENTS.md"), agentsSections.join("\n\n") + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
 
   console.log(chalk.dim("\n  Pi reads AGENTS.md natively at startup; MCP wiring, repo tools, persona, and hooks are added by the hub-pi extension at runtime."));
 }
+
 
 export const generators: Record<string, Generator> = {
   pi: { name: "Pi", generate: generatePi },
