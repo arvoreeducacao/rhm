@@ -85,15 +85,22 @@ async function collectFileHashes(dir: string, extensions: string[]): Promise<str
   return hashes.sort();
 }
 
+async function hashActiveConfig(hubDir: string): Promise<string | null> {
+  try {
+    const { path: activeConfigPath, format } = resolveConfigPath(hubDir);
+    const configFile = format === "typescript" ? "hub.config.ts" : "hub.yaml";
+    const content = await readFile(activeConfigPath, "utf-8");
+    return `${configFile}:${createHash("sha256").update(content).digest("hex")}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function computeInputsHash(hubDir: string): Promise<string> {
   const parts: string[] = [];
 
-  const { path: activeConfigPath, format } = resolveConfigPath(hubDir);
-  if (existsSync(activeConfigPath)) {
-    const configFile = format === "typescript" ? "hub.config.ts" : "hub.yaml";
-    const content = await readFile(activeConfigPath, "utf-8");
-    parts.push(`${configFile}:${createHash("sha256").update(content).digest("hex")}`);
-  }
+  const configPart = await hashActiveConfig(hubDir);
+  if (configPart) parts.push(configPart);
 
   const dirs = ["agents", "skills", "hooks", "commands"];
   for (const dir of dirs) {
