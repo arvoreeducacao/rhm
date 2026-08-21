@@ -7,7 +7,7 @@ import inquirer from "inquirer";
 import { loadHubConfig, type HubConfig, type MCPConfig } from "../core/hub-config.js";
 import { getSavedEditor, saveGenerateState, getKiroMode, saveKiroMode, readCache, writeCache, checkOutdated, type KiroMode } from "../core/hub-cache.js";
 import { fetchRemoteSources } from "../core/design-sources.js";
-import { loadPersona, buildPersonaEditorFile } from "./persona.js";
+import { loadPersona } from "./persona.js";
 import { buildCodexMcpBlock } from "./codex-config.js";
 import { generateEnvExample } from "./env-example.js";
 import {
@@ -15,7 +15,9 @@ import {
   buildGitignoreLines,
   planClaudeCodeFiles,
   planCursorFiles,
+  planKiroFiles,
   planOpenCodeFiles,
+  type KiroSteeringInput,
   resolvePiConfig,
   type PlannedFile,
   type SteeringInput,
@@ -49,48 +51,6 @@ function stripFrontMatter(content: string): string {
   return content;
 }
 
-function parseFrontMatter(content: string): Record<string, string> | null {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return null;
-  const result: Record<string, string> = {};
-  for (const line of match[1].split("\n")) {
-    const colonIdx = line.indexOf(":");
-    if (colonIdx === -1) continue;
-    const key = line.slice(0, colonIdx).trim();
-    const value = line.slice(colonIdx + 1).trim();
-    if (key) result[key] = value;
-  }
-  return result;
-}
-
-async function readExistingMcpDisabledState(mcpJsonPath: string): Promise<Record<string, boolean>> {
-  const disabledState: Record<string, boolean> = {};
-  if (!existsSync(mcpJsonPath)) return disabledState;
-  try {
-    const content = JSON.parse(await readFile(mcpJsonPath, "utf-8"));
-    const servers = (content.mcpServers || content.mcp || {}) as Record<string, Record<string, unknown>>;
-    for (const [name, config] of Object.entries(servers)) {
-      if (typeof config.disabled === "boolean") {
-        disabledState[name] = config.disabled;
-      }
-    }
-  } catch {
-    // skip
-  }
-  return disabledState;
-}
-
-function applyDisabledState(
-  mcpConfig: Record<string, Record<string, unknown>>,
-  disabledState: Record<string, boolean>
-): void {
-  for (const [name, entry] of Object.entries(mcpConfig)) {
-    if (name in disabledState) {
-      entry.disabled = disabledState[name];
-    }
-  }
-}
-
 async function fetchHubDocsSkill(skillsDir: string): Promise<void> {
   try {
     const res = await fetch(HUB_DOCS_URL);
@@ -117,33 +77,6 @@ ${content}`;
 
 const HUB_MARKER_START = "# >>> hub-managed (do not edit this section)";
 const HUB_MARKER_END = "# <<< hub-managed";
-
-const HOOK_EVENT_MAP: Record<string, { cursor?: string; claude?: string; kiro?: string; opencode?: string }> = {
-  session_start:            { cursor: "sessionStart",            claude: "SessionStart",       kiro: undefined,        opencode: "session.created" },
-  session_end:              { cursor: "sessionEnd",              claude: "SessionEnd",          kiro: undefined,        opencode: "session.idle" },
-  pre_tool_use:             { cursor: "preToolUse",              claude: "PreToolUse",          kiro: "pre_tool_use",   opencode: "tool.execute.before" },
-  post_tool_use:            { cursor: "postToolUse",             claude: "PostToolUse",         kiro: "post_tool_use",  opencode: "tool.execute.after" },
-  post_tool_use_failure:    { cursor: undefined,                 claude: "PostToolUseFailure",  kiro: undefined,        opencode: undefined },
-  stop:                     { cursor: "stop",                    claude: "Stop",                kiro: "agent_stop",     opencode: "session.idle" },
-  subagent_start:           { cursor: "subagentStart",           claude: "SubagentStart",       kiro: undefined,        opencode: undefined },
-  subagent_stop:            { cursor: "subagentStop",            claude: "SubagentStop",        kiro: undefined,        opencode: undefined },
-  pre_compact:              { cursor: "preCompact",              claude: "PreCompact",          kiro: undefined,        opencode: "session.compacted" },
-  before_submit_prompt:     { cursor: "beforeSubmitPrompt",      claude: "UserPromptSubmit",    kiro: "prompt_submit",  opencode: undefined },
-  before_shell_execution:   { cursor: "beforeShellExecution",    claude: undefined,             kiro: undefined,        opencode: "tool.execute.before" },
-  after_shell_execution:    { cursor: "afterShellExecution",     claude: undefined,             kiro: undefined,        opencode: "tool.execute.after" },
-  before_mcp_execution:     { cursor: "beforeMCPExecution",      claude: undefined,             kiro: undefined,        opencode: "tool.execute.before" },
-  after_mcp_execution:      { cursor: "afterMCPExecution",       claude: undefined,             kiro: undefined,        opencode: "tool.execute.after" },
-  after_file_edit:          { cursor: "afterFileEdit",           claude: undefined,             kiro: "file_save",      opencode: "file.edited" },
-  before_read_file:         { cursor: "beforeReadFile",          claude: undefined,             kiro: undefined,        opencode: undefined },
-  before_tab_file_read:     { cursor: "beforeTabFileRead",       claude: undefined,             kiro: undefined,        opencode: undefined },
-  after_tab_file_edit:      { cursor: "afterTabFileEdit",        claude: undefined,             kiro: undefined,        opencode: "file.edited" },
-  after_agent_response:     { cursor: "afterAgentResponse",      claude: undefined,             kiro: undefined,        opencode: undefined },
-  after_agent_thought:      { cursor: "afterAgentThought",       claude: undefined,             kiro: undefined,        opencode: undefined },
-  notification:             { cursor: undefined,                 claude: "Notification",        kiro: undefined,        opencode: undefined },
-  permission_request:       { cursor: undefined,                 claude: "PermissionRequest",   kiro: undefined,        opencode: "permission.asked" },
-  task_completed:           { cursor: undefined,                 claude: "TaskCompleted",       kiro: undefined,        opencode: "session.idle" },
-  teammate_idle:            { cursor: undefined,                 claude: "TeammateIdle",        kiro: undefined,        opencode: undefined },
-};
 
 async function generateEditorCommands(config: HubConfig, hubDir: string, targetDir: string, editorName: string) {
   const commandsDir = join(targetDir, "commands");
@@ -351,19 +284,6 @@ function buildProxyUpstreams(proxyMcp: MCPConfig, allMcps: MCPConfig[]): { upstr
   };
 }
 
-function buildProxyMcpEntry(
-  proxyMcp: MCPConfig,
-  allMcps: MCPConfig[],
-  buildEntry: (mcp: MCPConfig) => Record<string, unknown>
-): Record<string, unknown> {
-  const { upstreamsJson, collectedEnv } = buildProxyUpstreams(proxyMcp, allMcps);
-  const env: Record<string, string> = {
-    MCP_PROXY_UPSTREAMS: upstreamsJson,
-    ...collectedEnv,
-  };
-  return buildEntry({ ...proxyMcp, env });
-}
-
 function getUpstreamNames(mcps: MCPConfig[]): Set<string> {
   const names = new Set<string>();
   for (const mcp of mcps) {
@@ -376,52 +296,10 @@ function getUpstreamNames(mcps: MCPConfig[]): Set<string> {
   return names;
 }
 
-function resolveAutoApprove(mcp: MCPConfig): string[] | undefined {
-  if (mcp.autoApprove === true) return ["*"];
-  if (Array.isArray(mcp.autoApprove) && mcp.autoApprove.length > 0) return mcp.autoApprove;
-  return undefined;
-}
-
 /**
  * Kiro IDE and Claude Code use `${VAR_NAME}` for env references, while the CLI
  * uses `${env:VAR_NAME}`. This strips the `env:` prefix when generating for them.
  */
-function stripEnvPrefix(env: Record<string, string>): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(env)) {
-    result[key] = value.replace(/\$\{env:(\w+)\}/g, "${$1}");
-  }
-  return result;
-}
-
-function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Record<string, unknown> {
-  const env = mcp.env
-    ? mode === "editor" ? stripEnvPrefix(mcp.env) : mcp.env
-    : undefined;
-  const autoApprove = resolveAutoApprove(mcp);
-  if (mcp.url) {
-    return { url: mcp.url, ...(env && { env }), ...(autoApprove && { autoApprove }) };
-  }
-  if (mcp.image) {
-    const args = ["run", "-i", "--rm"];
-    if (env) {
-      for (const [key, value] of Object.entries(env)) {
-        args.push("-e", `${key}=${value}`);
-      }
-    }
-    args.push(mcp.image);
-    return { command: "docker", args, ...(autoApprove && { autoApprove }) };
-  }
-  const { command, args } = resolveStdioCommand(mcp);
-  return {
-    command,
-    ...(args.length > 0 && { args }),
-    ...(env && { env }),
-    ...(autoApprove && { autoApprove }),
-  };
-}
-
-
 async function generateOpenCode(config: HubConfig, hubDir: string) {
   const opencodeDir = join(hubDir, ".opencode");
   await mkdir(join(opencodeDir, "agents"), { recursive: true });
@@ -476,18 +354,6 @@ async function generateOpenCode(config: HubConfig, hubDir: string) {
   await generateVSCodeSettings(config, hubDir);
 }
 
-
-function buildKiroSteeringContent(content: string, inclusion: "always" | "auto" = "always", meta?: { name?: string; description?: string }): string {
-  const frontMatter: string[] = ["---", `inclusion: ${inclusion}`];
-  if (meta?.name) frontMatter.push(`name: ${meta.name}`);
-  if (meta?.description) frontMatter.push(`description: ${meta.description}`);
-  frontMatter.push("---");
-  return `${frontMatter.join("\n")}\n\n${content}`;
-}
-
-function buildKiroOrchestratorRule(config: HubConfig): string {
-  return buildCapabilitiesPrompt(config, { format: "plain" });
-}
 
 
 function buildOrchestratorRule(config: HubConfig): string {
@@ -658,71 +524,30 @@ async function generateKiro(config: HubConfig, hubDir: string) {
     console.log(chalk.dim(`  Using saved Kiro mode: ${mode}`));
   }
 
-  const gitignoreLines = buildGitignoreLines(config);
-  await writeManagedFile(join(hubDir, ".gitignore"), gitignoreLines);
-  console.log(chalk.green("  Generated .gitignore"));
-
-  const kiroRule = buildKiroOrchestratorRule(config);
   const personaKiro = await loadPersona(hubDir);
-
-  await writeFile(join(hubDir, "AGENTS.md"), kiroRule + "\n", "utf-8");
-  console.log(chalk.green("  Generated AGENTS.md"));
-
-  if (personaKiro) {
-    const personaSteeringContent = buildPersonaEditorFile(personaKiro, "kiro");
-    await writeFile(join(steeringDir, "persona.md"), personaSteeringContent, "utf-8");
-    console.log(chalk.green(`  Generated .kiro/steering/persona.md (${personaKiro.name}, ${personaKiro.role})`));
-  }
-
   await rm(join(steeringDir, "orchestrator.md")).catch(() => {});
 
-  const hubSteeringDir = resolve(hubDir, "steering");
-  try {
-    const steeringFiles = await readdir(hubSteeringDir);
-    const mdFiles = steeringFiles.filter((f) => f.endsWith(".md"));
-    for (const file of mdFiles) {
-      const raw = await readFile(join(hubSteeringDir, file), "utf-8");
-      const content = stripFrontMatter(raw);
-
-      const destPath = join(steeringDir, file);
-      let inclusion: "always" | "auto" = "always";
-      let meta: { name?: string; description?: string } | undefined;
-
-      if (existsSync(destPath)) {
-        const existingContent = await readFile(destPath, "utf-8");
-        const existingFm = parseFrontMatter(existingContent);
-        if (existingFm) {
-          if (existingFm.inclusion === "auto" || existingFm.inclusion === "manual" || existingFm.inclusion === "fileMatch") {
-            inclusion = "auto";
-          }
-          if (existingFm.name || existingFm.description) {
-            meta = {};
-            if (existingFm.name) meta.name = existingFm.name;
-            if (existingFm.description) meta.description = existingFm.description;
-          }
-        }
-      }
-
-      const sourceFm = parseFrontMatter(raw);
-      if (sourceFm) {
-        if (sourceFm.inclusion === "auto" || sourceFm.inclusion === "manual" || sourceFm.inclusion === "fileMatch") {
-          inclusion = "auto";
-        }
-        if (sourceFm.name || sourceFm.description) {
-          meta = meta || {};
-          if (sourceFm.name) meta.name = sourceFm.name;
-          if (sourceFm.description) meta.description = sourceFm.description;
-        }
-      }
-
-      const kiroSteering = buildKiroSteeringContent(content, inclusion, meta);
-      await writeFile(destPath, kiroSteering, "utf-8");
+  const steering: KiroSteeringInput[] = [];
+  for (const input of await readSteeringInputs(hubDir)) {
+    const destPath = join(steeringDir, input.name);
+    let existingContent: string | null = null;
+    if (existsSync(destPath)) {
+      existingContent = await readFile(destPath, "utf-8");
     }
-    if (mdFiles.length > 0) {
-      console.log(chalk.green(`  Copied ${mdFiles.length} steering files to .kiro/steering/`));
-    }
-  } catch {
-    // no steering dir
+    steering.push({ ...input, existingContent });
+  }
+
+  const mcpJsonPath = join(settingsDir, "mcp.json");
+  const existingMcpJson = existsSync(mcpJsonPath) ? await readFile(mcpJsonPath, "utf-8") : null;
+
+  const plan = planKiroFiles(config, { steering, persona: personaKiro, mode, existingMcpJson });
+  await applyPlannedFiles(hubDir, plan.files);
+
+  if (personaKiro) {
+    console.log(chalk.green(`  Applied persona: ${personaKiro.name} (${personaKiro.role})`));
+  }
+  if (steering.length > 0) {
+    console.log(chalk.green(`  Copied ${steering.length} steering files to .kiro/steering/`));
   }
 
   const skillsDir = resolve(hubDir, "skills");
@@ -738,9 +563,7 @@ async function generateKiro(config: HubConfig, hubDir: string) {
       const skillFile = join(skillsDir, folder, "SKILL.md");
       try {
         await readFile(skillFile);
-        const srcDir = join(skillsDir, folder);
-        const targetDir = join(kiroSkillsDir, folder);
-        await cp(srcDir, targetDir, { recursive: true });
+        await cp(join(skillsDir, folder), join(kiroSkillsDir, folder), { recursive: true });
         count++;
       } catch {
         // skip
@@ -760,49 +583,17 @@ async function generateKiro(config: HubConfig, hubDir: string) {
 
   await syncRemoteSources(config, hubDir, join(kiroDir, "skills"), steeringDir);
 
-  if (config.mcps?.length) {
-    const mcpConfig: Record<string, Record<string, unknown>> = {};
-    const upstreamSet = getUpstreamNames(config.mcps);
-    const buildEntry = (mcp: MCPConfig) => buildKiroMcpEntry(mcp, mode);
-    for (const mcp of config.mcps) {
-      if (upstreamSet.has(mcp.name)) continue;
-      if (mcp.upstreams?.length) {
-        mcpConfig[mcp.name] = buildProxyMcpEntry(mcp, config.mcps, buildEntry);
-      } else {
-        mcpConfig[mcp.name] = buildKiroMcpEntry(mcp, mode);
-      }
-    }
-    const mcpJsonPath = join(settingsDir, "mcp.json");
-    const disabledState = await readExistingMcpDisabledState(mcpJsonPath);
-    applyDisabledState(mcpConfig, disabledState);
-    await writeFile(
-      mcpJsonPath,
-      JSON.stringify({ mcpServers: mcpConfig }, null, 2) + "\n",
-      "utf-8"
-    );
-    console.log(chalk.green("  Generated .kiro/settings/mcp.json"));
-  }
-
-  if (config.hooks) {
-    const hookNotes: string[] = [];
-    for (const [event, entries] of Object.entries(config.hooks)) {
-      const mapped = HOOK_EVENT_MAP[event]?.kiro;
-      if (!mapped) continue;
-      for (const entry of entries) {
-        hookNotes.push(`- **${mapped}**: ${entry.type === "command" ? entry.command : entry.prompt}`);
-      }
-    }
-    if (hookNotes.length > 0) {
-      console.log(chalk.yellow(`  Note: Kiro hooks are managed via the Kiro panel UI.`));
-      console.log(chalk.yellow(`  The following hooks should be configured manually:`));
-      for (const note of hookNotes) {
-        console.log(chalk.yellow(`    ${note}`));
-      }
+  if (plan.warnings.length > 0) {
+    console.log(chalk.yellow(`  Note: Kiro hooks are managed via the Kiro panel UI.`));
+    console.log(chalk.yellow(`  The following hooks should be configured manually:`));
+    for (const note of plan.warnings) {
+      console.log(chalk.yellow(`    ${note}`));
     }
   }
 
   await generateVSCodeSettings(config, hubDir);
 }
+
 
 async function generateVSCodeSettings(config: HubConfig, hubDir: string) {
   const vscodeDir = join(hubDir, ".vscode");

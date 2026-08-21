@@ -15,6 +15,8 @@ export { planCursorFiles, buildCursorMcpJson, buildCursorignoreLines } from "./c
 export type { CursorPlanInputs } from "./cursor-plan.js";
 export { planOpenCodeFiles, buildOpenCodeConfigJson } from "./opencode-plan.js";
 export type { OpenCodePlanInputs } from "./opencode-plan.js";
+export { planKiroFiles, buildKiroMcpJson, parseMcpDisabledState, collectKiroHookNotes } from "./kiro-plan.js";
+export type { KiroPlanInputs, KiroSteeringInput } from "./kiro-plan.js";
 export {
   readCache,
   writeCache,
