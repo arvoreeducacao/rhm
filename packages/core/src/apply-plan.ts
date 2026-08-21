@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, resolve, sep } from "node:path";
 import type { PlannedFile } from "./claude-code-plan.js";
 
 export const HUB_MANAGED_START = "# >>> hub-managed (do not edit this section)";
@@ -32,10 +32,27 @@ export async function writeManagedFile(filePath: string, managedLines: string[])
   await writeFile(filePath, mergeManagedBlock(existing, managedLines), "utf-8");
 }
 
+/**
+ * Every planned path is written under the root it was planned for. A plan built by
+ * this package only ever names relative paths, but applyPlan is public API: a host
+ * can hand it anything, and a path that climbs out of the workspace must not write.
+ */
+export function targetOf(rootDir: string, filePath: string): string {
+  if (isAbsolute(filePath)) {
+    throw new Error(`refusing to write an absolute path from a plan: ${filePath}`);
+  }
+  const root = resolve(rootDir);
+  const target = resolve(root, filePath);
+  if (target !== root && !target.startsWith(root + sep)) {
+    throw new Error(`refusing to write outside the workspace: ${filePath}`);
+  }
+  return target;
+}
+
 export async function applyPlan(rootDir: string, files: PlannedFile[]): Promise<string[]> {
   const written: string[] = [];
   for (const file of files) {
-    const target = join(rootDir, file.path);
+    const target = targetOf(rootDir, file.path);
     if (file.kind === "managed-block") {
       await writeManagedFile(target, file.content.split("\n"));
     } else {
@@ -61,7 +78,7 @@ export function verdictOf(file: PlannedFile, onDisk: string | null | undefined):
 export async function diffPlan(rootDir: string, files: PlannedFile[]): Promise<{ file: PlannedFile; verdict: FileVerdict }[]> {
   const out: { file: PlannedFile; verdict: FileVerdict }[] = [];
   for (const file of files) {
-    const target = join(rootDir, file.path);
+    const target = targetOf(rootDir, file.path);
     const onDisk = existsSync(target) ? await readFile(target, "utf-8") : null;
     out.push({ file, verdict: verdictOf(file, onDisk) });
   }

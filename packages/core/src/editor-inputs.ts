@@ -49,7 +49,7 @@ export async function readSteeringInputs(hubDir: string): Promise<SteeringInput[
   }
 
   const steering: SteeringInput[] = [];
-  for (const name of names.filter((n) => n.endsWith(".md"))) {
+  for (const name of names.filter((n) => n.endsWith(".md")).sort()) {
     steering.push({ name, content: await readFile(join(steeringDir, name), "utf-8") });
   }
   return steering;
@@ -78,10 +78,18 @@ export async function gatherEditorInputs(
     if (raw === null) {
       inputs.existingSettings = null;
     } else {
+      let parsed: unknown;
       try {
-        inputs.existingSettings = JSON.parse(raw) as Record<string, unknown>;
+        parsed = JSON.parse(raw);
       } catch {
         inputs.blocked = "the existing .pi/settings.json is not valid JSON";
+      }
+      if (!inputs.blocked) {
+        if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+          inputs.existingSettings = parsed as Record<string, unknown>;
+        } else {
+          inputs.blocked = "the existing .pi/settings.json is not a JSON object";
+        }
       }
     }
   }

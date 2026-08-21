@@ -32,6 +32,15 @@ describe("readSteeringInputs", () => {
     expect(steering[0].content).toContain("Sempre escreva testes.");
   });
 
+  it("reads the steering in a stable order, whatever the filesystem says", async () => {
+    const root = hub();
+    for (const name of ["zulu.md", "alfa.md", "mike.md"]) {
+      writeFileSync(join(root, "steering", name), `sou ${name}`);
+    }
+    const steering = await readSteeringInputs(root);
+    expect(steering.map((s) => s.name)).toEqual(["alfa.md", "mike.md", "regras.md", "zulu.md"]);
+  });
+
   it("a hub with no steering folder is not an error", async () => {
     dir = mkdtempSync(join(tmpdir(), "sem-steering-"));
     expect(await readSteeringInputs(dir)).toEqual([]);
@@ -62,6 +71,21 @@ describe("gatherEditorInputs", () => {
 
     expect(inputs.existingSettings).toEqual({ packages: ["npm:outro"], theme: "dark" });
     expect(inputs.blocked).toBeUndefined();
+  });
+
+  it("pi settings that parse but are not an object also block", async () => {
+    for (const written of ["null", "[]", "42", '"texto"']) {
+      const root = hub();
+      mkdirSync(join(root, ".pi"), { recursive: true });
+      writeFileSync(join(root, ".pi", "settings.json"), written);
+
+      const inputs = await gatherEditorInputs(root, "pi");
+      expect(inputs.blocked, written).toMatch(/not a JSON object/);
+      expect(inputs.existingSettings, written).toBeUndefined();
+
+      rmSync(root, { recursive: true, force: true });
+      dir = "";
+    }
   });
 
   it("pi settings that are not valid JSON block the plan instead of being overwritten", async () => {

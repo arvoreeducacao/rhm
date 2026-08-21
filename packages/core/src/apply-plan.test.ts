@@ -9,6 +9,7 @@ import {
   diffPlan,
   managedBlockOf,
   mergeManagedBlock,
+  targetOf,
   verdictOf,
   writeManagedFile,
 } from "./apply-plan.js";
@@ -95,6 +96,29 @@ describe("applyPlan", () => {
     const root = fresh();
     await writeManagedFile(join(root, "fundo", "do", "poco.txt"), ["ok"]);
     expect(managedBlockOf(readFileSync(join(root, "fundo/do/poco.txt"), "utf-8"))).toBe("ok");
+  });
+});
+
+describe("a plan never writes outside the workspace it was planned for", () => {
+  it("refuses a path that climbs out", async () => {
+    const root = fresh();
+    await expect(applyPlan(root, [{ path: "../fora.txt", content: "x", kind: "file" }])).rejects.toThrow(/outside the workspace/);
+    await expect(applyPlan(root, [{ path: "a/../../fora.txt", content: "x", kind: "file" }])).rejects.toThrow(/outside the workspace/);
+  });
+
+  it("refuses an absolute path", async () => {
+    const root = fresh();
+    await expect(applyPlan(root, [{ path: "/etc/passwd", content: "x", kind: "file" }])).rejects.toThrow(/absolute path/);
+  });
+
+  it("diffPlan refuses the same paths applyPlan does", async () => {
+    const root = fresh();
+    await expect(diffPlan(root, [{ path: "../fora.txt", content: "x", kind: "file" }])).rejects.toThrow(/outside the workspace/);
+  });
+
+  it("a nested path inside the workspace is fine", () => {
+    const root = fresh();
+    expect(targetOf(root, ".claude/settings.json")).toBe(join(root, ".claude/settings.json"));
   });
 });
 
