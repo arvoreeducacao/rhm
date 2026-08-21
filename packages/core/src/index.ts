@@ -13,6 +13,8 @@ export type { PlannedFile, SteeringInput, ClaudeCodePlanInputs } from "./claude-
 export type { EditorPlan } from "./plan-types.js";
 export { planCursorFiles, buildCursorMcpJson, buildCursorignoreLines } from "./cursor-plan.js";
 export type { CursorPlanInputs } from "./cursor-plan.js";
+export { planOpenCodeFiles, buildOpenCodeConfigJson } from "./opencode-plan.js";
+export type { OpenCodePlanInputs } from "./opencode-plan.js";
 export {
   readCache,
   writeCache,
