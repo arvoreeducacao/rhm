@@ -313,11 +313,11 @@ export const scanCommand = new Command("scan")
   .option("--check", "Check for unsynced assets without prompting (exit code 1 if found)")
   .action(async (opts: { yes?: boolean; check?: boolean }) => {
     const hubDir = process.cwd();
-    const { path: configPath, format } = resolveConfigPath(hubDir);
 
-    if (!existsSync(configPath)) {
-      const configFile = format === "typescript" ? "hub.config.ts" : "hub.yaml";
-      console.log(chalk.red(`No ${configFile} found in current directory.`));
+    try {
+      resolveConfigPath(hubDir);
+    } catch {
+      console.log(chalk.red("No hub.config.ts or hub.yaml found in current directory."));
       process.exit(1);
     }
 
