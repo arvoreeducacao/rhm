@@ -21,6 +21,26 @@ export { planCodexFiles, buildCodexConfigToml } from "./codex-plan.js";
 export { buildCodexMcpBlock, splitEnvForCodex, tomlString, tomlArray } from "./codex-config.js";
 export { planPiFiles, buildPiSettingsJson, HUB_PI_PACKAGE } from "./pi-plan.js";
 export type { PiPlanInputs } from "./pi-plan.js";
+export {
+  HUB_MANAGED_START,
+  HUB_MANAGED_END,
+  managedBlockOf,
+  mergeManagedBlock,
+  writeManagedFile,
+  applyPlan,
+  verdictOf,
+  diffPlan,
+} from "./apply-plan.js";
+export type { FileVerdict } from "./apply-plan.js";
+export {
+  EDITOR_NAMES,
+  isEditorName,
+  readSteeringInputs,
+  gatherEditorInputs,
+  planForEditor,
+  planEditor,
+} from "./editor-inputs.js";
+export type { EditorName, EditorInputs } from "./editor-inputs.js";
 export { planInitWorkspace, buildInitTypeScriptConfig, buildInitYamlConfig, DEFAULT_HUB_CLI_VERSION_RANGE } from "./init-plan.js";
 export type { InitWorkspaceOptions, InitRepo } from "./init-plan.js";
 export {
