@@ -194,7 +194,12 @@ export function buildProxyMcpEntry(
 export function buildCursorMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   const autoApprove = resolveAutoApprove(mcp);
   if (mcp.url) {
-    return { url: mcp.url, ...(mcp.env && { env: mcp.env }), ...(autoApprove && { autoApprove }) };
+    return {
+      url: mcp.url,
+      ...(mcp.headers && { headers: mcp.headers }),
+      ...(mcp.env && { env: mcp.env }),
+      ...(autoApprove && { autoApprove }),
+    };
   }
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
@@ -250,7 +255,16 @@ export function buildKiroMcpEntry(mcp: MCPConfig, mode: KiroMode = "editor"): Re
   if (mcp.directTools !== undefined) extra.directTools = mcp.directTools;
   if (mcp.excludeTools?.length) extra.excludeTools = mcp.excludeTools;
   if (mcp.url) {
-    return { url: mcp.url, ...(env && { env }), ...(autoApprove && { autoApprove }), ...extra };
+    const headers = mcp.headers
+      ? mode === "editor" ? stripEnvPrefix(mcp.headers) : mcp.headers
+      : undefined;
+    return {
+      url: mcp.url,
+      ...(headers && { headers }),
+      ...(env && { env }),
+      ...(autoApprove && { autoApprove }),
+      ...extra,
+    };
   }
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
@@ -311,7 +325,8 @@ export function buildPiMcpEntry(mcp: MCPConfig): Record<string, unknown> {
 export function buildOpenCodeMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   const env = mcp.env ? stripDollarPrefix(mcp.env) : undefined;
   if (mcp.url) {
-    return { type: "remote", url: mcp.url };
+    const headers = mcp.headers ? stripDollarPrefix(mcp.headers) : undefined;
+    return { type: "remote", url: mcp.url, ...(headers && { headers }) };
   }
   if (mcp.image) {
     const cmd = ["docker", "run", "-i", "--rm"];
