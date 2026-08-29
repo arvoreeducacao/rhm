@@ -178,7 +178,17 @@ describe("http MCP entries that authenticate through headers", () => {
     });
   });
 
-  it("omits headers for cursor, kiro and opencode when the http MCP declares none", () => {
+  it("keeps the headers for pi and strips the env: prefix", () => {
+    expect(buildPiMcpEntry(withHeaders)).toEqual({
+      url: "https://mcp.example.com/mcp",
+      headers: {
+        Authorization: "Bearer ${SECURE_MCP_TOKEN}",
+        "X-Actor-Email": "${SECURE_ACTOR_EMAIL}",
+      },
+    });
+  });
+
+  it("omits headers for cursor, kiro, opencode and pi when the http MCP declares none", () => {
     const bare: MCPConfig = { name: "open", url: "https://mcp.example.com/mcp" };
     expect(buildCursorMcpEntry(bare)).toEqual({ url: "https://mcp.example.com/mcp" });
     expect(buildKiroMcpEntry(bare)).toEqual({ url: "https://mcp.example.com/mcp" });
@@ -186,13 +196,15 @@ describe("http MCP entries that authenticate through headers", () => {
       type: "remote",
       url: "https://mcp.example.com/mcp",
     });
+    expect(buildPiMcpEntry(bare)).toEqual({ url: "https://mcp.example.com/mcp" });
   });
 
-  it("never inlines a secret for cursor, kiro or opencode either", () => {
+  it("never inlines a secret for cursor, kiro, opencode or pi either", () => {
     const entries = [
       buildCursorMcpEntry(withHeaders),
       buildKiroMcpEntry(withHeaders),
       buildOpenCodeMcpEntry(withHeaders),
+      buildPiMcpEntry(withHeaders),
     ] as Array<{ headers: Record<string, string> }>;
     for (const entry of entries) {
       for (const value of Object.values(entry.headers)) {

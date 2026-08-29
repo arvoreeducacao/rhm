@@ -1,6 +1,6 @@
 {
   "name": "@arvoretech/hub-pi",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "Pi runtime package for hub.yaml workspaces \u2014 interprets config at runtime with no static generation",
   "type": "module",
   "keywords": [

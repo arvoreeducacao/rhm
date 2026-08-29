@@ -295,7 +295,8 @@ export function buildPiMcpEntry(mcp: MCPConfig): Record<string, unknown> {
   if (mcp.directTools !== undefined) extra.directTools = mcp.directTools;
   if (mcp.excludeTools?.length) extra.excludeTools = mcp.excludeTools;
   if (mcp.url) {
-    return { url: mcp.url, ...(env && { env }), ...extra };
+    const headers = mcp.headers ? stripEnvPrefix(mcp.headers) : undefined;
+    return { url: mcp.url, ...(headers && { headers }), ...(env && { env }), ...extra };
   }
   if (mcp.image) {
     const args = ["run", "-i", "--rm"];
