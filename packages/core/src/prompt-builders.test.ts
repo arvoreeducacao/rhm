@@ -136,6 +136,83 @@ describe("http MCP entries that authenticate through headers", () => {
       expect(value).toMatch(/\$\{\w+\}/);
     }
   });
+
+  it("keeps the headers for cursor without rewriting the env reference", () => {
+    expect(buildCursorMcpEntry(withHeaders)).toEqual({
+      url: "https://mcp.example.com/mcp",
+      headers: {
+        Authorization: "Bearer ${env:SECURE_MCP_TOKEN}",
+        "X-Actor-Email": "${env:SECURE_ACTOR_EMAIL}",
+      },
+    });
+  });
+
+  it("keeps the headers for kiro and strips the env: prefix in editor mode", () => {
+    expect(buildKiroMcpEntry(withHeaders)).toEqual({
+      url: "https://mcp.example.com/mcp",
+      headers: {
+        Authorization: "Bearer ${SECURE_MCP_TOKEN}",
+        "X-Actor-Email": "${SECURE_ACTOR_EMAIL}",
+      },
+    });
+  });
+
+  it("keeps the raw env: prefix in the kiro headers when generating for the CLI", () => {
+    expect(buildKiroMcpEntry(withHeaders, "cli")).toEqual({
+      url: "https://mcp.example.com/mcp",
+      headers: {
+        Authorization: "Bearer ${env:SECURE_MCP_TOKEN}",
+        "X-Actor-Email": "${env:SECURE_ACTOR_EMAIL}",
+      },
+    });
+  });
+
+  it("keeps the headers for opencode in the opencode brace syntax", () => {
+    expect(buildOpenCodeMcpEntry(withHeaders)).toEqual({
+      type: "remote",
+      url: "https://mcp.example.com/mcp",
+      headers: {
+        Authorization: "Bearer {env:SECURE_MCP_TOKEN}",
+        "X-Actor-Email": "{env:SECURE_ACTOR_EMAIL}",
+      },
+    });
+  });
+
+  it("keeps the headers for pi and strips the env: prefix", () => {
+    expect(buildPiMcpEntry(withHeaders)).toEqual({
+      url: "https://mcp.example.com/mcp",
+      headers: {
+        Authorization: "Bearer ${SECURE_MCP_TOKEN}",
+        "X-Actor-Email": "${SECURE_ACTOR_EMAIL}",
+      },
+    });
+  });
+
+  it("omits headers for cursor, kiro, opencode and pi when the http MCP declares none", () => {
+    const bare: MCPConfig = { name: "open", url: "https://mcp.example.com/mcp" };
+    expect(buildCursorMcpEntry(bare)).toEqual({ url: "https://mcp.example.com/mcp" });
+    expect(buildKiroMcpEntry(bare)).toEqual({ url: "https://mcp.example.com/mcp" });
+    expect(buildOpenCodeMcpEntry(bare)).toEqual({
+      type: "remote",
+      url: "https://mcp.example.com/mcp",
+    });
+    expect(buildPiMcpEntry(bare)).toEqual({ url: "https://mcp.example.com/mcp" });
+  });
+
+  it("never inlines a secret for cursor, kiro, opencode or pi either", () => {
+    const entries = [
+      buildCursorMcpEntry(withHeaders),
+      buildKiroMcpEntry(withHeaders),
+      buildOpenCodeMcpEntry(withHeaders),
+      buildPiMcpEntry(withHeaders),
+    ] as Array<{ headers: Record<string, string> }>;
+    for (const entry of entries) {
+      for (const value of Object.values(entry.headers)) {
+        expect(value).toMatch(/\$?\{(?:env:)?\w+\}/);
+        expect(value).not.toContain("SECURE_MCP_TOKEN=");
+      }
+    }
+  });
 });
 
 describe("claude hooks follow the settings.json nested schema", () => {
