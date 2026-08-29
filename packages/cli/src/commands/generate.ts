@@ -338,18 +338,14 @@ async function generateKiro(config: HubConfig, hubDir: string) {
 
   let mode = await getKiroMode(hubDir);
   if (!mode) {
-    const { kiroMode } = await inquirer.prompt<{ kiroMode: KiroMode }>([
-      {
-        type: "list",
-        name: "kiroMode",
-        message: "How do you use Kiro?",
-        choices: [
-          { name: "Editor / IDE (e.g. Kiro IDE, VS Code)", value: "editor" },
-          { name: "CLI (e.g. kiro-cli)", value: "cli" },
-        ],
-      },
-    ]);
-    mode = kiroMode;
+    mode = await promptChoiceOrExit<KiroMode>(
+      "How do you use Kiro?",
+      [
+        { name: "Editor / IDE (e.g. Kiro IDE, VS Code)", value: "editor" },
+        { name: "CLI (e.g. kiro-cli)", value: "cli" },
+      ],
+      'Set kiroMode ("editor" | "cli") in .hub/config.json, or run hub generate once in an interactive terminal.',
+    );
     await saveKiroMode(hubDir, mode);
     console.log(chalk.dim(`  Saved Kiro mode: ${mode}`));
   } else {
@@ -545,21 +541,34 @@ export const generators: Record<string, Generator> = {
   codex: { name: "Codex", generate: generateCodex },
 };
 
+async function promptChoiceOrExit<T extends string>(
+  message: string,
+  choices: Array<{ name: string; value: T }>,
+  nonInteractiveHint: string,
+): Promise<T> {
+  if (!process.stdin.isTTY) {
+    console.error(chalk.red(`"${message}" needs an answer, but there is no interactive terminal to ask.`));
+    console.error(chalk.yellow(`  ${nonInteractiveHint}`));
+    process.exit(1);
+  }
+  const { choice } = await inquirer.prompt<{ choice: T }>([
+    { type: "list", name: "choice", message, choices },
+  ]);
+  return choice;
+}
+
+const editorChoices = () =>
+  Object.entries(generators).map(([key, gen]) => ({ name: gen.name, value: key }));
+
 async function resolveEditor(opts: { editor?: string; resetEditor?: boolean }): Promise<string> {
   const hubDir = process.cwd();
 
   if (opts.resetEditor) {
-    const { editor } = await inquirer.prompt<{ editor: string }>([
-      {
-        type: "list",
-        name: "editor",
-        message: "Which editor do you use?",
-        choices: Object.entries(generators).map(([key, gen]) => ({
-          name: gen.name,
-          value: key,
-        })),
-      },
-    ]);
+    const editor = await promptChoiceOrExit(
+      "Which editor do you use?",
+      editorChoices(),
+      "Pass -e <editor> (pi, cursor, claude-code, kiro, opencode, codex) instead of --reset-editor in non-interactive runs.",
+    );
     const cache = await readCache(hubDir);
     delete cache.kiroMode;
     await writeCache(hubDir, cache);
@@ -571,18 +580,11 @@ async function resolveEditor(opts: { editor?: string; resetEditor?: boolean }): 
   const saved = await getSavedEditor(hubDir);
   if (saved) return saved;
 
-  const { editor } = await inquirer.prompt<{ editor: string }>([
-    {
-      type: "list",
-      name: "editor",
-      message: "No editor preference saved. Which editor do you use?",
-      choices: Object.entries(generators).map(([key, gen]) => ({
-        name: gen.name,
-        value: key,
-      })),
-    },
-  ]);
-  return editor;
+  return promptChoiceOrExit(
+    "No editor preference saved. Which editor do you use?",
+    editorChoices(),
+    "Pass -e <editor> (pi, cursor, claude-code, kiro, opencode, codex).",
+  );
 }
 
 export const generateCommand = new Command("generate")
