@@ -28,7 +28,7 @@
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
     "satori": "^0.19.2",
-    "sharp": "^0.33.0",
+    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.0",
     "three": "^0.183.2"
   },
